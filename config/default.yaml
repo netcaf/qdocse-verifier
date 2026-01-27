@@ -1,0 +1,14 @@
+# Default configuration
+executor:
+  type: local
+
+ssh:
+  host: ""
+  user: root
+  port: 22
+  key_file: ""
+  timeout: 10
+
+test:
+  timeout: 30
+  cleanup: true
