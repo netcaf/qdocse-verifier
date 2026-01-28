@@ -1,16 +1,22 @@
-"""Adjust 命令测试"""
+"""Adjust command tests"""
 import pytest
 from helpers import QDocSE
+
+# Prerequisites (auto-checked)
+pytestmark = [
+    pytest.mark.requires_mode("elevated", "learning"),
+    pytest.mark.requires_license("A"),
+]
 
 
 @pytest.mark.unit
 class TestAdjust:
-    """授权程序调整测试"""
+    """Authorized program adjustment tests."""
     
     def test_authorize_by_path(self):
-        """按路径授权"""
+        """Authorize by path."""
         QDocSE.adjust().auth_path("/bin/ls").execute()
     
     def test_block_by_path(self):
-        """按路径阻止"""
+        """Block by path."""
         QDocSE.adjust().block_path("/tmp/malware").execute()

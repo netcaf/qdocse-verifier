@@ -30,6 +30,12 @@ Test Strategy:
 import pytest
 from helpers import QDocSE
 
+# Prerequisites (auto-checked)
+pytestmark = [
+    pytest.mark.requires_mode("elevated", "learning"),
+    pytest.mark.requires_license("A"),
+]
+
 
 def cleanup_acl(acl_id: int) -> None:
     """Cleanup helper"""

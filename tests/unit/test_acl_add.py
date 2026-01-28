@@ -7,6 +7,12 @@ Options: -i <acl_id>, -a (allow), -d (deny), -u <uid>, -g <gid>,
 import pytest
 from helpers import QDocSE
 
+# Prerequisites (auto-checked)
+pytestmark = [
+    pytest.mark.requires_mode("elevated", "learning"),
+    pytest.mark.requires_license("A"),
+]
+
 
 @pytest.mark.unit
 class TestACLAddBasic:

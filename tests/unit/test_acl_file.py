@@ -35,25 +35,31 @@ Test Strategy:
 4. Integration with protect: ACLs on protected directories
 
 Fixtures used from conftest.py:
-- acl_id: 基本的 ACL（自动清理）
-- user_acl_with_allow_deny: 包含 allow 和 deny 条目的 ACL
-- program_acl: 用于程序访问控制的 ACL
-- temp_dir: 临时测试目录
-- test_dir_with_files: 包含多种文件类型的测试目录（用于 glob 模式测试）
-- protected_dir: 受保护的测试目录
+- acl_id: Basic ACL (auto cleanup)
+- user_acl_with_allow_deny: ACL with allow and deny entries
+- program_acl: ACL for program access control
+- temp_dir: Temporary test directory
+- test_dir_with_files: Test directory with multiple file types (for glob pattern testing)
+- protected_dir: Protected test directory
 """
 import pytest
 import os
 from pathlib import Path
 from helpers import QDocSE
 
+# Prerequisites (auto-checked)
+pytestmark = [
+    pytest.mark.requires_mode("elevated", "learning"),
+    pytest.mark.requires_license("A"),
+]
 
-# Note: 所有 fixtures 都在 conftest.py 中定义
-# - acl_id: 基本 ACL
-# - user_acl_with_allow_deny: 包含 allow/deny 的 ACL
-# - program_acl: 程序访问控制 ACL  
-# - temp_dir: 基本测试目录
-# - test_dir_with_files: 多文件类型测试目录
+
+# Note: All fixtures are defined in conftest.py
+# - acl_id: Basic ACL
+# - user_acl_with_allow_deny: ACL with allow/deny entries
+# - program_acl: Program access control ACL
+# - temp_dir: Basic test directory
+# - test_dir_with_files: Multi-filetype test directory
 
 
 @pytest.mark.unit
