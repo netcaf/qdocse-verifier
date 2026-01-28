@@ -79,7 +79,7 @@ class TestACLDestroyBasic:
 class TestACLDestroyWithEntries:
     """Tests for destroying ACLs that have entries"""
     
-    def test_destroy_non_empty_without_force_fails(self):
+    def test_destroy_non_empty_without_force_fails(self, some_valid_uids):
         """
         acl_destroy on non-empty ACL without -f should fail.
         
@@ -91,7 +91,7 @@ class TestACLDestroyWithEntries:
         
         try:
             # Add entry to make it non-empty
-            QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+            QDocSE.acl_add(acl_id, user=some_valid_uids[0], mode="r").execute().ok()
             
             # Try destroy without -f
             destroy_result = QDocSE.acl_destroy(acl_id).execute()
@@ -108,7 +108,7 @@ class TestACLDestroyWithEntries:
         finally:
             cleanup_acl(acl_id)
     
-    def test_destroy_non_empty_with_force_succeeds(self):
+    def test_destroy_non_empty_with_force_succeeds(self, some_valid_uids):
         """
         acl_destroy -f on non-empty ACL should succeed.
         
@@ -118,10 +118,11 @@ class TestACLDestroyWithEntries:
         create_result = QDocSE.acl_create().execute().ok()
         acl_id = create_result.parse()["acl_id"]
         
-        # Add multiple entries
-        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
-        QDocSE.acl_add(acl_id, user=1, mode="rw").execute().ok()
-        QDocSE.acl_add(acl_id, allow=False, user=2, mode="w").execute().ok()
+        # Add multiple entries using valid UIDs
+        uids = some_valid_uids[:3]
+        QDocSE.acl_add(acl_id, user=uids[0], mode="r").execute().ok()
+        QDocSE.acl_add(acl_id, user=uids[1], mode="rw").execute().ok()
+        QDocSE.acl_add(acl_id, allow=False, user=uids[2], mode="w").execute().ok()
         
         # Verify entries exist
         QDocSE.acl_list(acl_id).execute().ok().contains("Entry: 1")
@@ -137,15 +138,18 @@ class TestACLDestroyWithEntries:
         assert list_result.result.failed or \
                f"ACL ID {acl_id}" not in list_result.result.stdout
     
-    def test_destroy_force_with_many_entries(self):
+    def test_destroy_force_with_many_entries(self, valid_uids):
         """
         acl_destroy -f should work with many entries.
+        
+        Uses valid_uids fixture to ensure all user IDs exist on the system.
         """
         create_result = QDocSE.acl_create().execute().ok()
         acl_id = create_result.parse()["acl_id"]
         
-        # Add 10 entries
-        for uid in range(10):
+        # Add 10 entries using valid UIDs from system
+        test_uids = valid_uids[:10]
+        for uid in test_uids:
             QDocSE.acl_add(acl_id, user=uid, mode="r").execute().ok()
         
         # Verify 10 entries exist
@@ -216,13 +220,14 @@ class TestACLDestroyVsRemove:
     - acl_destroy: Deletes the ENTIRE ACL table
     """
     
-    def test_remove_keeps_acl_table(self, acl_id):
+    def test_remove_keeps_acl_table(self, acl_id, some_valid_uids):
         """
         acl_remove -A removes all entries but ACL table remains.
         """
-        # Add entries
-        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
-        QDocSE.acl_add(acl_id, user=1, mode="w").execute().ok()
+        # Add entries using valid UIDs
+        uids = some_valid_uids[:2]
+        QDocSE.acl_add(acl_id, user=uids[0], mode="r").execute().ok()
+        QDocSE.acl_add(acl_id, user=uids[1], mode="w").execute().ok()
         
         # Remove all entries
         QDocSE.acl_remove(acl_id, all=True).execute().ok()
@@ -282,13 +287,13 @@ class TestACLDestroyLifecycle:
 class TestACLDestroyChaining:
     """Test fluent interface for acl_destroy"""
     
-    def test_chaining_style(self):
+    def test_chaining_style(self, some_valid_uids):
         """Test fluent API"""
         create_result = QDocSE.acl_create().execute().ok()
         acl_id = create_result.parse()["acl_id"]
         
-        # Add entry
-        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+        # Add entry using valid UID
+        QDocSE.acl_add(acl_id, user=some_valid_uids[0], mode="r").execute().ok()
         
         # Use chaining
         (QDocSE.acl_destroy()
