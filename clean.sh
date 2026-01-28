@@ -36,19 +36,7 @@ find "$PROJECT_DIR" -type f -name "*.bak" -exec rm -f {} +
 # ------------------------
 # 3. Git temporary files (safe)
 # ------------------------
-echo "Cleaning Git temporary files..."
-find "$PROJECT_DIR/.git" -type f -name "*.lock" -exec rm -f {} +
-find "$PROJECT_DIR/.git/objects" -type f -name "tmp*" -exec rm -f {} +
-find "$PROJECT_DIR/.git/logs/refs" -type f -name "tmp*" -exec rm -f {} +
-
-# ------------------------
-# 4. Optional: remove Git repo entirely
-# ------------------------
-if [ "$1" == "--remove-git" ]; then
-    echo "Removing .git directory completely..."
-    rm -rf "$PROJECT_DIR/.git"
-else
-    echo "Skipping full .git removal. Pass --remove-git to delete it."
-fi
+echo "Cleaning Git files..."
+rm -rf "$PROJECT_DIR/.git"
 
 echo "Deep cleanup completed."
