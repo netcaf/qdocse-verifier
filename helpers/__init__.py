@@ -1,8 +1,4 @@
-"""
-QDocSE 测试辅助库
-
-封装 QDocSEConsole 命令的调用和断言。
-"""
+"""QDocSE test helpers - command wrappers and executors."""
 from .client import QDocSE
 from .executor import Executor, LocalExecutor, SSHExecutor
 from .result import ExecResult, CommandError

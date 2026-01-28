@@ -1,8 +1,7 @@
-"""QDocSEConsole Command Wrappers"""
+"""QDocSEConsole command wrappers."""
 import re
 import logging
-from typing import Any, Dict, List, Optional, TypeVar, Union
-from pathlib import Path
+from typing import Any, Optional, TypeVar, Union
 
 from .executor import get_executor
 from .result import ExecResult
@@ -12,16 +11,16 @@ T = TypeVar("T", bound="Command")
 
 
 class Command:
-    """Base command class"""
+    """Base command class with fluent API and assertion helpers."""
 
     EXECUTABLE = "QDocSEConsole"
 
     def __init__(self, cmd: str):
         self.cmd = cmd
-        self.args: List[str] = []
+        self.args: list[str] = []
         self._result: Optional[ExecResult] = None
 
-    def build(self) -> List[str]:
+    def build(self) -> list[str]:
         return [self.EXECUTABLE, "-c", self.cmd] + self.args
 
     def execute(self: T, timeout: int = 30) -> T:
@@ -35,7 +34,7 @@ class Command:
             raise RuntimeError("Call execute() first")
         return self._result
 
-    def parse(self) -> Dict[str, Any]:
+    def parse(self) -> dict[str, Any]:
         return {"raw": self.result.stdout, "success": self.result.success}
 
     # Assertion helpers
@@ -53,7 +52,7 @@ class Command:
             raise AssertionError(f"'{text}' not in output")
         return self
 
-    # Argument helpers
+    # Argument builders
     def _flag(self: T, f: str) -> T:
         self.args.append(f)
         return self
@@ -71,16 +70,19 @@ class Command:
 # =============================================================================
 
 class ACLCreate(Command):
+    """Create empty ACL, returns new ACL ID."""
+
     def __init__(self):
         super().__init__("acl_create")
 
-    def parse(self) -> Dict[str, Any]:
+    def parse(self) -> dict[str, Any]:
         m = re.search(r"(\d+)", self.result.stdout)
         return {"acl_id": int(m.group(1)) if m else None, "success": self.result.success}
 
 
 class ACLList(Command):
-    """List ACLs"""
+    """List ACLs or specific ACL entries."""
+
     def __init__(self, acl_id: Optional[int] = None):
         super().__init__("acl_list")
         if acl_id is not None:
@@ -91,6 +93,8 @@ class ACLList(Command):
 
 
 class ACLAdd(Command):
+    """Add entry to ACL."""
+
     def __init__(
         self,
         acl_id: Optional[int] = None,
@@ -99,6 +103,8 @@ class ACLAdd(Command):
         user: Optional[Union[str, int]] = None,
         group: Optional[Union[str, int]] = None,
         mode: Optional[str] = None,
+        time_start: Optional[str] = None,
+        time_end: Optional[str] = None,
     ):
         super().__init__("acl_add")
         if acl_id is not None:
@@ -110,8 +116,9 @@ class ACLAdd(Command):
             self._opt("-g", group)
         if mode:
             self._opt("-m", mode)
+        if time_start and time_end:
+            self._opt("-t", f"{time_start}-{time_end}")
 
-    # Fluent interface
     def acl_id(self, id: int): return self._opt("-i", id)
     def allow(self): return self._flag("-a")
     def deny(self): return self._flag("-d")
@@ -125,6 +132,8 @@ class ACLAdd(Command):
 
 
 class ACLRemove(Command):
+    """Remove entries from ACL (not the ACL itself)."""
+
     def __init__(
         self,
         acl_id: Optional[int] = None,
@@ -150,12 +159,14 @@ class ACLRemove(Command):
 
 
 class ACLEdit(Command):
+    """Edit ACL entry position."""
+
     def __init__(
         self,
         acl_id: Optional[int] = None,
         *,
         entry: Optional[int] = None,
-        position: Optional[int] = None,
+        position: Optional[Union[int, str]] = None,
     ):
         super().__init__("acl_edit")
         if acl_id is not None:
@@ -167,10 +178,12 @@ class ACLEdit(Command):
 
     def acl_id(self, id: int): return self._opt("-i", id)
     def entry(self, pos: int): return self._opt("-e", pos)
-    def position(self, pos: int): return self._opt("-p", pos)
+    def position(self, pos: Union[int, str]): return self._opt("-p", pos)
 
 
 class ACLFile(Command):
+    """Associate ACL with directory/files."""
+
     def __init__(
         self,
         directory: Optional[str] = None,
@@ -197,6 +210,8 @@ class ACLFile(Command):
 
 
 class ACLProgram(Command):
+    """Associate ACL with program."""
+
     def __init__(self, acl_id: Optional[int] = None, *, program: Optional[int] = None):
         super().__init__("acl_program")
         if acl_id is not None:
@@ -209,18 +224,8 @@ class ACLProgram(Command):
 
 
 class ACLDestroy(Command):
-    """
-    Destroy/delete an entire ACL table.
-    
-    Per PDF page 74:
-    - Destroys the specified ACL entirely when there are no entries
-    - Use -f to force destruction even if ACL has entries
-    - Different from acl_remove which only removes entries from ACL
-    
-    Options:
-        -i <acl_id>  Required. The ACL ID to destroy.
-        -f           Force destruction even if ACL has entries.
-    """
+    """Destroy entire ACL table. Use -f for non-empty ACLs."""
+
     def __init__(self, acl_id: Optional[int] = None, *, force: bool = False):
         super().__init__("acl_destroy")
         if acl_id is not None:
@@ -232,24 +237,42 @@ class ACLDestroy(Command):
     def force(self): return self._flag("-f")
 
 
+class ACLExport(Command):
+    """Export ACL configuration to file."""
+
+    def __init__(self, filename: Optional[str] = None):
+        super().__init__("acl_export")
+        if filename:
+            self._opt("-f", filename)
+
+    def file(self, path: str): return self._opt("-f", path)
+
+
+class ACLImport(Command):
+    """Import ACL configuration from file (overwrites existing)."""
+
+    def __init__(self, filename: Optional[str] = None):
+        super().__init__("acl_import")
+        if filename:
+            self._opt("-f", filename)
+
+    def file(self, path: str): return self._opt("-f", path)
+
+
 class PushConfig(Command):
-    """
-    Commit ACL configuration changes to the QDocSE system.
-    
-    Per PDF page 118:
-    - Commits changes for authorized programs, shared libraries, and ACL configuration
-    - Should review changes with acl_list, view, and view_monitored before push_config
-    - Changes are not effective until push_config is executed
-    """
+    """Commit ACL changes to QDocSE system."""
+
     def __init__(self):
         super().__init__("push_config")
 
 
 # =============================================================================
-# Other commands
+# System Commands
 # =============================================================================
 
 class Adjust(Command):
+    """Adjust authorized/blocked programs."""
+
     def __init__(self):
         super().__init__("adjust")
 
@@ -261,6 +284,8 @@ class Adjust(Command):
 
 
 class View(Command):
+    """View system configuration."""
+
     def __init__(self):
         super().__init__("view")
 
@@ -269,8 +294,8 @@ class View(Command):
     def license(self): return self._flag("-l")
     def watchpoints(self): return self._flag("-w")
 
-    def parse(self) -> Dict[str, Any]:
-        programs = []
+    def parse(self) -> dict[str, Any]:
+        programs: list[str] = []
         for line in self.result.stdout.splitlines():
             if line.strip().startswith("("):
                 parts = line.split()
@@ -280,6 +305,8 @@ class View(Command):
 
 
 class Protect(Command):
+    """Protect directory with optional encryption."""
+
     def __init__(self, directory: Optional[str] = None, *, encrypt: Optional[bool] = None):
         super().__init__("protect")
         if directory:
@@ -297,6 +324,8 @@ class Protect(Command):
 
 
 class Unprotect(Command):
+    """Remove protection from directory."""
+
     def __init__(self, directory: Optional[str] = None):
         super().__init__("unprotect")
         if directory:
@@ -306,3 +335,82 @@ class Unprotect(Command):
     def pattern(self, p: str): return self._opt("-dp", p)
     def exclude(self, p: str): return self._opt("-excl", p)
     def background(self): return self._flag("-B")
+
+
+class Encrypt(Command):
+    """Encrypt files in directory."""
+
+    def __init__(self, directory: Optional[str] = None, *, encrypt_new_only: bool = False):
+        super().__init__("encrypt")
+        if directory:
+            self._opt("-d", directory)
+        if encrypt_new_only:
+            self._flag("-N")
+
+    def dir(self, path: str): return self._opt("-d", path)
+    def pattern(self, p: str): return self._opt("-dp", p)
+    def exclude(self, p: str): return self._opt("-excl", p)
+    def user_acl(self, id: int): return self._opt("-A", id)
+    def prog_acl(self, id: int): return self._opt("-P", id)
+    def parallel_dir(self, path: str): return self._opt("-D", path)
+    def background(self): return self._flag("-B")
+    def output(self, path: str): return self._opt("-o", path)
+    def threads(self, n: int): return self._opt("-t", n)
+    def new_only(self): return self._flag("-N")
+
+
+class Unencrypt(Command):
+    """Decrypt encrypted files."""
+
+    def __init__(self, directory: Optional[str] = None):
+        super().__init__("unencrypt")
+        if directory:
+            self._opt("-d", directory)
+
+    def dir(self, path: str): return self._opt("-d", path)
+    def pattern(self, p: str): return self._opt("-dp", p)
+    def exclude(self, p: str): return self._opt("-excl", p)
+    def background(self): return self._flag("-B")
+    def threads(self, n: int): return self._opt("-t", n)
+
+
+class ShowMode(Command):
+    """Show current QDocSE operating mode."""
+
+    def __init__(self):
+        super().__init__("show_mode")
+
+    def parse(self) -> dict[str, Any]:
+        stdout = self.result.stdout.lower()
+        mode = None
+        if "de-elevated" in stdout:
+            mode = "de-elevated"
+        elif "learning" in stdout:
+            mode = "learning"
+        elif "elevated" in stdout:
+            mode = "elevated"
+        return {"mode": mode, "success": self.result.success}
+
+
+class SetMode(Command):
+    """Set QDocSE operating mode."""
+
+    def __init__(self, mode: str):
+        super().__init__("set_mode")
+        self._opt("-m", mode)
+
+    def mode(self, m: str): return self._opt("-m", m)
+
+
+class List(Command):
+    """List protected directories and configuration."""
+
+    def __init__(self):
+        super().__init__("list")
+
+    def parse(self) -> dict[str, Any]:
+        dirs: list[str] = []
+        for line in self.result.stdout.splitlines():
+            if "/" in line and ":" in line:
+                dirs.append(line.strip())
+        return {"directories": dirs, "raw": self.result.stdout, "success": self.result.success}
