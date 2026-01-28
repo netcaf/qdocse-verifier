@@ -1,15 +1,15 @@
 """
-集成测试 - 端到端工作流
+Integration Tests - End-to-End Workflows
 
 Note:
-- 使用 acl_destroy 删除整个 ACL 表（不是 acl_remove）
-- acl_remove 只删除条目，不删除表
-- ACL 配置更改需要 push_config 才能生效
+- Use acl_destroy to delete entire ACL table (not acl_remove)
+- acl_remove only deletes entries, not the table
+- ACL configuration changes require push_config to take effect
 
-测试分类：
-1. ACL 配置工作流（命令级别）
-2. ACL 与文件保护集成
-3. 完整的访问控制工作流
+Test categories:
+1. ACL configuration workflow (command level)
+2. ACL and file protection integration
+3. Complete access control workflow
 """
 import pytest
 import os
@@ -17,113 +17,113 @@ from helpers import QDocSE
 
 
 def cleanup_acl(acl_id: int) -> None:
-    """清理 ACL"""
+    """Clean up ACL"""
     QDocSE.acl_destroy(acl_id, force=True).execute()
     QDocSE.push_config().execute()
 
 
 @pytest.mark.integration
 class TestACLWorkflow:
-    """ACL 完整流程测试"""
+    """ACL Complete Workflow Tests"""
     
     def test_create_add_list_push_destroy_workflow(self):
         """
-        完整 ACL 工作流:
+        Complete ACL workflow:
         create -> add -> list -> push_config -> destroy
         """
-        # Step 1: 创建 ACL
+        # Step 1: Create ACL
         result = QDocSE.acl_create().execute().ok()
         acl_id = result.parse()["acl_id"]
         assert acl_id is not None
         
         try:
-            # Step 2: 添加条目
+            # Step 2: Add entries
             QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
             QDocSE.acl_add(acl_id, user=1, mode="rw").execute().ok()
             QDocSE.acl_add(acl_id, allow=False, user=2, mode="w").execute().ok()
             
-            # Step 3: 验证条目
+            # Step 3: Verify entries
             list_result = QDocSE.acl_list(acl_id).execute().ok()
             list_result.contains("Entry: 1")
             list_result.contains("Entry: 2")
             list_result.contains("Entry: 3")
             list_result.contains("Pending configuration")
             
-            # Step 4: 推送配置使其生效
+            # Step 4: Push config to take effect
             QDocSE.push_config().execute().ok()
             
-            # Step 5: 验证 pending 已清除
+            # Step 5: Verify pending is cleared
             list_after = QDocSE.acl_list(acl_id).execute().ok()
             assert "Pending configuration" not in list_after.result.stdout
         
         finally:
-            # Step 6: 清理 - 使用 acl_destroy 删除整个 ACL 表
+            # Step 6: Cleanup - use acl_destroy to delete entire ACL table
             QDocSE.acl_destroy(acl_id, force=True).execute()
     
     def test_create_remove_entries_vs_destroy_table(self):
         """
-        区分 acl_remove 和 acl_destroy:
-        - acl_remove: 删除条目，ACL 表仍存在
-        - acl_destroy: 删除整个 ACL 表
+        Distinguish between acl_remove and acl_destroy:
+        - acl_remove: deletes entries, ACL table still exists
+        - acl_destroy: deletes entire ACL table
         """
-        # 创建 ACL
+        # Create ACL
         result = QDocSE.acl_create().execute().ok()
         acl_id = result.parse()["acl_id"]
         
         try:
-            # 添加条目
+            # Add entry
             QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
             
-            # 使用 acl_remove -A 删除所有条目
+            # Use acl_remove -A to delete all entries
             QDocSE.acl_remove(acl_id, all=True).execute().ok()
             
-            # 验证: ACL 表仍然存在，只是为空
+            # Verify: ACL table still exists, just empty
             list_result = QDocSE.acl_list(acl_id).execute().ok()
             list_result.contains(f"ACL ID {acl_id}")
             list_result.contains("No entries")
             
-            # 现在使用 acl_destroy 删除整个表
+            # Now use acl_destroy to delete entire table
             QDocSE.acl_destroy(acl_id).execute().ok()
             
-            # 验证: ACL 表不再存在
+            # Verify: ACL table no longer exists
             list_after = QDocSE.acl_list(acl_id).execute()
             assert list_after.result.failed or \
                    f"ACL ID {acl_id}" not in list_after.result.stdout
         
         except AssertionError:
-            # 确保清理
+            # Ensure cleanup
             QDocSE.acl_destroy(acl_id, force=True).execute()
             raise
     
     def test_acl_edit_reorder_workflow(self):
         """
-        ACL 条目重排序工作流:
+        ACL entry reorder workflow:
         create -> add multiple -> edit order -> verify -> push_config
         """
         result = QDocSE.acl_create().execute().ok()
         acl_id = result.parse()["acl_id"]
         
         try:
-            # 添加 3 个条目
+            # Add 3 entries
             QDocSE.acl_add(acl_id, user=100, mode="r").execute().ok()   # Entry 1
             QDocSE.acl_add(acl_id, user=200, mode="rw").execute().ok()  # Entry 2
             QDocSE.acl_add(acl_id, user=300, mode="rwx").execute().ok() # Entry 3
             
-            # 验证初始顺序
+            # Verify initial order
             list1 = QDocSE.acl_list(acl_id).execute().ok()
             stdout1 = list1.result.stdout
             assert stdout1.find("100") < stdout1.find("200") < stdout1.find("300")
             
-            # 将 Entry 3 移到第一位
+            # Move Entry 3 to first position
             QDocSE.acl_edit(acl_id, entry=3, position=1).execute().ok()
             
-            # 验证新顺序: 300, 100, 200
+            # Verify new order: 300, 100, 200
             list2 = QDocSE.acl_list(acl_id).execute().ok()
             stdout2 = list2.result.stdout
             assert stdout2.find("300") < stdout2.find("100") < stdout2.find("200"), \
                 "Entry order should be 300, 100, 200 after reorder"
             
-            # 推送配置
+            # Push config
             QDocSE.push_config().execute().ok()
             
         finally:
@@ -132,37 +132,37 @@ class TestACLWorkflow:
 
 @pytest.mark.integration
 class TestProtectWorkflow:
-    """目录保护流程测试"""
+    """Directory Protection Workflow Tests"""
     
     def test_protect_unprotect(self, temp_dir, acl_id):
-        """保护 -> 设置ACL -> 取消保护"""
-        # 保护目录
+        """Protect -> Set ACL -> Unprotect"""
+        # Protect directory
         QDocSE.protect(temp_dir, encrypt=False).execute().ok()
         
-        # 设置 ACL
+        # Set ACL
         QDocSE.acl_file(temp_dir, user_acl=acl_id).execute().ok()
         
-        # 取消保护
+        # Unprotect
         QDocSE.unprotect(temp_dir).execute().ok()
     
     def test_protect_with_pattern(self, test_dir_with_files, acl_id):
         """
-        保护目录时使用模式匹配
+        Use pattern matching when protecting directory
         """
         try:
-            # 保护目录
+            # Protect directory
             result = QDocSE.protect(test_dir_with_files, encrypt=False).execute()
             if result.result.failed:
                 pytest.skip(f"Cannot protect: {result.result.stderr}")
             
-            # 只对 .txt 文件设置 ACL
+            # Set ACL only for .txt files
             QDocSE.acl_file(
                 test_dir_with_files,
                 user_acl=acl_id,
                 pattern="*.txt"
             ).execute().ok()
             
-            # 推送配置
+            # Push config
             QDocSE.push_config().execute().ok()
             
         finally:
@@ -171,49 +171,49 @@ class TestProtectWorkflow:
 
 @pytest.mark.integration
 class TestACLWithProtectWorkflow:
-    """ACL 与文件保护集成测试"""
+    """ACL and File Protection Integration Tests"""
     
     def test_full_protect_acl_workflow(self, temp_dir):
         """
-        完整工作流:
-        1. 创建 ACL 并添加规则
-        2. 保护目录
-        3. 将 ACL 应用到目录
-        4. push_config 使配置生效
-        5. 清理
+        Complete workflow:
+        1. Create ACL and add rules
+        2. Protect directory
+        3. Apply ACL to directory
+        4. push_config to make config effective
+        5. Cleanup
         """
-        # Step 1: 创建并配置 ACL
+        # Step 1: Create and configure ACL
         result = QDocSE.acl_create().execute().ok()
         acl_id = result.parse()["acl_id"]
         
         try:
-            # 添加 allow 规则
+            # Add allow rule
             QDocSE.acl_add(acl_id, user=0, mode="rw").execute().ok()
             
-            # Step 2: 保护目录
+            # Step 2: Protect directory
             QDocSE.protect(temp_dir, encrypt=False).execute().ok()
             
-            # Step 3: 将 ACL 应用到目录
+            # Step 3: Apply ACL to directory
             QDocSE.acl_file(temp_dir, user_acl=acl_id).execute().ok()
             
-            # Step 4: 推送配置使其生效
+            # Step 4: Push config to take effect
             QDocSE.push_config().execute().ok()
             
-            # 验证 ACL 已应用
+            # Verify ACL is applied
             list_result = QDocSE.acl_list(acl_id).execute().ok()
             assert "Pending configuration" not in list_result.result.stdout
             
         finally:
-            # Step 5: 清理
+            # Step 5: Cleanup
             QDocSE.unprotect(temp_dir).execute()
             QDocSE.acl_destroy(acl_id, force=True).execute()
     
     def test_multi_acl_protect_workflow(self, test_dir_with_files):
         """
-        多 ACL 保护工作流:
-        - 对不同文件类型应用不同的 ACL
+        Multi-ACL protection workflow:
+        - Apply different ACLs to different file types
         """
-        # 创建两个 ACL
+        # Create two ACLs
         result1 = QDocSE.acl_create().execute().ok()
         acl1 = result1.parse()["acl_id"]
         
@@ -221,28 +221,28 @@ class TestACLWithProtectWorkflow:
         acl2 = result2.parse()["acl_id"]
         
         try:
-            # 配置 ACL
-            QDocSE.acl_add(acl1, user=0, mode="r").execute().ok()    # 只读
-            QDocSE.acl_add(acl2, user=0, mode="rw").execute().ok()   # 读写
+            # Configure ACL
+            QDocSE.acl_add(acl1, user=0, mode="r").execute().ok()    # Read-only
+            QDocSE.acl_add(acl2, user=0, mode="rw").execute().ok()   # Read-write
             
-            # 保护目录
+            # Protect directory
             QDocSE.protect(test_dir_with_files, encrypt=False).execute().ok()
             
-            # 对 .txt 文件使用 ACL1 (只读)
+            # Use ACL1 for .txt files (read-only)
             QDocSE.acl_file(
                 test_dir_with_files,
                 user_acl=acl1,
                 pattern="*.txt"
             ).execute().ok()
             
-            # 对 .doc 文件使用 ACL2 (读写)
+            # Use ACL2 for .doc files (read-write)
             QDocSE.acl_file(
                 test_dir_with_files,
                 user_acl=acl2,
                 pattern="*.doc"
             ).execute().ok()
             
-            # 推送配置
+            # Push config
             QDocSE.push_config().execute().ok()
             
         finally:
@@ -253,15 +253,15 @@ class TestACLWithProtectWorkflow:
 
 @pytest.mark.integration
 class TestACLExportImportWorkflow:
-    """ACL 导出/导入工作流测试"""
+    """ACL Export/Import Workflow Tests"""
     
     def test_export_import_roundtrip(self, tmp_path):
         """
-        导出 -> 销毁 -> 导入 -> 验证
+        Export -> Destroy -> Import -> Verify
         """
         export_file = str(tmp_path / "acl_export.conf")
         
-        # 创建 ACL 并添加条目
+        # Create ACL 并添加条目
         result = QDocSE.acl_create().execute().ok()
         original_id = result.parse()["acl_id"]
         
@@ -269,22 +269,22 @@ class TestACLExportImportWorkflow:
             QDocSE.acl_add(original_id, user=0, mode="rw").execute().ok()
             QDocSE.acl_add(original_id, allow=False, user=1, mode="w").execute().ok()
             
-            # 记录原始状态
+            # Record original state
             original_list = QDocSE.acl_list(original_id).execute().ok()
             original_entry_count = original_list.result.stdout.count("Entry:")
             
-            # 导出
+            # Export
             QDocSE.acl_export(export_file).execute().ok()
             
-            # 销毁原始 ACL
+            # Destroy original ACL
             QDocSE.acl_destroy(original_id, force=True).execute().ok()
             QDocSE.push_config().execute()
             
-            # 导入
+            # Import
             QDocSE.acl_import(export_file).execute().ok()
             QDocSE.push_config().execute()
             
-            # 验证: 列出所有 ACL 检查条目被恢复
+            # Verify: list all ACLs to check entries restored
             restored_list = QDocSE.acl_list().execute().ok()
             restored_entry_count = restored_list.result.stdout.count("Entry:")
             
@@ -292,108 +292,108 @@ class TestACLExportImportWorkflow:
                 "Imported ACL should have at least as many entries as original"
             
         finally:
-            # 清理导出的文件
+            # Clean up exported file
             if os.path.exists(export_file):
                 os.unlink(export_file)
 
 
 @pytest.mark.integration
 class TestACLProgramWorkflow:
-    """ACL 程序关联工作流测试"""
+    """ACL Program Association Workflow Tests"""
     
     def test_acl_program_association(self, user_acl_with_allow_deny):
         """
-        将 ACL 关联到授权程序
+        Associate ACL with authorized program
         
-        注意: 需要系统中有授权程序
+        Note: Requires authorized programs in system
         """
         acl_id = user_acl_with_allow_deny
         
-        # 获取授权程序列表
+        # Get authorized program list
         view_result = QDocSE.view().execute()
         if view_result.result.failed:
             pytest.skip("Cannot get view output")
         
-        # 尝试关联 ACL 到程序 1
+        # Try to associate ACL with program 1
         result = QDocSE.acl_program(acl_id, program=1).execute()
         
-        # 记录结果（可能成功或失败，取决于系统是否有程序索引 1）
+        # Record result (may succeed or fail, depending on whether system has program index 1)
         if result.result.success:
             print("ACL successfully associated with program")
             QDocSE.push_config().execute().ok()
         else:
             print(f"ACL-program association failed: {result.result.stderr}")
-            # 这不一定是错误 - 可能没有授权程序
+            # This is not necessarily an error - may have no authorized programs
 
 
 @pytest.mark.integration  
 class TestCompleteACLLifecycle:
-    """完整的 ACL 生命周期测试"""
+    """Complete ACL Lifecycle Tests"""
     
     def test_full_acl_lifecycle(self, tmp_path):
         """
-        完整的 ACL 生命周期:
-        1. 创建目录和文件
-        2. 创建 ACL 并配置规则
-        3. 保护目录
-        4. 将 ACL 应用到文件
-        5. 推送配置
-        6. 验证配置
-        7. 修改 ACL（添加/删除/重排条目）
-        8. 再次推送验证
-        9. 导出 ACL 配置
-        10. 清理
+        Complete ACL lifecycle:
+        1. Create directory and files
+        2. Create ACL and configure rules
+        3. Protect directory
+        4. Apply ACL to files
+        5. Push config
+        6. Verify config
+        7. Modify ACL (add/delete/reorder entries)
+        8. Push and verify again
+        9. Export ACL config
+        10. Cleanup
         """
-        # 1. 创建目录和文件
+        # 1. Create directory and files
         test_dir = tmp_path / "lifecycle_test"
         test_dir.mkdir()
         (test_dir / "data.txt").write_text("sensitive data")
         (test_dir / "config.cfg").write_text("configuration")
         dir_path = str(test_dir)
         
-        # 2. 创建 ACL
+        # 2. Create ACL
         result = QDocSE.acl_create().execute().ok()
         acl_id = result.parse()["acl_id"]
         
-        # 添加初始规则
+        # Add initial rules
         QDocSE.acl_add(acl_id, user=0, mode="rw").execute().ok()
         QDocSE.acl_add(acl_id, user=1000, mode="r").execute().ok()
         
         try:
-            # 3. 保护目录
+            # 3. Protect directory
             protect_result = QDocSE.protect(dir_path, encrypt=False).execute()
             if protect_result.result.failed:
                 pytest.skip("Cannot protect directory")
             
-            # 4. 应用 ACL
+            # 4. Apply ACL
             QDocSE.acl_file(dir_path, user_acl=acl_id, pattern="*.txt").execute().ok()
             
-            # 5. 推送配置
+            # 5. Push config
             QDocSE.push_config().execute().ok()
             
-            # 6. 验证配置
+            # 6. Verify config
             list_result = QDocSE.acl_list(acl_id).execute().ok()
             assert "Entry: 1" in list_result.result.stdout
             assert "Entry: 2" in list_result.result.stdout
             assert "Pending configuration" not in list_result.result.stdout
             
-            # 7. 修改 ACL
-            # 添加新条目
+            # 7. Modify ACL
+            # Add new entry
             QDocSE.acl_add(acl_id, allow=False, user=65534, mode="rw").execute().ok()
-            # 删除一个条目
+            # Delete an entry
             QDocSE.acl_remove(acl_id, entry=2).execute().ok()
             
-            # 验证有 pending
+            # Verify pending exists
             list_pending = QDocSE.acl_list(acl_id).execute().ok()
             assert "Pending configuration" in list_pending.result.stdout
             
-            # 8. 再次推送
+            # 8. Push again
             QDocSE.push_config().execute().ok()
             
             list_final = QDocSE.acl_list(acl_id).execute().ok()
             assert "Pending configuration" not in list_final.result.stdout
             
-            # 9. 导出配置
+            # 9. Export config
             export_file = str(tmp_path / "acl_backup.conf")
             QDocSE.acl_export(export_file).execute().ok()
             assert os.path.exists(export_file)
@@ -401,7 +401,7 @@ class TestCompleteACLLifecycle:
             print("Full ACL lifecycle test PASSED")
             
         finally:
-            # 10. 清理
+            # 10. Cleanup
             QDocSE.unprotect(dir_path).execute()
             cleanup_acl(acl_id)
 
