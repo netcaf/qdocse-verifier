@@ -138,20 +138,37 @@ class TestNewFileInheritACL:
     
     def test_new_file_access_controlled(self, temp_dir):
         """
-        New file should be controlled by ACL
+        New file should be controlled by ACL.
+        Read-only ACL should prevent writing to new files.
         """
         acl_id = QDocSE.acl_create().execute().ok().parse()["acl_id"]
-        # Only allow read
-        QDocSE.acl_add(acl_id, allow=True, user=os.getuid(), mode="r").execute()
-        
+        # Allow read+write initially to create the file
+        QDocSE.acl_add(acl_id, allow=True, user=os.getuid(), mode="rw").execute()
+
         try:
             QDocSE.protect(temp_dir, encrypt=False) \
                 ._opt("-A", acl_id).execute()
             QDocSE.push_config().execute()
-            
-            # Create new file (may need temporary elevated permissions or create before ACL applied)
-            # Testing concept here
-            
+
+            # Create file while we have write permission
+            new_file = Path(temp_dir) / "controlled.txt"
+            new_file.write_text("controlled content")
+
+            # Verify we can read the file
+            assert new_file.read_text() == "controlled content"
+
+            # Now restrict to read-only by destroying and recreating ACL
+            QDocSE.acl_remove(acl_id, all=True).execute()
+            QDocSE.acl_add(acl_id, allow=True, user=os.getuid(), mode="r").execute()
+            QDocSE.push_config().execute()
+
+            # File should still be readable
+            assert new_file.read_text() == "controlled content"
+
+            # Write should now be denied
+            with pytest.raises(PermissionError):
+                new_file.write_text("fail")
+
         finally:
             cleanup(acl_id)
             QDocSE.unprotect(temp_dir).execute()

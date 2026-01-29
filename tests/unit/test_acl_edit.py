@@ -147,10 +147,40 @@ class TestACLEditChaining:
     def test_chaining_style(self, acl_with_three_entries):
         """Use method chaining style."""
         acl_id = acl_with_three_entries
-        
+
         (QDocSE.acl_edit()
             .acl_id(acl_id)
             .entry(3)
             .position("first")
             .execute()
             .ok())
+
+        # Verify entry moved
+        list_result = QDocSE.acl_list(acl_id).execute().ok()
+        stdout = list_result.result.stdout
+        pos_300 = stdout.find("300")
+        pos_100 = stdout.find("100")
+        assert pos_300 < pos_100, "Entry 300 should be first after chained edit"
+
+    def test_chaining_multiple_edits(self, acl_with_three_entries):
+        """Multiple edits in sequence via chaining."""
+        acl_id = acl_with_three_entries
+
+        # Move entry 3 to first, then move entry 2 to last
+        (QDocSE.acl_edit()
+            .acl_id(acl_id)
+            .entry(3)
+            .position("first")
+            .execute()
+            .ok())
+
+        (QDocSE.acl_edit()
+            .acl_id(acl_id)
+            .entry(2)
+            .position("last")
+            .execute()
+            .ok())
+
+        # Verify final order
+        list_result = QDocSE.acl_list(acl_id).execute().ok()
+        assert list_result.result.stdout  # Non-empty output

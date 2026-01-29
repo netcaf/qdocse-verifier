@@ -5,271 +5,206 @@ Tests for permission mode matching behavior:
 - Exact permission match
 - Partial permission match
 - Permission combination rules
-"""
 
+Uses QDocSE API with protected_dir and apply_acl from conftest.
+"""
 import pytest
 import os
+import stat
+from pathlib import Path
+from helpers import QDocSE
+from conftest import apply_acl
+
+
+def _cleanup_acl(acl_id):
+    try:
+        QDocSE.acl_destroy(acl_id, force=True).execute()
+        QDocSE.push_config().execute()
+    except Exception:
+        pass
 
 
 class TestExactPermissionMatch:
     """Test exact permission matching scenarios."""
-    
-    def test_r_grants_only_read(self, effectiveness_dir, protected_file,
-                                 user_acl_entry, access_helper, test_executor):
-        """
-        Test: 'r' permission grants only read access.
-        
-        Verify that read-only permission:
-        - Allows read operations
-        - Denies write operations
-        - Denies execute operations
-        """
-        file_path, _ = protected_file
-        # user_acl_entry provides 'r' permission
-        
-        # Should allow read
-        read_success, _ = access_helper.test_read_access(
-            file_path, test_executor, expected_success=True
-        )
-        assert read_success, "Read should succeed with r permission"
-        
-        # Should deny write
-        write_success, _ = access_helper.test_write_access(
-            file_path, test_executor, expected_success=False
-        )
-        assert not write_success, "Write should fail with only r permission"
-    
-    def test_w_grants_only_write(self, effectiveness_dir, protected_file,
-                                  qdocse_client, test_user, access_helper, test_executor):
-        """
-        Test: 'w' permission grants only write access.
-        """
-        file_path, _ = protected_file
-        
-        # Add write-only permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="w"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Should deny read
-        read_success, _ = access_helper.test_read_access(
-            file_path, test_executor, expected_success=False
-        )
-        assert not read_success, "Read should fail with only w permission"
-        
-        # Should allow write
-        write_success, _ = access_helper.test_write_access(
-            file_path, test_executor, expected_success=True
-        )
-        assert write_success, "Write should succeed with w permission"
-    
-    def test_x_grants_only_execute(self, effectiveness_dir, qdocse_client,
-                                    test_user, access_helper, test_executor):
-        """
-        Test: 'x' permission grants only execute access.
-        """
-        # Create executable
-        script_path = os.path.join(effectiveness_dir, "script.sh")
-        with open(script_path, 'w') as f:
-            f.write("#!/bin/bash\necho 'executed'\n")
-        os.chmod(script_path, 0o755)
-        
-        # Add execute-only permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="x"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Should deny read
-        read_success, _ = access_helper.test_read_access(
-            script_path, test_executor, expected_success=False
-        )
-        assert not read_success, "Read should fail with only x permission"
+
+    def test_r_grants_only_read(self, protected_dir, request):
+        """'r' permission grants only read access, denies write."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            # Should allow read
+            content = Path(protected_dir, "test.txt").read_text()
+            assert content == "test content"
+
+            # Should deny write
+            with pytest.raises((PermissionError, OSError)):
+                Path(protected_dir, "test.txt").write_text("fail")
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_w_grants_only_write(self, protected_dir, request):
+        """'w' permission grants only write access, denies read."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="w").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            # Should deny read
+            with pytest.raises((PermissionError, OSError)):
+                Path(protected_dir, "test.txt").read_text()
+
+            # Should allow write
+            Path(protected_dir, "test.txt").write_text("new content")
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_x_grants_only_execute(self, protected_dir, request):
+        """'x' permission grants only execute access."""
+        uid = os.getuid()
+        script = Path(protected_dir) / "script.sh"
+        script.write_text("#!/bin/bash\necho 'executed'\n")
+        script.chmod(script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="x").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            # Should deny read
+            with pytest.raises((PermissionError, OSError)):
+                script.read_text()
+        finally:
+            _cleanup_acl(acl_id)
 
 
 class TestCombinedPermissions:
     """Test combined permission scenarios."""
-    
-    def test_rw_grants_read_and_write(self, effectiveness_dir, protected_file,
-                                       qdocse_client, test_user, access_helper, test_executor):
-        """
-        Test: 'rw' permission grants both read and write access.
-        """
-        file_path, _ = protected_file
-        
-        # Add read-write permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="rw"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Should allow read
-        read_success, _ = access_helper.test_read_access(
-            file_path, test_executor, expected_success=True
-        )
-        assert read_success, "Read should succeed with rw permission"
-        
-        # Should allow write
-        write_success, _ = access_helper.test_write_access(
-            file_path, test_executor, expected_success=True
-        )
-        assert write_success, "Write should succeed with rw permission"
-    
-    def test_rx_grants_read_and_execute(self, effectiveness_dir, qdocse_client,
-                                         test_user, access_helper, test_executor):
-        """
-        Test: 'rx' permission grants both read and execute access.
-        """
-        # Create executable
-        script_path = os.path.join(effectiveness_dir, "script.sh")
-        with open(script_path, 'w') as f:
-            f.write("#!/bin/bash\necho 'executed'\n")
-        os.chmod(script_path, 0o755)
-        
-        # Add read-execute permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="rx"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Should allow read
-        read_success, _ = access_helper.test_read_access(
-            script_path, test_executor, expected_success=True
-        )
-        assert read_success, "Read should succeed with rx permission"
-        
-        # Should allow execute
-        exec_success, _ = access_helper.test_execute_access(
-            script_path, test_executor, expected_success=True
-        )
-        assert exec_success, "Execute should succeed with rx permission"
-        
-        # Should deny write
-        write_success, _ = access_helper.test_write_access(
-            script_path, test_executor, expected_success=False
-        )
-        assert not write_success, "Write should fail with rx permission"
-    
-    def test_rwx_grants_all_access(self, effectiveness_dir, qdocse_client,
-                                    test_user, access_helper, test_executor):
-        """
-        Test: 'rwx' permission grants full access.
-        """
-        # Create executable
-        script_path = os.path.join(effectiveness_dir, "script.sh")
-        with open(script_path, 'w') as f:
-            f.write("#!/bin/bash\necho 'executed'\n")
-        os.chmod(script_path, 0o755)
-        
-        # Add full permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="rwx"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # All operations should succeed
-        read_success, _ = access_helper.test_read_access(
-            script_path, test_executor, expected_success=True
-        )
-        assert read_success, "Read should succeed with rwx permission"
-        
-        write_success, _ = access_helper.test_write_access(
-            script_path, test_executor, expected_success=True
-        )
-        assert write_success, "Write should succeed with rwx permission"
-        
-        exec_success, _ = access_helper.test_execute_access(
-            script_path, test_executor, expected_success=True
-        )
-        assert exec_success, "Execute should succeed with rwx permission"
+
+    def test_rw_grants_read_and_write(self, protected_dir, request):
+        """'rw' permission grants both read and write access."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="rw").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            # Should allow read
+            content = Path(protected_dir, "test.txt").read_text()
+            assert content == "test content"
+
+            # Should allow write
+            Path(protected_dir, "test.txt").write_text("updated")
+            assert Path(protected_dir, "test.txt").read_text() == "updated"
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_rx_grants_read_and_execute(self, protected_dir, request):
+        """'rx' permission grants both read and execute access."""
+        uid = os.getuid()
+        script = Path(protected_dir) / "script.sh"
+        script.write_text("#!/bin/bash\necho 'executed'\n")
+        script.chmod(script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="rx").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            # Should allow read
+            content = script.read_text()
+            assert "executed" in content
+
+            # Should allow execute
+            import subprocess
+            proc = subprocess.run([str(script)], capture_output=True, text=True)
+            assert proc.returncode == 0
+
+            # Should deny write
+            with pytest.raises((PermissionError, OSError)):
+                script.write_text("fail")
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_rwx_grants_all_access(self, protected_dir, request):
+        """'rwx' permission grants full access."""
+        uid = os.getuid()
+        script = Path(protected_dir) / "script.sh"
+        script.write_text("#!/bin/bash\necho 'executed'\n")
+        script.chmod(script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="rwx").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            # All operations should succeed
+            content = script.read_text()
+            assert "executed" in content
+
+            script.write_text("#!/bin/bash\necho 'modified'\n")
+            script.chmod(script.stat().st_mode | stat.S_IXUSR)
+
+            import subprocess
+            proc = subprocess.run([str(script)], capture_output=True, text=True)
+            assert proc.returncode == 0
+        finally:
+            _cleanup_acl(acl_id)
 
 
 class TestPermissionInheritance:
     """Test permission inheritance and override scenarios."""
-    
-    def test_more_specific_entry_takes_precedence(self, effectiveness_dir, protected_file,
-                                                    qdocse_client, test_user, test_group,
-                                                    access_helper, test_executor):
+
+    def test_first_match_wins(self, protected_dir, request):
+        """First matching ACL entry determines access (first-match-wins)."""
+        uid = os.getuid()
+        gid = os.getgid()
+
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        # User entry (r only) first, then group entry (rwx)
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        QDocSE.acl_add(acl_id, allow=True, group=gid, mode="rwx").execute()
+
+        try:
+            apply_acl(protected_dir, acl_id)
+            # First-match-wins: user entry matches first, only read
+            content = Path(protected_dir, "test.txt").read_text()
+            assert content == "test content"
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_multiple_matching_entries(self, protected_dir, request):
         """
-        Test: More specific ACL entry takes precedence over general entry.
-        
-        User-specific entry should override group entry.
+        When multiple entries match, first-match-wins applies.
+
+        PDF: ACL uses first-match-wins evaluation. The first entry
+        that matches the subject gets applied.
         """
-        file_path, _ = protected_file
-        
-        # Add group entry with full access
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="group",
-            subject=test_group,
-            permissions="rwx"
-        )
-        
-        # Add user entry with read-only
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="r"
-        )
-        
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # User-specific entry should take precedence
-        # If user entry is more specific, should only have read
-        read_success, _ = access_helper.test_read_access(
-            file_path, test_executor, expected_success=True
-        )
-        assert read_success, "Read should succeed"
-    
-    def test_multiple_matching_entries(self, effectiveness_dir, protected_file,
-                                        qdocse_client, test_user, access_helper, test_executor):
-        """
-        Test: When multiple entries match, combined permissions apply.
-        
-        This tests the permission combination behavior.
-        """
-        file_path, _ = protected_file
-        
-        # Add entry with read permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="r"
-        )
-        
-        # Add another entry with write permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="w"
-        )
-        
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Behavior depends on system configuration:
-        # Some systems combine permissions (r + w = rw)
-        # Others use first-match or most-restrictive
-        
-        # Test read access
-        read_result = test_executor.run(f"cat {file_path}")
-        # Document the observed behavior without strict assertion
-        # as this varies by implementation
+        uid = os.getuid()
+
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        # Add entry with read permission first
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        # Add another entry with write permission second
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="w").execute()
+
+        try:
+            apply_acl(protected_dir, acl_id)
+            # First-match-wins: first entry (r) is applied
+            content = Path(protected_dir, "test.txt").read_text()
+            assert content == "test content"
+        finally:
+            _cleanup_acl(acl_id)

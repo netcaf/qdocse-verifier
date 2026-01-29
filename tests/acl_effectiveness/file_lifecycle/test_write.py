@@ -5,191 +5,157 @@ Tests for writing to files in protected directories:
 - Writing with appropriate permissions
 - Appending content
 - Truncating files
-"""
 
+Uses QDocSE API with protected_dir and apply_acl from conftest.
+"""
 import pytest
 import os
+from pathlib import Path
+from helpers import QDocSE
+from conftest import apply_acl
+
+
+def _cleanup_acl(acl_id):
+    try:
+        QDocSE.acl_destroy(acl_id, force=True).execute()
+        QDocSE.push_config().execute()
+    except Exception:
+        pass
 
 
 class TestFileWriteOperations:
     """Test file write operations in protected directories."""
-    
-    def test_write_new_content(self, effectiveness_dir, protected_file,
-                                qdocse_client, test_user, test_executor):
-        """
-        Test: Can write new content to file with write permission.
-        """
-        file_path, _ = protected_file
-        
-        # Add write permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="rw"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Write new content
-        new_content = "completely new content"
-        result = test_executor.run(f"echo '{new_content}' > {file_path}")
-        
-        assert result.returncode == 0, "Write should succeed"
-        
-        # Verify content changed
-        read_result = test_executor.run(f"cat {file_path}")
-        assert new_content in read_result.stdout
-    
-    def test_append_content(self, effectiveness_dir, protected_file,
-                             qdocse_client, test_user, test_executor):
-        """
-        Test: Can append content to file with write permission.
-        """
-        file_path, original_content = protected_file
-        
-        # Add read-write permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="rw"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Append content
-        appended = "appended text"
-        result = test_executor.run(f"echo '{appended}' >> {file_path}")
-        
-        assert result.returncode == 0, "Append should succeed"
-        
-        # Verify both original and appended content
-        read_result = test_executor.run(f"cat {file_path}")
-        assert original_content in read_result.stdout
-        assert appended in read_result.stdout
-    
-    def test_truncate_file(self, effectiveness_dir, protected_file,
-                            qdocse_client, test_user, test_executor):
-        """
-        Test: Can truncate file with write permission.
-        """
-        file_path, _ = protected_file
-        
-        # Add write permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="w"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Truncate file
-        result = test_executor.run(f"truncate -s 0 {file_path}")
-        
-        assert result.returncode == 0, "Truncate should succeed"
-        
-        # Verify file is empty
-        stat_result = test_executor.run(f"stat -c %s {file_path}")
-        assert stat_result.stdout.strip() == "0", "File should be empty"
-    
-    def test_write_binary_content(self, effectiveness_dir, qdocse_client,
-                                   test_user, test_executor):
-        """
-        Test: Can write binary content with write permission.
-        """
-        # Add write permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="w"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        # Create binary file
-        binary_file = os.path.join(effectiveness_dir, "binary.bin")
-        result = test_executor.run(
-            f"dd if=/dev/urandom of={binary_file} bs=1024 count=1 2>/dev/null"
-        )
-        
-        assert result.returncode == 0, "Binary write should succeed"
-        assert os.path.exists(binary_file)
+
+    def test_write_new_content(self, protected_dir, request):
+        """Can write new content to file with write permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="rw").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            test_file = Path(protected_dir, "test.txt")
+            new_content = "completely new content"
+            test_file.write_text(new_content)
+            assert test_file.read_text() == new_content
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_append_content(self, protected_dir, request):
+        """Can append content to file with write permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="rw").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            test_file = Path(protected_dir, "test.txt")
+            original = test_file.read_text()
+            with open(test_file, "a") as f:
+                f.write("\nappended text")
+            content = test_file.read_text()
+            assert original in content
+            assert "appended text" in content
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_truncate_file(self, protected_dir, request):
+        """Can truncate file with write permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="w").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            test_file = Path(protected_dir, "test.txt")
+            test_file.write_text("")
+            assert test_file.stat().st_size == 0
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_write_binary_content(self, protected_dir, request):
+        """Can write binary content with write permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="w").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            binary_file = Path(protected_dir) / "binary.bin"
+            binary_file.write_bytes(os.urandom(1024))
+            assert binary_file.exists()
+            assert binary_file.stat().st_size == 1024
+        finally:
+            _cleanup_acl(acl_id)
 
 
 class TestWriteDenied:
     """Test write operations that should be denied."""
-    
-    def test_write_without_permission(self, effectiveness_dir, protected_file,
-                                       unauthorized_executor):
-        """
-        Test: Cannot write to file without any permission.
-        """
-        file_path, _ = protected_file
-        
-        result = unauthorized_executor.run(f"echo 'test' > {file_path}")
-        
-        assert result.returncode != 0, "Write should fail without permission"
-    
-    def test_write_with_only_read_permission(self, effectiveness_dir, protected_file,
-                                              user_acl_entry, test_executor):
-        """
-        Test: Cannot write to file with only read permission.
-        """
-        file_path, _ = protected_file
-        # user_acl_entry provides 'r' permission
-        
-        result = test_executor.run(f"echo 'test' >> {file_path}")
-        
-        assert result.returncode != 0, "Write should fail with only r permission"
-    
-    def test_truncate_with_only_read_permission(self, effectiveness_dir, protected_file,
-                                                 user_acl_entry, test_executor):
-        """
-        Test: Cannot truncate file with only read permission.
-        """
-        file_path, _ = protected_file
-        
-        result = test_executor.run(f"truncate -s 0 {file_path}")
-        
-        assert result.returncode != 0, "Truncate should fail with only r permission"
+
+    def test_write_without_permission(self, protected_dir, request):
+        """Cannot write to file without any permission."""
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        try:
+            apply_acl(protected_dir, acl_id)
+            with pytest.raises((PermissionError, OSError)):
+                Path(protected_dir, "test.txt").write_text("fail")
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_write_with_only_read_permission(self, protected_dir, request):
+        """Cannot write to file with only read permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            with pytest.raises((PermissionError, OSError)):
+                Path(protected_dir, "test.txt").write_text("fail")
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_truncate_with_only_read_permission(self, protected_dir, request):
+        """Cannot truncate file with only read permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            with pytest.raises((PermissionError, OSError)):
+                Path(protected_dir, "test.txt").write_text("")
+        finally:
+            _cleanup_acl(acl_id)
 
 
 class TestWriteEdgeCases:
     """Edge cases for write operations."""
-    
-    def test_write_to_readonly_filesystem_file(self, effectiveness_dir, qdocse_client,
-                                                test_user, test_executor):
-        """
-        Test: Proper error when filesystem is read-only.
-        
-        This tests the interaction between ACL and filesystem permissions.
-        """
-        # This test would require mounting a read-only filesystem
-        # Documenting expected behavior: ACL allows but filesystem denies
-        pytest.skip("Requires read-only filesystem setup")
-    
-    def test_concurrent_writes(self, effectiveness_dir, qdocse_client,
-                                test_user, test_executor):
-        """
-        Test: Concurrent writes to same file.
-        
-        Multiple write operations should not corrupt file.
-        """
-        # Add write permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="w"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        test_file = os.path.join(effectiveness_dir, "concurrent.txt")
-        
-        # Simulate concurrent writes (sequential for simplicity)
-        for i in range(10):
-            result = test_executor.run(f"echo 'write {i}' >> {test_file}")
-            assert result.returncode == 0
-        
-        # Verify file is not corrupted
-        assert os.path.exists(test_file)
+
+    def test_concurrent_writes(self, protected_dir, request):
+        """Multiple sequential writes to same file."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="rw").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            test_file = Path(protected_dir) / "concurrent.txt"
+            for i in range(10):
+                with open(test_file, "a") as f:
+                    f.write(f"write {i}\n")
+
+            content = test_file.read_text()
+            assert "write 0" in content
+            assert "write 9" in content
+        finally:
+            _cleanup_acl(acl_id)

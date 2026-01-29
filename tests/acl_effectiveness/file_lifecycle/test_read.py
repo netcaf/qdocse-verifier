@@ -5,152 +5,153 @@ Tests for reading files in protected directories:
 - Reading with appropriate permissions
 - Reading file metadata
 - Reading partial content
-"""
 
+Uses QDocSE API with protected_dir and apply_acl from conftest.
+"""
 import pytest
 import os
+from pathlib import Path
+from helpers import QDocSE
+from conftest import apply_acl
+
+
+def _cleanup_acl(acl_id):
+    try:
+        QDocSE.acl_destroy(acl_id, force=True).execute()
+        QDocSE.push_config().execute()
+    except Exception:
+        pass
 
 
 class TestFileReadOperations:
     """Test file read operations in protected directories."""
-    
-    def test_read_entire_file(self, effectiveness_dir, protected_file,
-                               user_acl_entry, test_executor):
-        """
-        Test: Can read entire file with read permission.
-        """
-        file_path, original_content = protected_file
-        # user_acl_entry provides 'r' permission
-        
-        result = test_executor.run(f"cat {file_path}")
-        
-        assert result.returncode == 0, "Read should succeed"
-        assert original_content in result.stdout, "Content should match"
-    
-    def test_read_partial_file_head(self, effectiveness_dir, user_acl_entry, test_executor):
-        """
-        Test: Can read first N lines of file with head command.
-        """
-        # Create file with multiple lines
-        test_file = os.path.join(effectiveness_dir, "multiline.txt")
+
+    def test_read_entire_file(self, protected_dir, request):
+        """Can read entire file with read permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            content = Path(protected_dir, "test.txt").read_text()
+            assert content == "test content"
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_read_multiline_file(self, protected_dir, request):
+        """Can read multi-line file with read permission."""
+        uid = os.getuid()
+        multiline = Path(protected_dir) / "multiline.txt"
         lines = [f"Line {i}" for i in range(10)]
-        with open(test_file, 'w') as f:
-            f.write('\n'.join(lines))
-        
-        # Read first 3 lines
-        result = test_executor.run(f"head -3 {test_file}")
-        
-        assert result.returncode == 0, "Head should succeed"
-        assert "Line 0" in result.stdout
-        assert "Line 2" in result.stdout
-        assert "Line 5" not in result.stdout
-    
-    def test_read_partial_file_tail(self, effectiveness_dir, user_acl_entry, test_executor):
-        """
-        Test: Can read last N lines of file with tail command.
-        """
-        # Create file with multiple lines
-        test_file = os.path.join(effectiveness_dir, "multiline.txt")
-        lines = [f"Line {i}" for i in range(10)]
-        with open(test_file, 'w') as f:
-            f.write('\n'.join(lines))
-        
-        # Read last 3 lines
-        result = test_executor.run(f"tail -3 {test_file}")
-        
-        assert result.returncode == 0, "Tail should succeed"
-        assert "Line 9" in result.stdout
-        assert "Line 0" not in result.stdout
-    
-    def test_read_with_grep(self, effectiveness_dir, user_acl_entry, test_executor):
-        """
-        Test: Can search file content with grep.
-        """
-        # Create file with searchable content
-        test_file = os.path.join(effectiveness_dir, "searchable.txt")
-        content = "apple\nbanana\ncherry\napricot\n"
-        with open(test_file, 'w') as f:
-            f.write(content)
-        
-        # Search for pattern
-        result = test_executor.run(f"grep 'ap' {test_file}")
-        
-        assert result.returncode == 0, "Grep should succeed"
-        assert "apple" in result.stdout
-        assert "apricot" in result.stdout
-        assert "banana" not in result.stdout
+        multiline.write_text("\n".join(lines))
+
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            content = multiline.read_text()
+            assert "Line 0" in content
+            assert "Line 9" in content
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_read_with_search_pattern(self, protected_dir, request):
+        """Can search file content with read permission."""
+        uid = os.getuid()
+        searchable = Path(protected_dir) / "searchable.txt"
+        searchable.write_text("apple\nbanana\ncherry\napricot\n")
+
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            content = searchable.read_text()
+            assert "apple" in content
+            assert "apricot" in content
+            assert "banana" in content
+        finally:
+            _cleanup_acl(acl_id)
 
 
 class TestFileMetadataRead:
     """Test reading file metadata in protected directories."""
-    
-    def test_stat_file(self, effectiveness_dir, protected_file,
-                        user_acl_entry, test_executor):
-        """
-        Test: Can stat file to get metadata with read permission.
-        """
-        file_path, _ = protected_file
-        
-        result = test_executor.run(f"stat {file_path}")
-        
-        assert result.returncode == 0, "Stat should succeed"
-        assert "File:" in result.stdout or "file:" in result.stdout.lower()
-    
-    def test_list_directory(self, effectiveness_dir, protected_file,
-                             user_acl_entry, test_executor):
-        """
-        Test: Can list directory contents with read permission.
-        """
-        result = test_executor.run(f"ls -la {effectiveness_dir}")
-        
-        assert result.returncode == 0, "Directory listing should succeed"
-        assert "test_file.txt" in result.stdout
-    
-    def test_get_file_size(self, effectiveness_dir, protected_file,
-                            user_acl_entry, test_executor):
-        """
-        Test: Can get file size with read permission.
-        """
-        file_path, original_content = protected_file
-        
-        result = test_executor.run(f"wc -c < {file_path}")
-        
-        assert result.returncode == 0, "wc should succeed"
-        # File size should be at least the content length
-        size = int(result.stdout.strip())
-        assert size >= len(original_content)
+
+    def test_stat_file(self, protected_dir, request):
+        """Can stat file to get metadata with read permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            test_file = Path(protected_dir, "test.txt")
+            st = test_file.stat()
+            assert st.st_size > 0
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_list_directory(self, protected_dir, request):
+        """Can list directory contents with read permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            files = os.listdir(protected_dir)
+            assert "test.txt" in files
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_get_file_size(self, protected_dir, request):
+        """Can get file size with read permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            test_file = Path(protected_dir, "test.txt")
+            size = test_file.stat().st_size
+            assert size >= len("test content")
+        finally:
+            _cleanup_acl(acl_id)
 
 
 class TestReadDenied:
     """Test read operations that should be denied."""
-    
-    def test_read_without_permission(self, effectiveness_dir, protected_file,
-                                      unauthorized_executor):
-        """
-        Test: Cannot read file without any permission.
-        """
-        file_path, _ = protected_file
-        
-        result = unauthorized_executor.run(f"cat {file_path}")
-        
-        assert result.returncode != 0, "Read should fail without permission"
-    
-    def test_read_with_only_write_permission(self, effectiveness_dir, protected_file,
-                                              qdocse_client, test_user, test_executor):
-        """
-        Test: Cannot read file with only write permission.
-        """
-        file_path, _ = protected_file
-        
-        # Add write-only permission
-        qdocse_client.acl_add(
-            path=effectiveness_dir,
-            subject_type="user",
-            subject=test_user,
-            permissions="w"
-        )
-        qdocse_client.acl_push(effectiveness_dir)
-        
-        result = test_executor.run(f"cat {file_path}")
-        
-        assert result.returncode != 0, "Read should fail with only w permission"
+
+    def test_read_without_permission(self, protected_dir, request):
+        """Cannot read file without any permission."""
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        try:
+            apply_acl(protected_dir, acl_id)
+            with pytest.raises((PermissionError, OSError)):
+                Path(protected_dir, "test.txt").read_text()
+        finally:
+            _cleanup_acl(acl_id)
+
+    def test_read_with_only_write_permission(self, protected_dir, request):
+        """Cannot read file with only write permission."""
+        uid = os.getuid()
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="w").execute()
+        try:
+            apply_acl(protected_dir, acl_id)
+            with pytest.raises((PermissionError, OSError)):
+                Path(protected_dir, "test.txt").read_text()
+        finally:
+            _cleanup_acl(acl_id)

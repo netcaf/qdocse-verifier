@@ -148,3 +148,55 @@ class TestACLListErrors:
         """Negative ACL ID."""
         result = QDocSE.acl_list(-1).execute()
         result.fail()
+
+    def test_zero_acl_id(self):
+        """ACL ID 0 is built-in, should be listable."""
+        result = QDocSE.acl_list(0).execute()
+        # ACL 0 is the built-in "Allow All" ACL
+        result.ok()
+        result.contains("ACL ID 0")
+
+
+@pytest.mark.unit
+class TestACLListBuiltIn:
+    """Built-in ACL tests."""
+
+    def test_builtin_acl_0_always_exists(self):
+        """ACL 0 is built-in and always present."""
+        result = QDocSE.acl_list(0).execute().ok()
+        result.contains("ACL ID 0")
+
+    def test_builtin_acl_0_in_full_list(self):
+        """ACL 0 appears in the full list."""
+        result = QDocSE.acl_list().execute().ok()
+        result.contains("ACL ID 0")
+
+
+@pytest.mark.unit
+class TestACLListChaining:
+    """Method chaining tests."""
+
+    def test_chaining_style(self):
+        """Use method chaining style."""
+        result = QDocSE.acl_create().execute().ok()
+        acl_id = result.parse()["acl_id"]
+
+        try:
+            (QDocSE.acl_list()
+                .acl_id(acl_id)
+                .execute()
+                .ok()
+                .contains(f"ACL ID {acl_id}"))
+        finally:
+            cleanup_acl(acl_id)
+
+    def test_chaining_with_entries(self, acl_id):
+        """Chaining with entry verification."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+
+        (QDocSE.acl_list()
+            .acl_id(acl_id)
+            .execute()
+            .ok()
+            .contains("Entry:")
+            .contains("Allow"))
