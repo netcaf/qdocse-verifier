@@ -1,7 +1,11 @@
 """Session-level fixtures for test configuration and cleanup."""
+import re
 import os
+import logging
 import pytest
 from helpers import QDocSE
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
@@ -83,15 +87,33 @@ def setup_executor(target_config):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def session_cleanup():
-    """Session-level cleanup: ensure no pending config remains."""
-    yield
+def purge_stale_acls(setup_executor):
+    """Purge all existing ACLs before test session starts.
+
+    This ensures a clean slate regardless of how previous runs ended
+    (crash, interrupt, failed cleanup, etc.).  Post-test state is
+    deliberately preserved so failures can be inspected manually via
+    ``QDocSEConsole -c acl_list``.
+    """
     try:
-        result = QDocSE.push_config().execute()
+        result = QDocSE.acl_list().execute()
         if result.result.success:
-            print("\n[Session Cleanup] push_config executed")
+            acl_ids = [int(m) for m in re.findall(r"ACL ID (\d+)", result.result.stdout)]
+            destroyed = 0
+            for aid in acl_ids:
+                try:
+                    QDocSE.acl_destroy(aid, force=True).execute()
+                    destroyed += 1
+                except Exception:
+                    logger.warning("Failed to destroy ACL ID %s", aid)
+            if destroyed:
+                QDocSE.push_config().execute()
+                logger.info("[Pre-run purge] Destroyed %d stale ACL(s)", destroyed)
+            else:
+                logger.info("[Pre-run purge] No stale ACLs found")
     except Exception as e:
-        print(f"\n[Session Cleanup] push_config failed: {e}")
+        logger.warning("[Pre-run purge] Could not list ACLs: %s", e)
+    yield
 
 
 @pytest.fixture(scope="module")
