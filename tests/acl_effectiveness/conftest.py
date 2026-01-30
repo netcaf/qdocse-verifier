@@ -1,19 +1,14 @@
-"""ACL Effectiveness Tests - Shared Fixtures"""
+"""ACL Effectiveness Tests - Shared Fixtures
+
+ACL cleanup is handled by the session-level purge_stale_acls fixture.
+Post-test state is preserved for manual inspection on failure.
+"""
 import pytest
 import os
 import tempfile
 import shutil
 from pathlib import Path
 from helpers import QDocSE
-
-
-def _cleanup_acl(acl_id):
-    """Clean up ACL"""
-    try:
-        QDocSE.acl_destroy(acl_id, force=True).execute()
-        QDocSE.push_config().execute()
-    except Exception:
-        pass
 
 
 # =============================================================================
@@ -53,61 +48,54 @@ def encrypted_dir(temp_dir, request):
 # =============================================================================
 
 @pytest.fixture
-def empty_acl(request):
+def empty_acl():
     """Empty ACL (default deny)"""
     result = QDocSE.acl_create().execute().ok()
-    acl_id = result.parse()["acl_id"]
-    request.addfinalizer(lambda: _cleanup_acl(acl_id))
-    return acl_id
+    return result.parse()["acl_id"]
 
 
 @pytest.fixture
-def allow_r_acl(request):
+def allow_r_acl():
     """Allow read"""
     result = QDocSE.acl_create().execute().ok()
     acl_id = result.parse()["acl_id"]
     QDocSE.acl_add(acl_id, allow=True, user=os.getuid(), mode="r").execute()
-    request.addfinalizer(lambda: _cleanup_acl(acl_id))
     return acl_id
 
 
 @pytest.fixture
-def allow_w_acl(request):
+def allow_w_acl():
     """Allow write"""
     result = QDocSE.acl_create().execute().ok()
     acl_id = result.parse()["acl_id"]
     QDocSE.acl_add(acl_id, allow=True, user=os.getuid(), mode="w").execute()
-    request.addfinalizer(lambda: _cleanup_acl(acl_id))
     return acl_id
 
 
 @pytest.fixture
-def allow_rw_acl(request):
+def allow_rw_acl():
     """Allow read and write"""
     result = QDocSE.acl_create().execute().ok()
     acl_id = result.parse()["acl_id"]
     QDocSE.acl_add(acl_id, allow=True, user=os.getuid(), mode="rw").execute()
-    request.addfinalizer(lambda: _cleanup_acl(acl_id))
     return acl_id
 
 
 @pytest.fixture
-def allow_rwx_acl(request):
+def allow_rwx_acl():
     """Allow all permissions"""
     result = QDocSE.acl_create().execute().ok()
     acl_id = result.parse()["acl_id"]
     QDocSE.acl_add(acl_id, allow=True, user=os.getuid(), mode="rwx").execute()
-    request.addfinalizer(lambda: _cleanup_acl(acl_id))
     return acl_id
 
 
 @pytest.fixture
-def deny_acl(request):
+def deny_acl():
     """Deny current user"""
     result = QDocSE.acl_create().execute().ok()
     acl_id = result.parse()["acl_id"]
     QDocSE.acl_add(acl_id, allow=False, user=os.getuid(), mode="rwx").execute()
-    request.addfinalizer(lambda: _cleanup_acl(acl_id))
     return acl_id
 
 
