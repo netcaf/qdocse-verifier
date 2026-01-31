@@ -7,6 +7,13 @@ Options: -i <acl_id>, -a (allow), -d (deny), -u <uid>, -g <gid>,
 import pytest
 from helpers import QDocSE
 
+# Map short mode strings to the acl_list display format (e.g. "r" -> "r--")
+MODE_DISPLAY = {
+    "r": "r--", "w": "-w-", "x": "--x",
+    "rw": "rw-", "rx": "r-x", "wx": "-wx",
+    "rwx": "rwx",
+}
+
 # Prerequisites (auto-checked)
 pytestmark = [
     pytest.mark.requires_mode("elevated", "learning"),
@@ -20,19 +27,31 @@ class TestACLAddBasic:
 
     def test_add_user_entry(self, acl_id):
         QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
-        QDocSE.acl_list(acl_id).execute().ok().contains("Entry:")
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Allow")
+        result.contains("User: 0")
+        result.contains("Mode: r--")
 
     def test_add_group_entry(self, acl_id):
         QDocSE.acl_add(acl_id, group=0, mode="r").execute().ok()
-        QDocSE.acl_list(acl_id).execute().ok().contains("Entry:")
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Allow")
+        result.contains("Group: 0")
+        result.contains("Mode: r--")
 
     def test_add_allow_entry(self, acl_id):
         QDocSE.acl_add(acl_id, allow=True, user=0, mode="r").execute().ok()
-        QDocSE.acl_list(acl_id).execute().ok().contains("Allow")
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Allow")
+        result.contains("User: 0")
+        result.contains("Mode: r--")
 
     def test_add_deny_entry(self, acl_id):
         QDocSE.acl_add(acl_id, allow=False, user=0, mode="w").execute().ok()
-        QDocSE.acl_list(acl_id).execute().ok().contains("Deny")
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Deny")
+        result.contains("User: 0")
+        result.contains("Mode: -w-")
 
 
 @pytest.mark.unit
@@ -42,7 +61,8 @@ class TestACLAddModes:
     @pytest.mark.parametrize("mode", ["r", "w", "x", "rw", "rx", "wx", "rwx"])
     def test_valid_modes(self, acl_id, mode):
         QDocSE.acl_add(acl_id, user=0, mode=mode).execute().ok()
-        QDocSE.acl_list(acl_id).execute().ok().contains("Entry:")
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains(f"Mode: {MODE_DISPLAY[mode]}")
 
     @pytest.mark.parametrize("mode,desc", [
         ("", "empty"),
@@ -61,13 +81,19 @@ class TestACLAddSubjects:
     @pytest.mark.parametrize("uid", [0, 1, 65534])
     def test_common_uids(self, acl_id, uid):
         QDocSE.acl_add(acl_id, user=uid, mode="r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains(f"User: {uid}")
 
     @pytest.mark.parametrize("gid", [0, 1])
     def test_common_gids(self, acl_id, gid):
         QDocSE.acl_add(acl_id, group=gid, mode="r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains(f"Group: {gid}")
 
     def test_user_by_name(self, acl_id):
         QDocSE.acl_add(acl_id, user="root", mode="r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("User: 0 (root)")
 
     def test_no_subject_should_fail(self, acl_id):
         QDocSE.acl_add(acl_id, mode="r").execute().fail("Must specify user or group")
@@ -109,13 +135,20 @@ class TestACLAddMultiple:
         result.contains("Entry: 1")
         result.contains("Entry: 2")
         result.contains("Entry: 3")
+        result.contains("User: 0")
+        result.contains("User: 1")
+        result.contains("User: 2")
+        result.contains("Mode: r--")
+        result.contains("Mode: -w-")
+        result.contains("Mode: --x")
 
     def test_entries_order(self, acl_id):
         QDocSE.acl_add(acl_id, user=100, mode="r").execute().ok()
         QDocSE.acl_add(acl_id, user=200, mode="w").execute().ok()
 
         stdout = QDocSE.acl_list(acl_id).execute().ok().result.stdout
-        assert stdout.find("100") < stdout.find("200"), "Entries should be in add order"
+        assert stdout.find("User: 100") < stdout.find("User: 200"), \
+            "Entries should be in add order"
 
 
 @pytest.mark.unit
@@ -138,7 +171,14 @@ class TestACLAddChaining:
 
     def test_chaining_style(self, acl_id):
         QDocSE.acl_add().acl_id(acl_id).user(0).mode("rw").execute().ok()
-        QDocSE.acl_list(acl_id).execute().ok().contains("Entry:")
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Allow")
+        result.contains("User: 0")
+        result.contains("Mode: rw-")
 
     def test_chaining_with_time(self, acl_id):
         QDocSE.acl_add().acl_id(acl_id).user(0).mode("r").time("09:00:00-17:00:00").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("User: 0")
+        result.contains("Mode: r--")
+        result.contains("09:00:00-17:00:00")
