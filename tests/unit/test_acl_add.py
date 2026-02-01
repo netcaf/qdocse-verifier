@@ -225,18 +225,19 @@ class TestACLAddTime:
 class TestACLAddMultiple:
     """Multiple entries tests."""
 
-    def test_add_multiple_entries(self, acl_id):
-        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
-        QDocSE.acl_add(acl_id, user=1, mode="w").execute().ok()
-        QDocSE.acl_add(acl_id, user=2, mode="x").execute().ok()
+    def test_add_multiple_entries(self, acl_id, some_valid_uids):
+        uid_a, uid_b, uid_c = some_valid_uids[:3]
+        QDocSE.acl_add(acl_id, user=uid_a, mode="r").execute().ok()
+        QDocSE.acl_add(acl_id, user=uid_b, mode="w").execute().ok()
+        QDocSE.acl_add(acl_id, user=uid_c, mode="x").execute().ok()
 
         result = QDocSE.acl_list(acl_id).execute().ok()
         result.contains("Entry: 1")
         result.contains("Entry: 2")
         result.contains("Entry: 3")
-        result.contains("User: 0")
-        result.contains("User: 1")
-        result.contains("User: 2")
+        result.contains(f"User: {uid_a}")
+        result.contains(f"User: {uid_b}")
+        result.contains(f"User: {uid_c}")
         result.contains("Mode: r--")
         result.contains("Mode: -w-")
         result.contains("Mode: --x")
@@ -263,6 +264,79 @@ class TestACLAddErrors:
 
     def test_missing_mode(self, acl_id):
         QDocSE.acl_add(acl_id, user=0).execute().fail("Mode is required")
+
+
+@pytest.mark.unit
+class TestACLAddDuplicate:
+    """Subject uniqueness — one entry per subject (user/group) per ACL."""
+
+    def test_duplicate_same_type_same_mode(self, acl_id):
+        """Exact duplicate is rejected."""
+        QDocSE.acl_add(acl_id, allow=True, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_add(acl_id, allow=True, user=0, mode="r").execute()
+        result.fail("duplicate same type same mode")
+        result.contains("Duplicate ACL entries are not allowed")
+
+    def test_duplicate_same_type_different_mode(self, acl_id):
+        """Same type + same subject but different mode is still rejected."""
+        QDocSE.acl_add(acl_id, allow=True, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_add(acl_id, allow=True, user=0, mode="w").execute()
+        result.fail("duplicate same type different mode")
+        result.contains("Duplicate ACL entries are not allowed")
+
+    def test_conflict_different_type(self, acl_id):
+        """Allow + deny for the same subject is rejected as conflict."""
+        QDocSE.acl_add(acl_id, allow=True, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_add(acl_id, allow=False, user=0, mode="w").execute()
+        result.fail("conflict different type same subject")
+        result.contains("New ACL entry conflicts with an existing one")
+
+    def test_duplicate_same_type_different_time(self, acl_id):
+        """Same subject with different time windows is still rejected."""
+        QDocSE.acl_add(acl_id, allow=True, user=0, mode="r") \
+            .time("mon-09:00:00-12:00:00").execute().ok()
+        result = QDocSE.acl_add(acl_id, allow=True, user=0, mode="r") \
+            .time("fri-13:00:00-17:00:00").execute()
+        result.fail("duplicate different time")
+        result.contains("Duplicate ACL entries are not allowed")
+
+    def test_duplicate_user_by_name_and_uid(self, acl_id):
+        """'root' and '0' resolve to the same subject."""
+        QDocSE.acl_add(acl_id, user="root", mode="r").execute().ok()
+        result = QDocSE.acl_add(acl_id, user=0, mode="w").execute()
+        result.fail("root and UID 0 are the same subject")
+        result.contains("Duplicate ACL entries are not allowed")
+
+    def test_duplicate_group(self, acl_id):
+        """Group subject uniqueness follows the same rule."""
+        QDocSE.acl_add(acl_id, group=0, mode="r").execute().ok()
+        result = QDocSE.acl_add(acl_id, group=0, mode="w").execute()
+        result.fail("duplicate group")
+        result.contains("Duplicate ACL entries are not allowed")
+
+    def test_conflict_group_different_type(self, acl_id):
+        """Allow + deny for the same group is rejected as conflict."""
+        QDocSE.acl_add(acl_id, allow=True, group=0, mode="r").execute().ok()
+        result = QDocSE.acl_add(acl_id, allow=False, group=0, mode="w").execute()
+        result.fail("conflict different type same group")
+        result.contains("New ACL entry conflicts with an existing one")
+
+    def test_user_and_group_same_id_coexist(self, acl_id):
+        """User and group are separate namespaces — same numeric ID is OK."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+        QDocSE.acl_add(acl_id, group=0, mode="r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("User: 0")
+        result.contains("Group: 0")
+
+    def test_different_users_coexist(self, acl_id, some_valid_uids):
+        """Different users can coexist in the same ACL."""
+        uid_a, uid_b = some_valid_uids[0], some_valid_uids[1]
+        QDocSE.acl_add(acl_id, user=uid_a, mode="r").execute().ok()
+        QDocSE.acl_add(acl_id, user=uid_b, mode="r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains(f"User: {uid_a}")
+        result.contains(f"User: {uid_b}")
 
 
 @pytest.mark.unit
