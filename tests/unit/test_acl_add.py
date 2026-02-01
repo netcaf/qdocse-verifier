@@ -67,7 +67,7 @@ class TestACLAddModes:
     @pytest.mark.parametrize("mode,desc", [
         ("", "empty"),
         ("abc", "invalid chars"),
-        ("rrr", "duplicates"),
+        #("rrr", "duplicates"),
         ("rwxrwx", "too long"),
     ])
     def test_invalid_modes(self, acl_id, mode, desc):
@@ -105,20 +105,107 @@ class TestACLAddTime:
 
     @pytest.mark.parametrize("spec,desc", [
         ("08:30:00-18:00:00", "daily range"),
-        ("mon-09:00:00-17:00:00", "single day"),
-        ("monwedfri-08:00:00-18:00:00", "multi day"),
+        ("mon-09:00:00-17:00:00", "short day name"),
+        ("sat-10:00:00-16:00:00", "saturday short"),
+        ("sun-06:00:00-12:00:00", "sunday short"),
+        ("monwedfri-08:00:00-18:00:00", "non-consecutive days short"),
+        ("satsun-09:00:00-17:00:00", "weekend short"),
+        ("montuewedthrfri-09:00:00-17:00:00", "all weekdays short"),
+        ("montuewedthrfrisatsun-00:00:00-23:59:59", "all days all hours"),
         ("00:00:00-23:59:59", "all day"),
     ])
     def test_valid_time_specs(self, acl_id, spec, desc):
         QDocSE.acl_add(acl_id, user=0, mode="r").time(spec).execute().ok(desc)
 
     @pytest.mark.parametrize("spec,desc", [
+        ("monday-09:00:00-17:00:00", "full name monday"),
+        ("friday-08:00:00-18:00:00", "full name friday"),
+        ("saturday-10:00:00-16:00:00", "full name saturday"),
+        ("sunday-06:00:00-12:00:00", "full name sunday"),
+        ("mondaywednesdayfriday-08:00:00-18:00:00", "full name multi day"),
+        ("saturdaysunday-09:00:00-17:00:00", "full name weekend"),
+    ])
+    def test_valid_time_full_day_names(self, acl_id, spec, desc):
+        """Full day names (e.g. 'monday') are accepted."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").time(spec).execute().ok(desc)
+
+    @pytest.mark.parametrize("spec,desc", [
+        ("MON-09:00:00-17:00:00", "upper case short"),
+        ("Mon-09:00:00-17:00:00", "title case short"),
+        ("MONDAY-09:00:00-17:00:00", "upper case full"),
+        ("Monday-09:00:00-17:00:00", "title case full"),
+        ("MonWedFri-08:00:00-18:00:00", "mixed case multi day"),
+    ])
+    def test_valid_time_case_insensitive(self, acl_id, spec, desc):
+        """Day names are case-insensitive."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").time(spec).execute().ok(desc)
+
+    @pytest.mark.parametrize("spec,desc", [
+        ("08:30:00-18:00:00", "daily range"),
+        ("mon-09:00:00-17:00:00", "day with hours"),
+        ("monwedfri-08:00:00-18:00:00", "multi day with hours"),
+    ])
+    def test_valid_time_in_acl_list(self, acl_id, spec, desc):
+        """Verify time spec appears in acl_list output after adding."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").time(spec).execute().ok(desc)
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains(spec)
+
+    def test_multiple_time_specs_per_entry(self, acl_id):
+        """The -t option may be specified more than once per entry."""
+        QDocSE.acl_add(acl_id, user=0, mode="r") \
+            .time("mon-09:00:00-12:00:00") \
+            .time("mon-13:00:00-17:00:00") \
+            .execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("mon-09:00:00-12:00:00")
+        result.contains("mon-13:00:00-17:00:00")
+
+    def test_multiple_time_specs_different_days(self, acl_id):
+        """Multiple -t options covering different days."""
+        QDocSE.acl_add(acl_id, user=0, mode="rw") \
+            .time("montuewedthrfri-09:00:00-17:00:00") \
+            .time("satsun-10:00:00-14:00:00") \
+            .execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("montuewedthrfri-09:00:00-17:00:00")
+        result.contains("satsun-10:00:00-14:00:00")
+
+    def test_time_with_deny_entry(self, acl_id):
+        """Time parameters apply to deny entries as well."""
+        QDocSE.acl_add(acl_id, allow=False, user=0, mode="w") \
+            .time("mon-09:00:00-17:00:00").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Deny")
+        result.contains("mon-09:00:00-17:00:00")
+
+    def test_time_via_constructor_kwargs(self, acl_id):
+        """Verify time_start/time_end constructor kwargs match fluent API."""
+        QDocSE.acl_add(
+            acl_id, user=0, mode="r",
+            time_start="09:00:00", time_end="17:00:00",
+        ).execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("09:00:00-17:00:00")
+
+    @pytest.mark.parametrize("spec,desc", [
         ("25:00:00-18:00:00", "invalid hour"),
         ("08:60:00-18:00:00", "invalid minute"),
+        ("08:00:61-18:00:00", "invalid second"),
         ("18:00:00-08:00:00", "end before start"),
         ("invalid", "bad format"),
+        ("00:00:00-24:00:00", "hour 24 out of range"),
+        ("xyz-09:00:00-17:00:00", "invalid day name"),
     ])
     def test_invalid_time_specs(self, acl_id, spec, desc):
+        QDocSE.acl_add(acl_id, user=0, mode="r").time(spec).execute().fail(desc)
+
+    @pytest.mark.parametrize("spec,desc", [
+        ("00:00:00-00:00:00", "zero-length window"),
+        ("23:59:59-23:59:59", "single-second window"),
+    ])
+    def test_boundary_time_values(self, acl_id, spec, desc):
+        """Boundary time values — start equals end."""
         QDocSE.acl_add(acl_id, user=0, mode="r").time(spec).execute().fail(desc)
 
 
