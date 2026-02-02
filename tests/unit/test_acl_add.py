@@ -211,7 +211,7 @@ class TestACLAddTime:
     def test_invalid_time_specs(self, acl_id, spec, desc):
         QDocSE.acl_add(acl_id, user=0, mode="r").time(spec).execute().fail(desc)
 
-    @pytest.mark.xfail(reason="Do we need to check this condition?")
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
     @pytest.mark.parametrize("spec,desc", [
         ("00:00:00-00:00:00", "zero-length window"),
         ("23:59:59-23:59:59", "single-second window"),

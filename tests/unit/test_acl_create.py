@@ -315,7 +315,7 @@ class TestACLIDZeroReserved:
         # ACL 0 should either:
         # - Be listed with "allow" semantics, or
         # - Return special message indicating built-in status
-        assert result.result.success or "built-in" in result.result.output.lower()
+        assert result.result.success or "built-in" in result.result.stdout.lower()
 
     def test_cannot_add_entry_to_acl_zero(self):
         """acl_add to ACL ID 0 should fail."""
