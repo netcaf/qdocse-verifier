@@ -171,6 +171,28 @@ class TestACLEditPosition:
 
 
 @pytest.mark.unit
+class TestACLEditPositionCase:
+    """Position keyword case-sensitivity tests.
+
+    The PDF documents keywords as lowercase: "up", "down", "top", "bottom",
+    "first", "last", "begin", "end". These tests verify whether alternative
+    casings are accepted or rejected.
+    """
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    @pytest.mark.parametrize("keyword", [
+        "Up", "UP", "Down", "DOWN", "Top", "TOP", "Bottom", "BOTTOM",
+        "First", "FIRST", "Last", "LAST", "Begin", "BEGIN", "End", "END",
+    ])
+    def test_position_keyword_case(self, acl_with_three_entries, keyword):
+        """Position keywords in non-lowercase casing."""
+        acl_id, _ = acl_with_three_entries
+        QDocSE.acl_edit(acl_id, entry=1, position=keyword).execute().ok(
+            f"keyword '{keyword}' should be accepted"
+        )
+
+
+@pytest.mark.unit
 class TestACLEditNoChange:
     """Tests for 'No change' scenarios.
 
@@ -262,10 +284,18 @@ class TestACLEditErrors:
 
     @pytest.mark.xfail(reason="temporary failure, will fix later")
     def test_invalid_position(self, acl_with_three_entries):
-        """Invalid target position should fail."""
+        """Invalid numeric position (out of range) should fail."""
         acl_id, _ = acl_with_three_entries
         QDocSE.acl_edit(acl_id, entry=1, position=999).execute().fail(
             "Should fail for invalid position"
+        )
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    def test_invalid_position_keyword(self, acl_with_three_entries):
+        """Invalid position keyword string should fail."""
+        acl_id, _ = acl_with_three_entries
+        QDocSE.acl_edit(acl_id, entry=1, position="sideways").execute().fail(
+            "Should fail for invalid position keyword"
         )
 
     @pytest.mark.xfail(reason="temporary failure, will fix later")
@@ -281,6 +311,29 @@ class TestACLEditErrors:
         acl_id, _ = acl_with_three_entries
         QDocSE.acl_edit(acl_id, entry=1, position=-1).execute().fail(
             "Should fail for negative position"
+        )
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    def test_zero_entry(self, acl_with_three_entries):
+        """Entry 0 is not valid (entries are 1-indexed)."""
+        acl_id, _ = acl_with_three_entries
+        QDocSE.acl_edit(acl_id, entry=0, position=1).execute().fail(
+            "Should fail for entry 0"
+        )
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    def test_zero_position(self, acl_with_three_entries):
+        """Position 0 is not valid (positions are 1-indexed)."""
+        acl_id, _ = acl_with_three_entries
+        QDocSE.acl_edit(acl_id, entry=1, position=0).execute().fail(
+            "Should fail for position 0"
+        )
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    def test_edit_empty_acl(self, acl_id):
+        """acl_edit on an ACL with no entries should fail."""
+        QDocSE.acl_edit(acl_id, entry=1, position="up").execute().fail(
+            "Should fail for empty ACL"
         )
 
     @pytest.mark.xfail(reason="temporary failure, will fix later")
