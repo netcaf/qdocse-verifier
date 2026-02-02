@@ -1,4 +1,5 @@
 {
+    "python.defaultInterpreterPath": "/bin/python3",
     "python.testing.pytestArgs": [
         "."
     ],
