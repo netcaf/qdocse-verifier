@@ -27,7 +27,7 @@ class TestBothACLsMustSatisfy:
         """
         # Get authorized program
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         
@@ -54,7 +54,7 @@ class TestBothACLsMustSatisfy:
         User ACL allow + Program ACL deny → Deny
         """
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         
@@ -81,7 +81,7 @@ class TestBothACLsMustSatisfy:
         User ACL deny + Program ACL allow → Deny
         """
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         
@@ -137,7 +137,7 @@ class TestOnlyProgramACL:
         Unset ACL uses default value (ACL ID 0 = allow all)
         """
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         

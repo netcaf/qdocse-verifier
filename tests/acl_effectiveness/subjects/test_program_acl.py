@@ -13,7 +13,7 @@ class TestProgramACL:
         """Set program ACL"""
         # Get authorized program list
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         
         if not programs:
             pytest.skip("No authorized programs")
@@ -39,7 +39,7 @@ class TestUserAndProgramACL:
         """Set both user ACL and program ACL"""
         # Get authorized program
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         
         if not programs:
             pytest.skip("No authorized programs")
@@ -66,7 +66,7 @@ class TestMixingRestriction:
     def test_cannot_mix(self, protected_dir, request):
         """Same ACL cannot have both User and Program entries"""
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         
         if not programs:
             pytest.skip("No authorized programs")

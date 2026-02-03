@@ -53,7 +53,7 @@ def authorized_program_index():
     if view_result.result.failed:
         pytest.skip(f"Cannot query authorized programs: {view_result.result.stderr}")
 
-    programs = view_result.parse().get("programs", [])
+    programs = view_result.parse().get("authorized", [])
     if not programs:
         pytest.skip("No authorized programs found on system")
 

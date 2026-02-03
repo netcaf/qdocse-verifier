@@ -377,13 +377,94 @@ class View(Command):
     def watchpoints(self): return self._flag("-w")
 
     def parse(self) -> dict[str, Any]:
-        programs: list[str] = []
-        for line in self.result.stdout.splitlines():
-            if line.strip().startswith("("):
-                parts = line.split()
-                if len(parts) >= 2:
-                    programs.append(parts[1])
-        return {"programs": programs, "success": self.result.success}
+        stdout = self.result.stdout
+
+        # --- Program lines: "(1)  /usr/bin/ls  ACL: 1662" ---
+        prog_re = re.compile(r"\((\d+)\)\s+(\S+)(?:\s+ACL:\s*(\d+))?")
+
+        authorized: list[dict[str, Any]] = []
+        blocked: list[dict[str, Any]] = []
+
+        # Determine which section each program line belongs to
+        auth_heading = "List of programs authorized to access protected data files:"
+        block_heading = "List of programs denied access to any protected data files:"
+
+        current_section = None
+        for line in stdout.splitlines():
+            if auth_heading in line:
+                current_section = "authorized"
+                continue
+            if block_heading in line:
+                current_section = "blocked"
+                continue
+            # Section delimiter resets
+            if line.startswith("####"):
+                current_section = None
+                continue
+
+            m = prog_re.search(line)
+            if m:
+                entry = {
+                    "index": int(m.group(1)),
+                    "path": m.group(2),
+                    "acl": int(m.group(3)) if m.group(3) else None,
+                }
+                if current_section == "blocked":
+                    blocked.append(entry)
+                else:
+                    # Default to authorized if no heading seen yet
+                    authorized.append(entry)
+
+        # --- Watchpoints ---
+        wp_re = re.compile(
+            r"(\d+)\s+(\S+)\s+(\S+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})"
+        )
+        watchpoints: list[dict[str, Any]] = []
+        wp_heading = "List of watch points:"
+        in_wp = False
+        for line in stdout.splitlines():
+            if wp_heading in line:
+                in_wp = True
+                continue
+            if line.startswith("####"):
+                in_wp = False
+                continue
+            if in_wp:
+                wm = wp_re.search(line)
+                if wm:
+                    watchpoints.append({
+                        "id": int(wm.group(1)),
+                        "path": wm.group(2),
+                        "encryption": wm.group(3),
+                        "timestamp": wm.group(4),
+                    })
+
+        # --- License / Cipher / Mode ---
+        license_type = None
+        cipher = None
+        mode = None
+
+        lm = re.search(r"License Type\s*:\s*(.+)", stdout)
+        if lm:
+            license_type = lm.group(1).strip()
+
+        cm = re.search(r"Encryption Cipher\s*:\s*(.+)", stdout)
+        if cm:
+            cipher = cm.group(1).strip()
+
+        mm = re.search(r"Working Mode\s*:\s*(\w[\w-]*)", stdout)
+        if mm:
+            mode = mm.group(1).strip().lower()
+
+        return {
+            "authorized": authorized,
+            "blocked": blocked,
+            "watchpoints": watchpoints,
+            "license_type": license_type,
+            "cipher": cipher,
+            "mode": mode,
+            "success": self.result.success,
+        }
 
 
 class Protect(Command):
