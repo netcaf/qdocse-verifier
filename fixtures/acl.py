@@ -108,8 +108,24 @@ def user_acl_with_allow_deny(some_valid_uids):
 
 
 @pytest.fixture
-def program_acl(some_valid_uids):
-    """ACL for program access control (with user entry using valid UID)."""
+def program_acl():
+    """ACL with a program entry for program access control.
+
+    Per PDF: An ACL used with the -P option of acl_file must contain program
+    entries (not user/group entries). The program index comes from the view
+    command's authorized program list.
+
+    Skips if no authorized programs exist on the system.
+    """
+    # Query authorized programs to get a valid program index
+    view_result = QDocSE.view().authorized().execute()
+    if view_result.result.failed:
+        pytest.skip(f"Cannot query authorized programs: {view_result.result.stderr}")
+
+    programs = view_result.parse().get("programs", [])
+    if not programs:
+        pytest.skip("No authorized programs on system — cannot create program ACL")
+
     result = QDocSE.acl_create().execute()
     if result.result.failed:
         pytest.skip(f"Cannot create ACL: {result.result.stderr}")
@@ -118,7 +134,8 @@ def program_acl(some_valid_uids):
     if acl_id is None:
         pytest.fail("Failed to parse ACL ID")
 
-    QDocSE.acl_add(acl_id, allow=True, user=some_valid_uids[0], mode="rwx").execute().ok()
+    # Add program entry using the first authorized program index (1-based)
+    QDocSE.acl_add(acl_id, allow=True).program(1).mode("rwx").execute().ok()
 
     return acl_id
 

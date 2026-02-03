@@ -116,6 +116,47 @@ def purge_stale_acls(setup_executor):
     yield
 
 
+@pytest.fixture(scope="session", autouse=True)
+def purge_stale_watchpoints(setup_executor):
+    """Unprotect stale test watchpoints before test session starts.
+
+    Previous test runs may leave behind protected directories (watchpoints)
+    under /tmp/pytest-*.  These accumulate across runs because post-test
+    cleanup was removed in favour of pre-run purge.
+    """
+    try:
+        result = QDocSE.view().watchpoints().execute()
+        if result.result.success:
+            # Parse watchpoint paths from view -w output.
+            # Format: "  <id>  <path>  <encryption>  <date>"
+            removed = 0
+            for line in result.result.stdout.splitlines():
+                line = line.strip()
+                if not line or not line[0].isdigit():
+                    continue
+                parts = line.split()
+                if len(parts) >= 2:
+                    path = parts[1]
+                    if "/tmp/" not in path:
+                        continue
+                    try:
+                        QDocSE.unprotect(path).execute()
+                        removed += 1
+                    except Exception:
+                        logger.warning("Failed to unprotect %s", path)
+            if removed:
+                QDocSE.push_config().execute()
+                logger.info(
+                    "[Pre-run purge] Unprotected %d stale watchpoint(s)",
+                    removed,
+                )
+            else:
+                logger.info("[Pre-run purge] No stale watchpoints found")
+    except Exception as e:
+        logger.warning("[Pre-run purge] Could not list watchpoints: %s", e)
+    yield
+
+
 @pytest.fixture(scope="module")
 def module_cleanup():
     """Module-level cleanup: push_config after each module."""
