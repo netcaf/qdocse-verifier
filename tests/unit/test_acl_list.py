@@ -95,15 +95,20 @@ class TestACLListWithEntries:
         QDocSE.acl_add(acl_id, user=uid_b, mode="rw").execute().ok()
         QDocSE.acl_add(acl_id, allow=False, user=uid_c, mode="w").execute().ok()
 
-        result = QDocSE.acl_list(acl_id).execute().ok()
-        result.contains("Entry: 1")
-        result.contains("Entry: 2")
-        result.contains("Entry: 3")
-        result.contains("Type: Allow")
-        result.contains("Type: Deny")
-        result.contains(f"User: {uid_a}")
-        result.contains(f"User: {uid_b}")
-        result.contains(f"User: {uid_c}")
+        entries = QDocSE.acl_list(acl_id).execute().ok().parse()["acls"][0]["entries"]
+        assert len(entries) == 3
+        assert entries[0]["entry"] == 1
+        assert entries[0]["type"] == "Allow"
+        assert entries[0]["user"] == uid_a
+        assert entries[0]["mode"] == "r--"
+        assert entries[1]["entry"] == 2
+        assert entries[1]["type"] == "Allow"
+        assert entries[1]["user"] == uid_b
+        assert entries[1]["mode"] == "rw-"
+        assert entries[2]["entry"] == 3
+        assert entries[2]["type"] == "Deny"
+        assert entries[2]["user"] == uid_c
+        assert entries[2]["mode"] == "-w-"
 
     def test_list_shows_entry_numbers(self, acl_id, some_valid_uids):
         """Entry numbers start from 1 and increment.

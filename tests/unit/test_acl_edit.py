@@ -50,20 +50,9 @@ def acl_with_three_entries(acl_id, some_valid_uids):
 
 
 def _get_entry_order(acl_id, uids):
-    """Parse acl_list output and return UIDs in entry order.
-
-    acl_list shows entries with "User: <uid>" format.
-    Returns the UIDs in the order they appear in the output.
-    """
-    stdout = QDocSE.acl_list(acl_id).execute().ok().result.stdout
-    uid_positions = []
-    for uid in uids:
-        marker = f"User: {uid}"
-        pos = stdout.find(marker)
-        assert pos != -1, f"'{marker}' not found in acl_list output:\n{stdout}"
-        uid_positions.append((pos, uid))
-    uid_positions.sort()
-    return [uid for _, uid in uid_positions]
+    """Parse acl_list output and return UIDs in entry order."""
+    entries = QDocSE.acl_list(acl_id).execute().ok().parse()["acls"][0]["entries"]
+    return [e["user"] for e in entries if e["user"] in uids]
 
 
 @pytest.mark.unit

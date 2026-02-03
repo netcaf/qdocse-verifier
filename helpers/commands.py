@@ -103,6 +103,76 @@ class ACLList(Command):
     def acl_id(self, id: int):
         return self._opt("-i", id)
 
+    def parse(self) -> dict[str, Any]:
+        stdout = self.result.stdout
+        pending = "Pending configuration" in stdout
+
+        acls: list[dict[str, Any]] = []
+        # Split into per-ACL blocks
+        acl_chunks = re.split(r"(?=ACL ID \d+:)", stdout)
+        for chunk in acl_chunks:
+            header = re.match(r"ACL ID (\d+):(.*)", chunk)
+            if not header:
+                continue
+            acl_id = int(header.group(1))
+            rest_of_header = header.group(2)
+
+            # Check for "No entries (Deny)" on the same line
+            if "No entries" in rest_of_header:
+                acls.append({"acl_id": acl_id, "pending": pending, "entries": []})
+                continue
+
+            # Split into per-entry blocks
+            entries: list[dict[str, Any]] = []
+            entry_chunks = re.split(r"(?=Entry:\s*\d+)", chunk)
+            for ec in entry_chunks:
+                em = re.match(r"Entry:\s*(\d+)", ec)
+                if not em:
+                    continue
+                entry: dict[str, Any] = {"entry": int(em.group(1))}
+
+                # Type
+                tm = re.search(r"Type:\s*(Allow|Deny)", ec)
+                entry["type"] = tm.group(1) if tm else None
+
+                # User / Group / Program
+                um = re.search(r"User:\s*(\d+)(?:\s+\((.+?)\))?", ec)
+                gm = re.search(r"Group:\s*(\d+)(?:\s+\((.+?)\))?", ec)
+                pm = re.search(r"Program:\s*(\d+)(?:\s+\((.+?)\))?", ec)
+                entry["user"] = int(um.group(1)) if um else None
+                entry["group"] = int(gm.group(1)) if gm else None
+                entry["program"] = int(pm.group(1)) if pm else None
+                # Readable name from whichever principal matched
+                name = None
+                for m in (um, gm, pm):
+                    if m and m.group(2):
+                        name = m.group(2)
+                        break
+                entry["name"] = name
+
+                # Mode
+                mm = re.search(r"Mode:\s*([r-][w-][x-])", ec)
+                entry["mode"] = mm.group(1) if mm else None
+
+                # Time rules
+                time_rules: list[dict[str, str]] = []
+                # Match numbered time rules: "01 Sunday, Monday:\n  00:00:00-23:59:59"
+                for tr in re.finditer(
+                    r"\d+\s+((?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)"
+                    r"(?:,\s*(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday))*)"
+                    r":\s*\n\s*(\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2})",
+                    ec,
+                ):
+                    days = [d.strip() for d in tr.group(1).split(",")]
+                    time_rules.append({"days": days, "range": tr.group(2)})
+                entry["time"] = time_rules
+
+                entries.append(entry)
+
+            acls.append({"acl_id": acl_id, "pending": pending, "entries": entries})
+
+        return {"acls": acls, "pending": pending, "success": self.result.success}
+
 
 class ACLAdd(Command):
     """Add entry to ACL."""
