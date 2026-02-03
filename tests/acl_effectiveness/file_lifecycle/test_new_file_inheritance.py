@@ -84,7 +84,7 @@ class TestProtectWithACLOption:
         Path(temp_dir, "data.txt").write_text("data")
         
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         

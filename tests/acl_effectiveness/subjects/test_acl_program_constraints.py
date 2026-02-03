@@ -23,7 +23,7 @@ class TestACLProgramEmptyACL:
     def test_cannot_assign_empty_acl(self):
         """Empty ACL association with program should fail"""
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         
@@ -50,7 +50,7 @@ class TestACLProgramWrongType:
         ACL containing Program entries cannot be used for acl_program
         """
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if len(programs) < 2:
             pytest.skip("Need at least 2 authorized programs")
         
@@ -75,7 +75,7 @@ class TestACLProgramValidACL:
     def test_can_assign_user_acl_to_program(self):
         """User type ACL can be associated with program"""
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         
@@ -93,7 +93,7 @@ class TestACLProgramValidACL:
     def test_can_assign_group_acl_to_program(self):
         """Group type ACL can be associated with program"""
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         
@@ -117,7 +117,7 @@ class TestACLProgramEffectiveness:
         After program associates ACL, user running program must satisfy ACL
         """
         view_result = QDocSE.view().authorized().execute().ok()
-        programs = view_result.parse().get("programs", [])
+        programs = view_result.parse().get("authorized", [])
         if not programs:
             pytest.skip("No authorized programs")
         

@@ -127,23 +127,16 @@ def purge_stale_watchpoints(setup_executor):
     try:
         result = QDocSE.view().watchpoints().execute()
         if result.result.success:
-            # Parse watchpoint paths from view -w output.
-            # Format: "  <id>  <path>  <encryption>  <date>"
+            parsed = result.parse()
             removed = 0
-            for line in result.result.stdout.splitlines():
-                line = line.strip()
-                if not line or not line[0].isdigit():
+            for wp in parsed.get("watchpoints", []):
+                if "/tmp/" not in wp["path"]:
                     continue
-                parts = line.split()
-                if len(parts) >= 2:
-                    path = parts[1]
-                    if "/tmp/" not in path:
-                        continue
-                    try:
-                        QDocSE.unprotect(path).execute()
-                        removed += 1
-                    except Exception:
-                        logger.warning("Failed to unprotect %s", path)
+                try:
+                    QDocSE.unprotect(wp["path"]).execute()
+                    removed += 1
+                except Exception:
+                    logger.warning("Failed to unprotect %s", wp["path"])
             if removed:
                 QDocSE.push_config().execute()
                 logger.info(
