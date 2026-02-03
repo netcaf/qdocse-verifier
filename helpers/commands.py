@@ -45,6 +45,18 @@ class Command:
     def fail(self: T, msg: str = "") -> T:
         if self.result.success:
             raise AssertionError(f"Expected FAIL but got SUCCESS: {self}\n{msg}")
+        rc = self.result.returncode
+        if rc > 128:
+            sig = rc - 128
+            signal_names = {6: "SIGABRT", 9: "SIGKILL", 11: "SIGSEGV", 15: "SIGTERM"}
+            name = signal_names.get(sig, f"signal {sig}")
+            raise AssertionError(
+                f"QDocSE crashed with {name} (exit code {rc})\n"
+                f"Command: {self.result.command}\n"
+                f"Stdout: {self.result.stdout[:300] or '(empty)'}\n"
+                f"Stderr: {self.result.stderr[:300] or '(empty)'}\n"
+                f"{msg}"
+            )
         return self
 
     def contains(self: T, text: str) -> T:
