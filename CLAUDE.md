@@ -34,12 +34,14 @@ Always verify work using:
 
 ## 5. File Handling (The "Clean" List)
 - **Ignore (Tokens/Noise)**:
-  `**/__pycache__/`, `*.pyc`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `reports/`, `clean.sh`
+  `**/__pycache__/`, `*.pyc`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `reports/`, `clean.sh`, `.git/`, `.gitignore`, `.gitattributes`, `.gitmodules`
 - **Context Focus**:
   Prioritize reading `helpers/client.py` and `fixtures/acl.py` when dealing with ACL logic.
 
 ## 6. Guardrails
-- **No Guessing**: If a command's result or an ACL rule's behavior is unclear, use `grep` on `docs/QDocSE-User-Guide-3_2_0.md`.
+- **No Guessing**: 
+  - If a command's result or an ACL rule's behavior is unclear, use `grep` on `docs/QDocSE-User-Guide-3_2_0.md`.
+  - If anything related to the `QDocSEConsole` command is unclear, **do not guess**. Always ask the user to execute the command and provide the results for reference.
 - **API Integrity**: Do not invent methods for `helpers/executor.py` or `helpers/client.py`.
 - **Safety**: Stop immediately if a test modification causes a regression in `tests/unit/test_basic.py`.
 
