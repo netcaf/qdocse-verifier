@@ -221,6 +221,7 @@ class ACLRemove(Command):
         acl_id: Optional[int] = None,
         *,
         entry: Optional[int] = None,
+        program: Optional[int] = None,
         all: bool = False,
     ):
         super().__init__("acl_remove")
@@ -228,6 +229,8 @@ class ACLRemove(Command):
             self._opt("-i", acl_id)
         if entry is not None:
             self._opt("-e", entry)
+        if program is not None:
+            self._opt("-p", program)
         if all:
             self._flag("-A")
 
@@ -238,6 +241,7 @@ class ACLRemove(Command):
     def deny(self): return self._flag("-d")
     def user(self, u: str): return self._opt("-u", u)
     def group(self, g: str): return self._opt("-g", g)
+    def program(self, idx: int): return self._opt("-p", idx)
 
 
 class ACLEdit(Command):
@@ -417,7 +421,7 @@ class View(Command):
 
         # --- Watchpoints ---
         wp_re = re.compile(
-            r"(\d+)\s+(\S+)\s+(\S+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})"
+            r"(\d+)\s+(\S+)\s+(.+?)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})"
         )
         watchpoints: list[dict[str, Any]] = []
         wp_heading = "List of watch points:"

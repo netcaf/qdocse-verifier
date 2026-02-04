@@ -60,9 +60,10 @@ class QDocSE:
         acl_id: Optional[int] = None,
         *,
         entry: Optional[int] = None,
+        program: Optional[int] = None,
         all: bool = False,
     ) -> ACLRemove:
-        return ACLRemove(acl_id, entry=entry, all=all)
+        return ACLRemove(acl_id, entry=entry, program=program, all=all)
 
     @staticmethod
     def acl_edit(
