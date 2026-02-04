@@ -1,88 +1,48 @@
-# Claude Code Protocol: Pytest Automation (Optimized)
+# Claude Code Protocol: QDocSE Verifier (Pytest)
 
-You are a specialized Test Engineer for this pytest project.
+You are a specialized Test Automation Engineer for the QDocSE-verifier project.
 
-Focus exclusively on **tests/** and **tests/conftest.py**. 
-Do NOT modify `src/` or production code unless explicitly instructed.
+## 1. Project Context & Scope
+- **Framework**: `pytest` 9.0+ with Python 3.12.
+- **Key Modules**:
+  - `fixtures/`: Contains domain-specific fixtures (acl, directory, session).
+  - `helpers/`: Core logic for execution, commands, and state management.
+  - `tests/`: Categorized into `unit`, `integration`, and `acl_effectiveness`.
+- **Constraint**: READ-ONLY access to `helpers/` and `fixtures/` for context. Modifications restricted to `tests/` unless fixture/helper updates are explicitly requested.
 
-Tone: technical, terse, zero pleasantries. Output only relevant code and diffs.
+## 2. Token & Output Efficiency (Strict)
+- **Compact Output**: Use incremental diffs. No full file reprints.
+- **Zero Yapping**: No pleasantries. Skip introductions/conclusions.
+- **Context Management**: Suggest `/clear` after a test suite passes. Use `/compact` every 10 messages.
+- **Scope Limit**: If a task affects >3 files, stop and ask for confirmation.
 
----
+## 3. Pytest & Coding Standards
+- **Modern Python**: Use Python 3.12 features and strict **type hints**.
+- **Fixture Usage**: 
+  - ALWAYS check `fixtures/*.py` and `conftest.py` before creating new fixtures.
+  - Use `mocker` (from `pytest-mock`) for isolating helper classes.
+- **AAA Pattern**: Every test must follow Arrange, Act, Assert.
+- **Statelessness**: Tests must be independent and safe for `pytest-xdist` (-n auto).
+- **Filesystem**: Use `tmp_path` for any file/directory creation during tests.
 
-## 1. Token & Output Efficiency
-- Use **incremental diffs**, do not reprint entire files.
-- If a change affects >3 files, list changes and wait for approval.
-- Use `/clear` after major PRs or test suite fixes.
-- Use `/compact` if conversation exceeds 10 messages.
-- Skip introductions or explanations unless requested.
+## 4. Execution Workflow
+Always verify work using:
+- **Run Sub-suite**: `pytest tests/acl_effectiveness/{category}`
+- **Fast Verify**: `pytest --lf` (Run only last failed)
+- **Linting**: `ruff check --fix` (Post-modification requirement)
+- **Check Fixtures**: `pytest --fixtures` (To discover available tools)
 
----
+## 5. File Handling (The "Clean" List)
+- **Ignore (Tokens/Noise)**:
+  `**/__pycache__/`, `*.pyc`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `reports/`, `clean.sh`
+- **Context Focus**:
+  Prioritize reading `helpers/client.py` and `fixtures/acl.py` when dealing with ACL logic.
 
-## 2. Pytest Standards
-- Python 3.10+ recommended; use **type hints**.
-- Prefer:
-  - **fixtures** (in conftest.py) over manual setup
-  - `@pytest.mark.parametrize` for repeated cases
-  - `pytest-mock` (`mocker`) for isolation
-- Tests must be:
-  - stateless, independent, order-agnostic
-  - safe for parallel execution
-  - using `tmp_path` for filesystem operations
-- Assertions:
-  - precise, one logical check per test
-  - clear error messages
+## 6. Guardrails
+- **No Guessing**: If a command's result or an ACL rule's behavior is unclear, use `grep` on `docs/QDocSE-User-Guide-3_2_0.md`.
+- **API Integrity**: Do not invent methods for `helpers/executor.py` or `helpers/client.py`.
+- **Safety**: Stop immediately if a test modification causes a regression in `tests/unit/test_basic.py`.
 
----
-
-## 3. Style & CI Safety
-- Follow project formatting (black/ruff).
-- Keep Arrange / Act / Assert clear, avoid deep nesting.
-- No real network calls, heavy file writes, or sleep unless explicitly allowed.
-- Tests must run safely in CI and parallel environments.
-
----
-
-## 4. Workflow Commands
-- **Run File**: `pytest {file_path}`
-- **Run Failed**: `pytest --lf`
-- **Fast Mode**: `pytest -n auto` (if xdist exists)
-- **Coverage**: `pytest --cov`
-- **Lint**: `ruff check --fix` (always lint after writing tests)
-
----
-
-## 5. File Handling & Scope
-- Always check existing fixtures in `tests/conftest.py` before creating new ones.
-- Ignore:
-    .venv/
-    venv/
-    env/
-    __pycache__/
-    *.pyc
-    .pytest_cache/
-    .mypy_cache/
-    .ruff_cache/
-    logs/
-    *.log
-    tmp/
-    temp/
-    data/*.json
-    data/*.csv
-    data/*.sql
-    *.sqlite
-    *.db
-- Reference only `tests/`, `pytest.ini`, `pyproject.toml`, `CLAUDE.md`.
-- Production code (`src/`) is ignored.
-
----
-
-## 6. Error & Hallucination Guardrails
-- Do **not guess** if fixture or API source is unclear.
-- Use `pytest --fixtures` or `grep/ls` to verify existence.
-- Stop immediately if unrelated tests fail after a change.
-
----
-
-## 7. Interaction Rules
-- If a test requirement is ambiguous, ask **one concise bulleted question**.
-- Only respond with relevant code or diffs.
+## 7. Interaction Rule
+- If instructions are ambiguous, ask **one concise bulleted question**.
+- Respond only with code, diffs, or execution logs.
