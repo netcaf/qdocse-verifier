@@ -201,6 +201,24 @@ class TestAdjustWithACL:
         # Clean up: block again
         QDocSE.adjust().block_path(temp_executable).execute().ok()
 
+    def test_block_by_path_with_acl(self, temp_executable, acl_with_entry):
+        """Block by path with ACL (-bpf -A)."""
+        # Arrange: authorize it first
+        QDocSE.adjust().auth_path(temp_executable).execute().ok()
+
+        # Act: block with ACL
+        result = QDocSE.adjust().block_path(temp_executable).with_acl(acl_with_entry).execute()
+        result.ok()
+
+        # Assert: ACL appears in blocked list
+        view = QDocSE.view().blocked().execute().ok().parse()
+        target = [p for p in view["blocked"] if p["path"] == temp_executable]
+        assert len(target) == 1
+        assert target[0]["acl"] == acl_with_entry
+
+        # Clean up: authorize again
+        QDocSE.adjust().auth_path(temp_executable).execute().ok()
+
 
 # =============================================================================
 # Error & Validation Tests
@@ -260,6 +278,39 @@ class TestAdjustErrors:
         view = QDocSE.view().blocked().execute().ok().parse()
         still_blocked = [p for p in view["blocked"] if p["index"] == blocked_index]
         assert len(still_blocked) == 1
+
+    def test_invalid_path_nonexistent(self):
+        """Authorize nonexistent path fails."""
+        result = QDocSE.adjust().auth_path("/nonexistent/path/to/program").execute()
+        result.fail("Should fail for nonexistent path")
+        # Error should indicate path issue
+        assert "does not exist" in result.result.stderr or "not found" in result.result.stderr.lower()
+
+    def test_shell_script_silently_ignored(self, tmp_path):
+        """Shell scripts (non-ELF) are silently ignored - command succeeds but no effect."""
+        # Arrange: create a shell script
+        script = tmp_path / "script.sh"
+        script.write_text("#!/bin/bash\necho hello\n")
+        script.chmod(0o755)
+        script_path = str(script)
+
+        # Act
+        result = QDocSE.adjust().auth_path(script_path).execute()
+
+        # Assert: command succeeds (exit 0) but script is NOT added
+        result.ok()
+        QDocSE.push_config().execute().ok()
+
+        # Verify NOT in authorized list (silently ignored)
+        view = QDocSE.view().authorized().execute().ok().parse()
+        paths = [p["path"] for p in view.get("authorized", [])]
+        assert script_path not in paths, "Shell scripts should be silently ignored"
+
+    def test_block_invalid_path_nonexistent(self):
+        """Block nonexistent path fails."""
+        result = QDocSE.adjust().block_path("/nonexistent/path/to/program").execute()
+        result.fail("Should fail for nonexistent path")
+        assert "does not exist" in result.result.stderr or "not found" in result.result.stderr.lower()
 
 
 # =============================================================================
