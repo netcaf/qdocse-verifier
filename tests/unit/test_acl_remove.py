@@ -247,13 +247,23 @@ class TestACLRemoveAll:
 class TestACLRemoveByType:
     """Remove by type (-a for Allow, -d for Deny)."""
 
-    def test_remove_allow_only(self, acl_id, some_valid_uids):
-        """-a alone returns error about missing target."""
+    @pytest.mark.parametrize("allow_flag,_desc", [
+        (True, "-a alone returns error about missing target"),
+        (False, "-d alone returns error about missing target"),
+    ])
+    def test_type_only_missing_target(self, acl_id, some_valid_uids, allow_flag, _desc):
+        """-a or -d alone returns error about missing target, entries unchanged."""
+        _ = _desc
         uid_a, uid_b = some_valid_uids[:2]
         QDocSE.acl_add(acl_id, allow=True, user=uid_a, mode="r").execute().ok()
         QDocSE.acl_add(acl_id, allow=False, user=uid_b, mode="w").execute().ok()
 
-        result = QDocSE.acl_remove(acl_id).allow().execute()
+        cmd = QDocSE.acl_remove(acl_id)
+        if allow_flag:
+            cmd.allow()
+        else:
+            cmd.deny()
+        result = cmd.execute()
         result.ok()  # Command succeeds
         # But stderr indicates missing target
         assert "One of option '-e', '-g', '-p', or '-u' must be specified" in result.result.stderr
@@ -269,30 +279,6 @@ class TestACLRemoveByType:
         deny_entry = next(e for e in entries if e["type"] == "Deny")
         assert allow_entry["user"] == uid_a
         assert deny_entry["user"] == uid_b
-
-    def test_remove_deny_only(self, acl_id, some_valid_uids):
-        """-d alone returns error about missing target."""
-        uid_a, uid_b = some_valid_uids[:2]
-        QDocSE.acl_add(acl_id, allow=True, user=uid_a, mode="r").execute().ok()
-        QDocSE.acl_add(acl_id, allow=False, user=uid_b, mode="w").execute().ok()
-
-        result = QDocSE.acl_remove(acl_id).deny().execute()
-        result.ok()  # Command succeeds
-        # But stderr indicates missing target
-        assert "One of option '-e', '-g', '-p', or '-u' must be specified" in result.result.stderr
-
-        # Apply pending configuration
-        QDocSE.push_config().execute().ok()
-
-        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
-        entries = parsed["acls"][0]["entries"]
-        assert len(entries) == 2
-        # Entries remain unchanged
-        allow_entry = next(e for e in entries if e["type"] == "Allow")
-        deny_entry = next(e for e in entries if e["type"] == "Deny")
-        assert allow_entry["user"] == uid_a
-        assert deny_entry["user"] == uid_b
-
 
 @pytest.mark.unit
 class TestACLRemoveBySubject:
@@ -382,20 +368,6 @@ class TestACLRemoveBySubject:
 class TestACLRemoveByProgram:
     """Remove by program index (-p option)."""
 
-    def test_remove_by_program_option(self, acl_id):
-        """-p alone returns error about missing -a/-d."""
-        result = QDocSE.acl_remove(acl_id, program=999).execute()
-        result.ok()  # Command succeeds
-        assert "Either '-a' or '-d' must be specified" in result.result.stderr
-
-    def test_remove_by_program_chaining(self, acl_id):
-        """Fluent API for program removal (requires -a/-d)."""
-        result = (QDocSE.acl_remove()
-            .acl_id(acl_id)
-            .program(999)
-            .execute())
-        result.ok()
-        assert "Either '-a' or '-d' must be specified" in result.result.stderr
 
     def test_remove_program_entry_with_allow(self, program_acl):
         """Remove program entry using -a -p."""
@@ -426,46 +398,57 @@ class TestACLRemoveByProgram:
 class TestACLRemoveMutualExclusivity:
     """Test mutual exclusivity constraints."""
 
-    def test_user_alone_requires_allow_or_deny(self, acl_id):
-        """-u alone returns error about missing -a/-d."""
-        result = QDocSE.acl_remove(acl_id).user("root").execute()
-        result.ok()  # Command succeeds
-        assert "Either '-a' or '-d' must be specified" in result.result.stderr
-
-    def test_group_alone_requires_allow_or_deny(self, acl_id):
-        """-g alone returns error about missing -a/-d."""
-        result = QDocSE.acl_remove(acl_id).group("root").execute()
+    @pytest.mark.parametrize("user,group,program,allow,deny,_desc", [
+        ("root", None, None, False, False, "-u alone returns error about missing -a/-d"),
+        (None, "root", None, False, False, "-g alone returns error about missing -a/-d"),
+        (None, None, 1, False, False, "-p alone returns error about missing -a/-d"),
+        (None, None, 999, False, False, "-p with invalid index returns error about missing -a/-d"),
+        (None, None, None, True, True, "-a and -d cannot be combined"),
+        (None, None, None, False, False, "missing removal target returns error about missing -a/-d"),
+    ])
+    def test_missing_or_conflicting_allow_deny(self, acl_id, user, group, program, allow, deny, _desc):
+        """Missing or conflicting -a/-d options produce appropriate error."""
+        _ = _desc
+        cmd = QDocSE.acl_remove(acl_id)
+        if user:
+            cmd.user(user)
+        if group:
+            cmd.group(group)
+        if program:
+            cmd.program(program)
+        if allow:
+            cmd.allow()
+        if deny:
+            cmd.deny()
+        result = cmd.execute()
         result.ok()
         assert "Either '-a' or '-d' must be specified" in result.result.stderr
+        # Verify ACL remains empty (no side effects)
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
-    def test_program_alone_requires_allow_or_deny(self, acl_id):
-        """-p alone returns error about missing -a/-d."""
-        result = QDocSE.acl_remove(acl_id).program(1).execute()
-        result.ok()
-        assert "Either '-a' or '-d' must be specified" in result.result.stderr
-
-    def test_allow_deny_mutually_exclusive(self, acl_id):
-        """-a and -d cannot be combined."""
-        result = QDocSE.acl_remove(acl_id).allow().deny().execute()
-        result.ok()
-        assert "Either '-a' or '-d' must be specified" in result.result.stderr
-
-    def test_user_group_combination_with_allow(self, acl_id):
-        """-a -u -g returns error about target specification."""
-        result = QDocSE.acl_remove(acl_id).allow().user("root").group("root").execute()
-        result.ok()
-        # Error message about needing one of -e/-g/-p/-u
-        assert "One of option '-e', '-g', '-p', or '-u' must be specified" in result.result.stderr
-
-    def test_user_program_combination_with_allow(self, acl_id):
-        """-a -u -p returns error about target specification."""
-        result = QDocSE.acl_remove(acl_id).allow().user("root").program(1).execute()
-        result.ok()
-        assert "One of option '-e', '-g', '-p', or '-u' must be specified" in result.result.stderr
-
-    def test_group_program_combination_with_allow(self, acl_id):
-        """-a -g -p returns error about target specification."""
-        result = QDocSE.acl_remove(acl_id).allow().group("root").program(1).execute()
+    @pytest.mark.parametrize("target1,target2,_desc", [
+        ("user", "group", "-a -u -g returns error about target specification"),
+        ("user", "program", "-a -u -p returns error about target specification"),
+        ("group", "program", "-a -g -p returns error about target specification"),
+    ])
+    def test_multiple_targets_with_allow(self, acl_id, target1, target2, _desc):
+        """Multiple target options produce error about needing exactly one target."""
+        _ = _desc
+        cmd = QDocSE.acl_remove(acl_id).allow()
+        if target1 == "user":
+            cmd.user("root")
+        elif target1 == "group":
+            cmd.group("root")
+        elif target1 == "program":
+            cmd.program(1)
+        if target2 == "user":
+            cmd.user("root")
+        elif target2 == "program":
+            cmd.program(1)
+        elif target2 == "group":
+            cmd.group("root")
+        result = cmd.execute()
         result.ok()
         assert "One of option '-e', '-g', '-p', or '-u' must be specified" in result.result.stderr
 
@@ -483,14 +466,6 @@ class TestACLRemoveErrors:
         result.fail("Should fail without -i option")
         result.contains("Missing required")
 
-    def test_missing_removal_target(self, acl_id):
-        """acl_remove without removal target returns error about missing -a/-d."""
-        result = QDocSE.acl_remove(acl_id).execute()
-        result.ok()  # Command succeeds
-        assert "Either '-a' or '-d' must be specified" in result.result.stderr
-        # Verify ACL remains empty
-        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
-        assert parsed["acls"][0]["entries"] == []
 
     def test_nonexistent_acl(self):
         """Nonexistent ACL ID succeeds (no-op)."""
