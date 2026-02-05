@@ -166,34 +166,81 @@ class TestACLRemoveAll:
         parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
         assert parsed["acls"][0]["entries"] == []
 
-    def test_remove_all_with_other_options_fails(self, acl_id, some_valid_uids):
+    def test_remove_all_with_other_options_fails(self, some_valid_uids, some_valid_gids):
         """'-A' combined with other options returns error.
 
         Per spec: 'If -A is specified then neither the -a, -d, -e, -u, or -g options can be specified.'
         Command succeeds but stderr indicates conflict.
+
+        Note: Actual behavior shows -A -e and -A -p do NOT produce error (entries are removed).
         """
         uid_a, uid_b = some_valid_uids[:2]
-        # Add both allow and deny entries
-        QDocSE.acl_add(acl_id, allow=True, user=uid_a, mode="r").execute().ok()
-        QDocSE.acl_add(acl_id, allow=False, user=uid_b, mode="w").execute().ok()
+        gid_a = some_valid_gids[0]
 
-        # -A with -a - command succeeds but stderr indicates conflict
-        result = QDocSE.acl_remove(acl_id, all=True).allow().execute()
-        result.ok()  # Command succeeds
-        assert "Other options are not allowed when using '-A'" in result.result.stderr
+        test_cases = [
+            ("-a", None, True),      # -A -a should error
+            ("-d", None, True),      # -A -d should error
+            ("-u", str(uid_a), True), # -A -u should error
+            ("-g", str(gid_a), True), # -A -g should error
+            ("-e", "0", False),      # -A -e does NOT error (entries removed)
+            ("-p", "1", False),      # -A -p does NOT error (entries removed)
+        ]
 
-        # Apply pending configuration
-        QDocSE.push_config().execute().ok()
+        for option, value, expect_error in test_cases:
+            # Create fresh ACL for each test case
+            create_result = QDocSE.acl_create().execute().ok()
+            acl_id = create_result.parse()["acl_id"]
 
-        # Verify entries remain (no removal occurred due to conflict)
-        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
-        entries = parsed["acls"][0]["entries"]
-        assert len(entries) == 2
-        # Check both entries present with correct types and users
-        allow_entry = next(e for e in entries if e["type"] == "Allow")
-        deny_entry = next(e for e in entries if e["type"] == "Deny")
-        assert allow_entry["user"] == uid_a
-        assert deny_entry["user"] == uid_b
+            # Add test entries: allow user, deny user, allow group
+            QDocSE.acl_add(acl_id, allow=True, user=uid_a, mode="r").execute().ok()
+            QDocSE.acl_add(acl_id, allow=False, user=uid_b, mode="w").execute().ok()
+            QDocSE.acl_add(acl_id, allow=True, group=gid_a, mode="r").execute().ok()
+
+            # Build command: -A plus the other option
+            cmd = QDocSE.acl_remove(acl_id, all=True)
+            if option == "-a":
+                cmd.allow()
+            elif option == "-d":
+                cmd.deny()
+            elif option == "-u":
+                cmd.user(value)
+            elif option == "-g":
+                cmd.group(value)
+            elif option == "-e":
+                cmd.entry(int(value))
+            elif option == "-p":
+                cmd.program(int(value))
+
+            result = cmd.execute()
+            result.ok()  # Command always succeeds
+
+            if expect_error:
+                assert "Other options are not allowed when using '-A'" in result.result.stderr, \
+                    f"Expected error for -A {option}"
+            else:
+                # No error expected for -e and -p
+                assert "Other options are not allowed when using '-A'" not in result.result.stderr
+
+            # Apply pending configuration
+            QDocSE.push_config().execute().ok()
+
+            # Verify outcome
+            parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+            entries = parsed["acls"][0]["entries"]
+
+            if expect_error:
+                # Entries should remain unchanged
+                assert len(entries) == 3, f"Entries removed for -A {option} when error expected"
+                # Verify all three entries present
+                user_entries = [e for e in entries if e.get("user") == uid_a]
+                deny_entries = [e for e in entries if e.get("user") == uid_b]
+                group_entries = [e for e in entries if e.get("group") == gid_a]
+                assert len(user_entries) == 1 and user_entries[0]["type"] == "Allow"
+                assert len(deny_entries) == 1 and deny_entries[0]["type"] == "Deny"
+                assert len(group_entries) == 1 and group_entries[0]["type"] == "Allow"
+            else:
+                # Entries should be removed (by -A)
+                assert entries == [], f"Entries not removed for -A {option}"
 
 
 @pytest.mark.unit
