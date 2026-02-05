@@ -52,14 +52,17 @@ class TestACLRemoveByEntry:
         """
         uid = some_valid_uids[0]
         QDocSE.acl_add(acl_id, user=uid, mode="r").execute().ok()
-        QDocSE.acl_list(acl_id).execute().ok().contains("Entry: 1")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"][0]["entry"] == 1  # 1-based display
+        assert parsed["acls"][0]["entries"][0]["user"] == uid
 
         QDocSE.acl_remove(acl_id, entry=0).execute().ok()
 
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []  # No entries
 
     def test_remove_middle_entry_renumbers(self, acl_id, some_valid_uids):
         """Removing a middle entry renumbers the remaining entries.
@@ -77,13 +80,17 @@ class TestACLRemoveByEntry:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        result = QDocSE.acl_list(acl_id).execute().ok()
-        result.contains("Entry: 1")
-        result.contains("Entry: 2")
-        result.contains(f"User: {uid_a}")
-        result.contains(f"User: {uid_c}")
-        assert f"User: {uid_b}" not in result.result.stdout, \
-            f"User {uid_b} should have been removed"
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 2
+        # Entry numbers renumbered to 1 and 2
+        assert entries[0]["entry"] == 1
+        assert entries[0]["user"] == uid_a
+        assert entries[1]["entry"] == 2
+        assert entries[1]["user"] == uid_c
+        # Ensure uid_b is not present
+        for entry in entries:
+            assert entry["user"] != uid_b
 
     def test_remove_first_entry(self, acl_id, some_valid_uids):
         """Remove first entry; second entry becomes entry 1."""
@@ -96,10 +103,14 @@ class TestACLRemoveByEntry:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        result = QDocSE.acl_list(acl_id).execute().ok()
-        result.contains("Entry: 1")
-        result.contains(f"User: {uid_b}")
-        assert f"User: {uid_a}" not in result.result.stdout
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 1
+        assert entries[0]["entry"] == 1
+        assert entries[0]["user"] == uid_b
+        # uid_a not present
+        for entry in entries:
+            assert entry["user"] != uid_a
 
     def test_remove_last_entry(self, acl_id, some_valid_uids):
         """Remove last entry; earlier entries are unchanged."""
@@ -112,10 +123,14 @@ class TestACLRemoveByEntry:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        result = QDocSE.acl_list(acl_id).execute().ok()
-        result.contains("Entry: 1")
-        result.contains(f"User: {uid_a}")
-        assert f"User: {uid_b}" not in result.result.stdout
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 1
+        assert entries[0]["entry"] == 1
+        assert entries[0]["user"] == uid_a
+        # uid_b not present
+        for entry in entries:
+            assert entry["user"] != uid_b
 
     def test_remove_nonexistent_entry(self, acl_id):
         """Remove nonexistent entry succeeds (no-op)."""
@@ -137,11 +152,18 @@ class TestACLRemoveAll:
 
         QDocSE.acl_remove(acl_id, all=True).execute().ok()
 
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        # Apply pending configuration
+        QDocSE.push_config().execute().ok()
+
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []  # No entries
 
     def test_remove_all_from_empty_acl(self, acl_id):
         """Remove all on empty ACL should succeed (idempotent)."""
         QDocSE.acl_remove(acl_id, all=True).execute().ok()
+        # Verify ACL still empty
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
     def test_remove_all_with_other_options_fails(self, acl_id, some_valid_uids):
         """'-A' combined with other options returns error.
@@ -163,12 +185,14 @@ class TestACLRemoveAll:
         QDocSE.push_config().execute().ok()
 
         # Verify entries remain (no removal occurred due to conflict)
-        list_result = QDocSE.acl_list(acl_id).execute().ok()
-        list_result.contains(f"User: {uid_a}")
-        list_result.contains(f"User: {uid_b}")
-        # Check both entries present
-        assert "Type: Allow" in list_result.result.stdout
-        assert "Type: Deny" in list_result.result.stdout
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 2
+        # Check both entries present with correct types and users
+        allow_entry = next(e for e in entries if e["type"] == "Allow")
+        deny_entry = next(e for e in entries if e["type"] == "Deny")
+        assert allow_entry["user"] == uid_a
+        assert deny_entry["user"] == uid_b
 
 
 @pytest.mark.unit
@@ -189,12 +213,14 @@ class TestACLRemoveByType:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        list_result = QDocSE.acl_list(acl_id).execute().ok()
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 2
         # Entries remain unchanged
-        list_result.contains("Type: Allow")
-        list_result.contains("Type: Deny")
-        list_result.contains(f"User: {uid_a}")
-        list_result.contains(f"User: {uid_b}")
+        allow_entry = next(e for e in entries if e["type"] == "Allow")
+        deny_entry = next(e for e in entries if e["type"] == "Deny")
+        assert allow_entry["user"] == uid_a
+        assert deny_entry["user"] == uid_b
 
     def test_remove_deny_only(self, acl_id, some_valid_uids):
         """-d alone returns error about missing target."""
@@ -210,12 +236,14 @@ class TestACLRemoveByType:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        list_result = QDocSE.acl_list(acl_id).execute().ok()
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 2
         # Entries remain unchanged
-        list_result.contains("Type: Allow")
-        list_result.contains("Type: Deny")
-        list_result.contains(f"User: {uid_a}")
-        list_result.contains(f"User: {uid_b}")
+        allow_entry = next(e for e in entries if e["type"] == "Allow")
+        deny_entry = next(e for e in entries if e["type"] == "Deny")
+        assert allow_entry["user"] == uid_a
+        assert deny_entry["user"] == uid_b
 
 
 @pytest.mark.unit
@@ -236,10 +264,11 @@ class TestACLRemoveBySubject:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        result = QDocSE.acl_list(acl_id).execute().ok()
-        result.contains(f"User: {uid_b}")
-        assert f"User: {uid_a}" not in result.result.stdout, \
-            f"User {uid_a} should have been removed"
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 1
+        assert entries[0]["user"] == uid_b
+        assert entries[0]["type"] == "Allow"  # Default type
 
     def test_remove_by_group(self, acl_id, some_valid_gids):
         """Remove entries for a specific group."""
@@ -252,10 +281,11 @@ class TestACLRemoveBySubject:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        result = QDocSE.acl_list(acl_id).execute().ok()
-        result.contains(f"Group: {gid_b}")
-        assert f"Group: {gid_a}" not in result.result.stdout, \
-            f"Group {gid_a} should have been removed"
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 1
+        assert entries[0]["group"] == gid_b
+        assert entries[0]["type"] == "Allow"  # Default type
 
     def test_remove_deny_by_user(self, acl_id, some_valid_uids):
         """Remove Deny entry for a specific user (-d -u combined)."""
@@ -267,7 +297,8 @@ class TestACLRemoveBySubject:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
     def test_remove_deny_by_group(self, acl_id, some_valid_gids):
         """Remove Deny entry for a specific group (-d -g combined)."""
@@ -279,7 +310,8 @@ class TestACLRemoveBySubject:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
     def test_remove_allow_by_user(self, acl_id, some_valid_uids):
         """Remove Allow entry for a specific user (-a -u combined).
@@ -294,7 +326,8 @@ class TestACLRemoveBySubject:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
 
 @pytest.mark.unit
@@ -321,9 +354,11 @@ class TestACLRemoveByProgram:
         # program_acl fixture provides ACL with program entry (index 1)
         acl_id = program_acl
         # Verify program entry exists
-        list_result = QDocSE.acl_list(acl_id).execute().ok()
-        list_result.contains("Program: 1")
-        list_result.contains("Type: Allow")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 1
+        assert entries[0]["program"] == 1
+        assert entries[0]["type"] == "Allow"
 
         # Remove with -a -p 1
         result = QDocSE.acl_remove(acl_id).allow().program(1).execute()
@@ -335,7 +370,8 @@ class TestACLRemoveByProgram:
         QDocSE.push_config().execute().ok()
 
         # Verify ACL is empty
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
 
 @pytest.mark.unit
@@ -405,7 +441,8 @@ class TestACLRemoveErrors:
         result.ok()  # Command succeeds
         assert "Either '-a' or '-d' must be specified" in result.result.stderr
         # Verify ACL remains empty
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
     def test_nonexistent_acl(self):
         """Nonexistent ACL ID succeeds (no-op)."""
@@ -475,10 +512,9 @@ class TestACLRemoveChaining:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        # Debug
-        after = QDocSE.acl_list(acl_id).execute().ok()
-        print(f"DEBUG after push_config: {after.result.stdout}")
-        after.contains("No entries")
+        # Verify ACL is empty
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
 
     def test_chaining_remove_all(self, acl_id, some_valid_uids):
         """Method chaining for remove-all."""
@@ -494,4 +530,5 @@ class TestACLRemoveChaining:
         # Apply pending configuration
         QDocSE.push_config().execute().ok()
 
-        QDocSE.acl_list(acl_id).execute().ok().contains("No entries")
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
