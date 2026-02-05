@@ -134,8 +134,9 @@ class TestACLRemoveByEntry:
 
     def test_remove_nonexistent_entry(self, acl_id):
         """Remove nonexistent entry succeeds (no-op)."""
-        QDocSE.acl_remove(acl_id, entry=999).execute().ok()
-        # Command succeeds when no matching entry found
+        result = QDocSE.acl_remove(acl_id, entry=999).execute()
+        result.ok()  # Command succeeds when no matching entry found
+        assert "No matching ACLs found to remove." in result.result.stderr
 
 
 @pytest.mark.unit
@@ -448,16 +449,19 @@ class TestACLRemoveErrors:
         """Nonexistent ACL ID succeeds (no-op)."""
         result = QDocSE.acl_remove(999999, entry=0).execute()
         result.ok()  # Removing from nonexistent ACL is a no-op
+        assert "Invalid ACL ID: 999999." in result.result.stderr
 
     def test_negative_acl_id(self):
         """Negative ACL ID succeeds (no-op)."""
         result = QDocSE.acl_remove(-1, entry=0).execute()
         result.ok()  # Negative ACL ID accepted, removal is no-op
+        assert "Invalid ACL ID: -1." in result.result.stderr
 
     def test_negative_entry(self, acl_id):
         """Negative entry number succeeds (no match)."""
         result = QDocSE.acl_remove(acl_id, entry=-1).execute()
         result.ok()  # Negative entry number accepted, no match found
+        assert "No matching ACLs found to remove." in result.result.stderr
 
     @pytest.mark.xfail(reason="temporary failure, will fix later")
     def test_invalid_user_id(self, acl_id):
