@@ -67,10 +67,20 @@ class TestACLAddModes:
     @pytest.mark.parametrize("mode,desc", [
         ("", "empty"),
         ("abc", "invalid chars"),
-        #("rrr", "duplicates"),
         ("rwxrwx", "too long"),
     ])
     def test_invalid_modes(self, acl_id, mode, desc):
+        QDocSE.acl_add(acl_id, user=0, mode=mode).execute().fail(desc)
+
+    @pytest.mark.parametrize("mode,desc", [
+        ("rr", "duplicate r"),
+        ("ww", "duplicate w"),
+        ("xx", "duplicate x"),
+        ("rrr", "triple r"),
+        ("rwr", "r-w-r repeat"),
+    ])
+    def test_duplicate_mode_chars(self, acl_id, mode, desc):
+        """Duplicate permission characters should be rejected."""
         QDocSE.acl_add(acl_id, user=0, mode=mode).execute().fail(desc)
 
 
@@ -281,6 +291,17 @@ class TestACLAddErrors:
     def test_negative_acl_id(self):
         QDocSE.acl_add(-1, user=0, mode="r").execute().fail()
 
+    @pytest.mark.parametrize("acl_id_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("", "empty string"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_acl_id(self, acl_id_val, desc):
+        """Non-digit ACL ID should fail."""
+        QDocSE.acl_add().allow().user(0).mode("r") \
+            ._opt("-i", acl_id_val).execute().fail(desc)
+
     def test_missing_mode(self, acl_id):
         QDocSE.acl_add(acl_id, user=0).execute().fail("Mode is required")
 
@@ -375,6 +396,84 @@ class TestACLAddChaining:
         result.contains("User: 0")
         result.contains("Mode: r--")
         result.contains("09:00:00-17:00:00")
+
+
+@pytest.mark.unit
+class TestACLAddDuplicateOptions:
+    """Duplicate CLI option behaviour.
+
+    When the same option is specified more than once, the command should
+    either reject it or use a deterministic value. Multiple -t is the
+    only documented repeatable option.
+    """
+
+    def test_duplicate_allow_flag(self, acl_id):
+        """Specifying -a twice."""
+        QDocSE.acl_add().acl_id(acl_id).allow().allow() \
+            .user(0).mode("r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Allow")
+
+    def test_duplicate_deny_flag(self, acl_id):
+        """Specifying -d twice."""
+        QDocSE.acl_add().acl_id(acl_id).deny().deny() \
+            .user(0).mode("r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Type: Deny")
+
+    def test_duplicate_acl_id(self, acl_id):
+        """Specifying -i twice with same value."""
+        QDocSE.acl_add().acl_id(acl_id).acl_id(acl_id) \
+            .allow().user(0).mode("r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("User: 0")
+
+    def test_duplicate_acl_id_different_values(self):
+        """Specifying -i twice with different values — which takes effect?"""
+        aid_a = QDocSE.acl_create().execute().ok().parse().get("acl_id")
+        aid_b = QDocSE.acl_create().execute().ok().parse().get("acl_id")
+        # Add with -i <aid_a> -i <aid_b>: entry should land in one of them
+        QDocSE.acl_add().acl_id(aid_a).acl_id(aid_b) \
+            .allow().user(0).mode("r").execute().ok()
+        result_a = QDocSE.acl_list(aid_a).execute().ok()
+        result_b = QDocSE.acl_list(aid_b).execute().ok()
+        stdout_a = result_a.result.stdout
+        stdout_b = result_b.result.stdout
+        # Entry should exist in exactly one ACL (last -i wins is typical)
+        has_a = "User: 0" in stdout_a
+        has_b = "User: 0" in stdout_b
+        assert has_a != has_b, \
+            f"Entry should exist in exactly one ACL, got a={has_a} b={has_b}"
+
+    def test_duplicate_mode(self, acl_id):
+        """Specifying -m twice with different values."""
+        QDocSE.acl_add().acl_id(acl_id).allow().user(0) \
+            .mode("r").mode("rw").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        stdout = result.result.stdout
+        # One mode should take effect (typically last)
+        assert "r--" in stdout or "rw-" in stdout, \
+            f"Expected one mode to take effect, got: {stdout}"
+
+    def test_duplicate_user(self, acl_id):
+        """Specifying -u twice with different values."""
+        QDocSE.acl_add().acl_id(acl_id).allow() \
+            .user(0).user(1).mode("r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        stdout = result.result.stdout
+        # One user should take effect
+        assert "User: 0" in stdout or "User: 1" in stdout, \
+            f"Expected one user to take effect, got: {stdout}"
+
+    def test_duplicate_group(self, acl_id):
+        """Specifying -g twice with different values."""
+        QDocSE.acl_add().acl_id(acl_id).allow() \
+            .group(0).group(1).mode("r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        stdout = result.result.stdout
+        # One group should take effect
+        assert "Group: 0" in stdout or "Group: 1" in stdout, \
+            f"Expected one group to take effect, got: {stdout}"
 
 
 @pytest.mark.unit
@@ -530,6 +629,16 @@ class TestACLAddSubjectsExtended:
         """Negative GID should fail."""
         result = QDocSE.acl_add(acl_id, group=-1, mode="r").execute()
         result.fail("negative GID")
+
+    def test_very_large_uid(self, acl_id):
+        """UID beyond system range should fail."""
+        result = QDocSE.acl_add(acl_id, user=4294967296, mode="r").execute()
+        result.fail("UID 2^32 out of range")
+
+    def test_very_large_gid(self, acl_id):
+        """GID beyond system range should fail."""
+        result = QDocSE.acl_add(acl_id, group=4294967296, mode="r").execute()
+        result.fail("GID 2^32 out of range")
 
 
 @pytest.mark.unit
