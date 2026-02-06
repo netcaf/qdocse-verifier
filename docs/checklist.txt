@@ -1,0 +1,12 @@
+acl_add checklist:
+validate the required feature for -a or -b
+validate -b and -l can be optional
+validate -i <ACL ID>, required: Specify the ID of the ACL to add to. if it doesn't exist, negative and invalid for example non-digit.
+validate -m is required. and it can be any combination of r, w, x. and check does it work well for duplicate r, w and x?
+validate -t is optional.
+validate one of -u, -g and -p is required.
+validate -u can work with user name and user id.
+validate -u with invalid user name and id? for example, doesn't exist. zero or negative number ....
+validate -g can work with group name and group id.
+validate -g with invalid group name and id? for example, doesn't exist. zero or negative number ....
+validate the behavour for duplicate options
