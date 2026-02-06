@@ -375,3 +375,290 @@ class TestACLAddChaining:
         result.contains("User: 0")
         result.contains("Mode: r--")
         result.contains("09:00:00-17:00:00")
+
+
+@pytest.mark.unit
+class TestACLAddProgram:
+    """Program entry (-p) tests."""
+
+    def test_add_program_entry(self, program_acl):
+        """Program entry should appear in acl_list."""
+        result = QDocSE.acl_list(program_acl).execute().ok()
+        result.contains("Program:")
+        result.contains("Type: Allow")
+        result.contains("Mode: rwx")
+
+    def test_add_second_program_entry(self):
+        """Add a second program entry with different mode."""
+        view_result = QDocSE.view().authorized().execute()
+        programs = view_result.parse().get("authorized", [])
+        if len(programs) < 2:
+            pytest.skip("Need at least 2 authorized programs")
+
+        aid = QDocSE.acl_create().execute().ok().parse().get("acl_id")
+        QDocSE.acl_add(aid, allow=True).program(1).mode("r").execute().ok()
+        QDocSE.acl_add(aid, allow=True).program(2).mode("w").execute().ok()
+
+        result = QDocSE.acl_list(aid).execute().ok()
+        result.contains("Entry: 1")
+        result.contains("Entry: 2")
+
+    def test_add_program_via_chaining(self):
+        """Fluent API with -p option."""
+        view_result = QDocSE.view().authorized().execute()
+        programs = view_result.parse().get("authorized", [])
+        if not programs:
+            pytest.skip("No authorized programs on system")
+
+        aid: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+        QDocSE.acl_add().acl_id(aid).allow().program(1).mode("rx").execute().ok()
+        result = QDocSE.acl_list(aid).execute().ok()
+        result.contains("Program:")
+        result.contains("Mode: r-x")
+
+    def test_invalid_program_index(self, acl_id):
+        """Invalid program index should fail."""
+        result = QDocSE.acl_add(acl_id, allow=True).program(99999).mode("r").execute()
+        result.fail("invalid program index")
+        result.contains("Invalid program index")
+
+    def test_program_deny_entry(self):
+        """Deny entry with program subject."""
+        view_result = QDocSE.view().authorized().execute()
+        programs = view_result.parse().get("authorized", [])
+        if not programs:
+            pytest.skip("No authorized programs on system")
+
+        aid = QDocSE.acl_create().execute().ok().parse().get("acl_id")
+        QDocSE.acl_add(aid, allow=False).program(1).mode("w").execute().ok()
+        result = QDocSE.acl_list(aid).execute().ok()
+        result.contains("Type: Deny")
+        result.contains("Program:")
+
+    def test_program_with_time(self):
+        """Program entry with time constraint."""
+        view_result = QDocSE.view().authorized().execute()
+        programs = view_result.parse().get("authorized", [])
+        if not programs:
+            pytest.skip("No authorized programs on system")
+
+        aid = QDocSE.acl_create().execute().ok().parse().get("acl_id")
+        QDocSE.acl_add(aid, allow=True).program(1).mode("r") \
+            .time("mon-09:00:00-17:00:00").execute().ok()
+        result = QDocSE.acl_list(aid).execute().ok()
+        result.contains("Monday")
+        result.contains("09:00:00-17:00:00")
+
+
+@pytest.mark.unit
+class TestACLAddMutualExclusivity:
+    """Mutual exclusivity of subject options (-u/-g/-p) and type options (-a/-d)."""
+
+    def test_user_and_group_together(self, acl_id):
+        """Using -u and -g together should fail."""
+        QDocSE.acl_add().acl_id(acl_id).allow().user(0).group(0) \
+            .mode("r").execute().fail("user and group together")
+
+    def test_user_and_program_together(self, acl_id):
+        """Using -u and -p together should fail."""
+        QDocSE.acl_add().acl_id(acl_id).allow().user(0).program(1) \
+            .mode("r").execute().fail("user and program together")
+
+    def test_group_and_program_together(self, acl_id):
+        """Using -g and -p together should fail."""
+        QDocSE.acl_add().acl_id(acl_id).allow().group(0).program(1) \
+            .mode("r").execute().fail("group and program together")
+
+    def test_all_three_subjects_together(self, acl_id):
+        """Using -u, -g, and -p together should fail."""
+        QDocSE.acl_add().acl_id(acl_id).allow().user(0).group(0).program(1) \
+            .mode("r").execute().fail("all three subjects together")
+
+    def test_allow_and_deny_together(self, acl_id):
+        """Using -a and -d together should fail."""
+        QDocSE.acl_add().acl_id(acl_id).allow().deny().user(0) \
+            .mode("r").execute().fail("allow and deny together")
+
+
+@pytest.mark.unit
+class TestACLAddTypeMixing:
+    """ACL entry type constraints — user/group and program entries cannot coexist."""
+
+    def test_user_entry_on_program_acl(self, program_acl):
+        """Adding a user entry to a program ACL should fail."""
+        result = QDocSE.acl_add(program_acl, user=0, mode="r").execute()
+        result.fail("user entry on program ACL")
+
+    def test_group_entry_on_program_acl(self, program_acl):
+        """Adding a group entry to a program ACL should fail."""
+        result = QDocSE.acl_add(program_acl, group=0, mode="r").execute()
+        result.fail("group entry on program ACL")
+
+    def test_program_entry_on_user_acl(self, acl_id):
+        """Adding a program entry to a user/group ACL should fail."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_add(acl_id, allow=True).program(1).mode("r").execute()
+        result.fail("program entry on user ACL")
+
+
+@pytest.mark.unit
+class TestACLAddSubjectsExtended:
+    """Extended subject tests — group by name, invalid subjects."""
+
+    def test_group_by_name(self, acl_id):
+        """Group specified by name should resolve to GID."""
+        QDocSE.acl_add(acl_id, group="root", mode="r").execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains("Group: 0 (root)")
+
+    def test_invalid_username(self, acl_id):
+        """Nonexistent username should fail."""
+        result = QDocSE.acl_add(acl_id, user="nonexistent_user_xyz_99", mode="r").execute()
+        result.fail("invalid username")
+
+    def test_invalid_group_name(self, acl_id):
+        """Nonexistent group name should fail."""
+        result = QDocSE.acl_add(acl_id, group="nonexistent_group_xyz_99", mode="r").execute()
+        result.fail("invalid group name")
+
+    def test_negative_uid(self, acl_id):
+        """Negative UID should fail."""
+        result = QDocSE.acl_add(acl_id, user=-1, mode="r").execute()
+        result.fail("negative UID")
+
+    def test_negative_gid(self, acl_id):
+        """Negative GID should fail."""
+        result = QDocSE.acl_add(acl_id, group=-1, mode="r").execute()
+        result.fail("negative GID")
+
+
+@pytest.mark.unit
+class TestACLAddMissingRequired:
+    """Missing required option tests with error message verification."""
+
+    def test_missing_acl_id(self):
+        """Omitting -i should fail with specific error."""
+        result = QDocSE.acl_add().user(0).mode("r").allow().execute()
+        result.fail("missing ACL ID")
+        result.contains("Missing required '-i' option")
+
+    def test_missing_mode_error_message(self, acl_id):
+        """Omitting -m should produce specific error message."""
+        result = QDocSE.acl_add(acl_id, user=0).execute()
+        result.fail("missing mode")
+        result.contains("Missing required '-m' option")
+
+    def test_missing_subject_error_message(self, acl_id):
+        """Omitting -u/-g/-p should produce specific error message."""
+        result = QDocSE.acl_add().acl_id(acl_id).allow().mode("r").execute()
+        result.fail("missing subject")
+        result.contains("One of option '-g', '-p' or '-u' must be specified")
+
+    def test_missing_type_error_message(self):
+        """Omitting -a/-d should produce specific error message.
+
+        The constructor defaults allow=True so -a is always set.
+        Build command manually to omit -a/-d flag.
+        """
+        cmd = QDocSE.acl_add()
+        # Remove the default -a flag injected by constructor
+        cmd.args.clear()
+        cmd.acl_id(1).user(0).mode("r")
+        result = cmd.execute()
+        result.fail("missing allow/deny")
+        result.contains("One of option '-a' or '-d' must be specified")
+
+
+@pytest.mark.unit
+class TestACLAddProgramFlags:
+    """Tests for -b (backup) and -l (limited) program flags.
+
+    Per help: -b = program is a backup program saving whole encrypted files.
+              -l = program is limited to encrypted data only.
+              Programs default to plaintext unless -b or -l used.
+    """
+
+    def test_backup_flag_with_program(self):
+        """The -b flag is valid with program entries."""
+        view_result = QDocSE.view().authorized().execute()
+        programs = view_result.parse().get("authorized", [])
+        if not programs:
+            pytest.skip("No authorized programs on system")
+
+        aid: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+        QDocSE.acl_add().acl_id(aid).allow().program(1).mode("r") \
+            .backup().execute().ok()
+
+    def test_limited_flag_with_program(self):
+        """The -l flag is valid with program entries."""
+        view_result = QDocSE.view().authorized().execute()
+        programs = view_result.parse().get("authorized", [])
+        if not programs:
+            pytest.skip("No authorized programs on system")
+
+        aid: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+        QDocSE.acl_add().acl_id(aid).allow().program(1).mode("r") \
+            .limited().execute().ok()
+
+    def test_backup_and_limited_mutual_exclusivity(self):
+        """Using -b and -l together should fail (mutually exclusive)."""
+        view_result = QDocSE.view().authorized().execute()
+        programs = view_result.parse().get("authorized", [])
+        if not programs:
+            pytest.skip("No authorized programs on system")
+
+        aid: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+        result = QDocSE.acl_add().acl_id(aid).allow().program(1).mode("r") \
+            .backup().limited().execute()
+        result.fail("backup and limited together")
+
+    def test_backup_flag_with_user_rejected(self, acl_id):
+        """The -b flag should only apply to program entries, not user."""
+        result = QDocSE.acl_add().acl_id(acl_id).allow().user(0).mode("r") \
+            .backup().execute()
+        result.fail("backup flag with user entry")
+
+    def test_limited_flag_with_user_rejected(self, acl_id):
+        """The -l flag should only apply to program entries, not user."""
+        result = QDocSE.acl_add().acl_id(acl_id).allow().user(0).mode("r") \
+            .limited().execute()
+        result.fail("limited flag with user entry")
+
+    def test_backup_flag_with_group_rejected(self, acl_id):
+        """The -b flag should only apply to program entries, not group."""
+        result = QDocSE.acl_add().acl_id(acl_id).allow().group(0).mode("r") \
+            .backup().execute()
+        result.fail("backup flag with group entry")
+
+    def test_limited_flag_with_group_rejected(self, acl_id):
+        """The -l flag should only apply to program entries, not group."""
+        result = QDocSE.acl_add().acl_id(acl_id).allow().group(0).mode("r") \
+            .limited().execute()
+        result.fail("limited flag with group entry")
+
+
+@pytest.mark.unit
+class TestACLAddOctalMode:
+    """Octal mode specification tests.
+
+    Per help: 'The mode can also be specified in octal.'
+    """
+
+    @pytest.mark.parametrize("octal,expected", [
+        ("4", "r--"),
+        ("2", "-w-"),
+        ("1", "--x"),
+        ("6", "rw-"),
+        ("5", "r-x"),
+        ("3", "-wx"),
+        ("7", "rwx"),
+    ])
+    def test_octal_modes(self, acl_id, octal, expected):
+        """Mode specified as octal digit should be accepted."""
+        QDocSE.acl_add(acl_id, user=0, mode=octal).execute().ok()
+        result = QDocSE.acl_list(acl_id).execute().ok()
+        result.contains(f"Mode: {expected}")
+
+    def test_octal_zero_rejected(self, acl_id):
+        """Octal 0 (no permissions) should be rejected."""
+        QDocSE.acl_add(acl_id, user=0, mode="0").execute().fail("octal zero")
