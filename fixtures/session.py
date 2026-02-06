@@ -150,6 +150,45 @@ def purge_stale_watchpoints(setup_executor):
     yield
 
 
+@pytest.fixture(scope="session", autouse=True)
+def purge_stale_programs(setup_executor):
+    """Block stale test programs from the authorized list before test session.
+
+    Previous test runs may leave behind authorized programs under /tmp/
+    (temp executables created by tests).  Programs cannot be fully removed
+    from QDocSE's authorized/blocked lists — only moved between them.
+    Moving stale /tmp/ programs to the blocked list is sufficient cleanup:
+    entries pointing to deleted files are harmless in the blocked list.
+    """
+    try:
+        result = QDocSE.view().execute()
+        if result.result.success:
+            parsed = result.parse()
+            blocked = 0
+            for prog in parsed.get("authorized", []):
+                if "/tmp/" not in prog["path"]:
+                    continue
+                try:
+                    QDocSE.adjust().block_index(prog["index"]).execute()
+                    blocked += 1
+                except Exception:
+                    logger.warning(
+                        "Failed to block stale program %s (index %s)",
+                        prog["path"], prog["index"],
+                    )
+            if blocked:
+                QDocSE.push_config().execute()
+                logger.info(
+                    "[Pre-run purge] Blocked %d stale program(s) from authorized list",
+                    blocked,
+                )
+            else:
+                logger.info("[Pre-run purge] No stale programs in authorized list")
+    except Exception as e:
+        logger.warning("[Pre-run purge] Could not list programs: %s", e)
+    yield
+
+
 @pytest.fixture(scope="module")
 def module_cleanup():
     """Module-level cleanup: push_config after each module."""
