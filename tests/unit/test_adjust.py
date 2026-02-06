@@ -1,6 +1,5 @@
 """Adjust command tests."""
 import pytest
-import tempfile
 import os
 from helpers import QDocSE
 
@@ -67,8 +66,12 @@ def acl_with_entry(acl_id, some_valid_uids):
 class TestAdjustBasic:
     """Basic authorize/block operations."""
 
-    def test_authorize_by_path(self, temp_executable):
+    def test_authorize_by_path(self, temp_executable, request):
         """Authorize by path (-apf)."""
+        # Ensure cleanup runs even if assertions fail
+        request.addfinalizer(
+            lambda: QDocSE.adjust().block_path(temp_executable).execute()
+        )
         # Act
         result = QDocSE.adjust().auth_path(temp_executable).execute()
         # Assert
@@ -77,13 +80,15 @@ class TestAdjustBasic:
         view = QDocSE.view().authorized().execute().ok().parse()
         paths = [p["path"] for p in view.get("authorized", [])]
         assert temp_executable in paths
-        # Clean up: block it
-        QDocSE.adjust().block_path(temp_executable).execute().ok()
 
-    def test_block_by_path(self, temp_executable):
+    def test_block_by_path(self, temp_executable, request):
         """Block by path (-bpf)."""
         # First authorize it
         QDocSE.adjust().auth_path(temp_executable).execute().ok()
+        # Ensure cleanup runs even if assertions fail
+        request.addfinalizer(
+            lambda: QDocSE.adjust().auth_path(temp_executable).execute()
+        )
         # Then block it
         result = QDocSE.adjust().block_path(temp_executable).execute()
         result.ok()
@@ -91,16 +96,19 @@ class TestAdjustBasic:
         view = QDocSE.view().blocked().execute().ok().parse()
         paths = [p["path"] for p in view.get("blocked", [])]
         assert temp_executable in paths
-        # Clean up: remove from blocked (authorize again)
-        QDocSE.adjust().auth_path(temp_executable).execute().ok()
 
-    def test_authorize_by_index(self, blocked_index):
+    def test_authorize_by_index(self, blocked_index, request):
         """Authorize by index (-api) moves program from blocked to authorized."""
         # Get program details before
         view_before = QDocSE.view().execute().ok().parse()
         blocked_before = [p for p in view_before["blocked"] if p["index"] == blocked_index]
         assert len(blocked_before) == 1
         target_path = blocked_before[0]["path"]
+
+        # Ensure cleanup: re-block the program by path (works regardless of index change)
+        request.addfinalizer(
+            lambda: QDocSE.adjust().block_path(target_path).execute()
+        )
 
         # Act
         result = QDocSE.adjust().auth_index(blocked_index).execute()
@@ -115,18 +123,18 @@ class TestAdjustBasic:
         auth_after = [p for p in view_after["authorized"] if p["path"] == target_path]
         assert len(auth_after) == 1
 
-        # Restore: block it again
-        # Find its new index in authorized list
-        new_index = auth_after[0]["index"]
-        QDocSE.adjust().block_index(new_index).execute().ok()
-
-    def test_block_by_index(self, authorized_index):
+    def test_block_by_index(self, authorized_index, request):
         """Block by index (-b) moves program from authorized to blocked."""
         # Get program details before
         view_before = QDocSE.view().execute().ok().parse()
         auth_before = [p for p in view_before["authorized"] if p["index"] == authorized_index]
         assert len(auth_before) == 1
         target_path = auth_before[0]["path"]
+
+        # Ensure cleanup: re-authorize the program by path (works regardless of index change)
+        request.addfinalizer(
+            lambda: QDocSE.adjust().auth_path(target_path).execute()
+        )
 
         # Act
         result = QDocSE.adjust().block_index(authorized_index).execute()
@@ -141,9 +149,26 @@ class TestAdjustBasic:
         blocked_after = [p for p in view_after["blocked"] if p["path"] == target_path]
         assert len(blocked_after) == 1
 
-        # Restore: authorize it again
-        new_index = blocked_after[0]["index"]
-        QDocSE.adjust().auth_index(new_index).execute().ok()
+    def test_authorize_without_acl_uses_default(self, temp_executable, request):
+        """Authorize without -A uses built-in ACL ID 0 (allow access).
+
+        Docs: "When the ACL ID is not specified, this is the equivalent of
+        fixed, built-in ACL ID 0 (zero) which has an 'allow access' setting."
+        """
+        request.addfinalizer(
+            lambda: QDocSE.adjust().block_path(temp_executable).execute()
+        )
+        # Act
+        result = QDocSE.adjust().auth_path(temp_executable).execute()
+        result.ok()
+
+        # Assert: ACL field should be None (no explicit ACL) or 0
+        view = QDocSE.view().authorized().execute().ok().parse()
+        target = [p for p in view.get("authorized", []) if p["path"] == temp_executable]
+        assert len(target) == 1, f"Expected {temp_executable} in authorized list"
+        assert target[0]["acl"] is None or target[0]["acl"] == 0, (
+            f"Without -A, ACL should be None/0 (default), got {target[0]['acl']}"
+        )
 
 
 # =============================================================================
@@ -154,38 +179,55 @@ class TestAdjustBasic:
 class TestAdjustWithACL:
     """Authorize/block with ACL association (-A option)."""
 
-    def test_authorize_with_acl(self, blocked_index, acl_with_entry):
+    def test_authorize_with_acl(self, blocked_index, acl_with_entry, request):
         """Authorize with ACL association (-api -A)."""
+        # Arrange: capture program path before move
+        view_before = QDocSE.view().blocked().execute().ok().parse()
+        target_before = [p for p in view_before["blocked"] if p["index"] == blocked_index]
+        assert len(target_before) == 1
+        target_path = target_before[0]["path"]
+
+        request.addfinalizer(
+            lambda: QDocSE.adjust().block_path(target_path).execute()
+        )
+
         # Act
         result = QDocSE.adjust().auth_index(blocked_index).with_acl(acl_with_entry).execute()
         result.ok()
 
-        # Verify ACL appears in authorized list
+        # Verify program moved to authorized with correct ACL
         view = QDocSE.view().authorized().execute().ok().parse()
-        target = [p for p in view["authorized"] if p["acl"] == acl_with_entry]
-        assert len(target) == 1
+        target = [p for p in view["authorized"] if p["path"] == target_path]
+        assert len(target) == 1, f"Expected {target_path} in authorized list"
         assert target[0]["acl"] == acl_with_entry
 
-        # Restore: block again (ACL association removed)
-        QDocSE.adjust().block_index(target[0]["index"]).execute().ok()
-
-    def test_block_with_acl(self, authorized_index, acl_with_entry):
+    def test_block_with_acl(self, authorized_index, acl_with_entry, request):
         """Block with ACL association (-b -A)."""
+        # Arrange: capture program path before move
+        view_before = QDocSE.view().authorized().execute().ok().parse()
+        target_before = [p for p in view_before["authorized"] if p["index"] == authorized_index]
+        assert len(target_before) == 1
+        target_path = target_before[0]["path"]
+
+        request.addfinalizer(
+            lambda: QDocSE.adjust().auth_path(target_path).execute()
+        )
+
         # Act
         result = QDocSE.adjust().block_index(authorized_index).with_acl(acl_with_entry).execute()
         result.ok()
 
-        # Verify ACL appears in blocked list
+        # Verify program moved to blocked with correct ACL
         view = QDocSE.view().blocked().execute().ok().parse()
-        target = [p for p in view["blocked"] if p["acl"] == acl_with_entry]
-        assert len(target) == 1
+        target = [p for p in view["blocked"] if p["path"] == target_path]
+        assert len(target) == 1, f"Expected {target_path} in blocked list"
         assert target[0]["acl"] == acl_with_entry
 
-        # Restore: authorize again (ACL association removed)
-        QDocSE.adjust().auth_index(target[0]["index"]).execute().ok()
-
-    def test_authorize_by_path_with_acl(self, temp_executable, acl_with_entry):
+    def test_authorize_by_path_with_acl(self, temp_executable, acl_with_entry, request):
         """Authorize by path with ACL (-apf -A)."""
+        request.addfinalizer(
+            lambda: QDocSE.adjust().block_path(temp_executable).execute()
+        )
         # First block it
         QDocSE.adjust().block_path(temp_executable).execute().ok()
         # Then authorize with ACL
@@ -198,13 +240,13 @@ class TestAdjustWithACL:
         assert len(target) == 1
         assert target[0]["acl"] == acl_with_entry
 
-        # Clean up: block again
-        QDocSE.adjust().block_path(temp_executable).execute().ok()
-
-    def test_block_by_path_with_acl(self, temp_executable, acl_with_entry):
+    def test_block_by_path_with_acl(self, temp_executable, acl_with_entry, request):
         """Block by path with ACL (-bpf -A)."""
         # Arrange: authorize it first
         QDocSE.adjust().auth_path(temp_executable).execute().ok()
+        request.addfinalizer(
+            lambda: QDocSE.adjust().auth_path(temp_executable).execute()
+        )
 
         # Act: block with ACL
         result = QDocSE.adjust().block_path(temp_executable).with_acl(acl_with_entry).execute()
@@ -215,9 +257,6 @@ class TestAdjustWithACL:
         target = [p for p in view["blocked"] if p["path"] == temp_executable]
         assert len(target) == 1
         assert target[0]["acl"] == acl_with_entry
-
-        # Clean up: authorize again
-        QDocSE.adjust().auth_path(temp_executable).execute().ok()
 
 
 # =============================================================================
@@ -236,7 +275,11 @@ class TestAdjustErrors:
 
     @pytest.mark.parametrize("index", [-1, 0, 99999])
     def test_invalid_index(self, index):
-        """Invalid index fails with appropriate error."""
+        """Invalid index fails with appropriate error.
+
+        Docs: index_number comes from the view command which uses 1-based
+        indices, so -1, 0, and 99999 are all invalid.
+        """
         # Try auth_index
         result = QDocSE.adjust().auth_index(index).execute()
         result.fail(f"Should fail for invalid index {index}")
@@ -255,10 +298,18 @@ class TestAdjustErrors:
         assert "Invalid ACL ID" in result.result.stderr
 
     def test_with_acl_without_auth_block(self):
-        """-A without auth/block option fails."""
+        """-A without auth/block option fails.
+
+        Docs don't explicitly specify the error for '-A' alone.
+        Expected: missing auth/block error (like test_missing_auth_block_option).
+        Observed: returns "Invalid ACL ID" instead — likely validates ACL before
+        checking required options. Kept as-is to document actual behavior.
+        """
         result = QDocSE.adjust().with_acl(1).execute()
         result.fail("Should fail without auth/block option")
-        assert "Invalid ACL ID" in result.result.stderr  # Observed behavior
+        # NOTE: Docs would suggest "Missing required options" but implementation
+        # returns "Invalid ACL ID".  If this changes, update to match docs.
+        assert "Invalid ACL ID" in result.result.stderr
 
     def test_duplicate_authorization(self, authorized_index):
         """Authorizing an already authorized program succeeds (no-op)."""
@@ -287,7 +338,16 @@ class TestAdjustErrors:
         assert "does not exist" in result.result.stderr or "not found" in result.result.stderr.lower()
 
     def test_shell_script_silently_ignored(self, tmp_path):
-        """Shell scripts (non-ELF) are silently ignored - command succeeds but no effect."""
+        """Shell scripts (non-ELF) are silently ignored - command succeeds but no effect.
+
+        Docs (adjust section): "every shared library used by the program is being
+        evaluated" — implies only ELF binaries are processed.  Docs do not
+        explicitly state that non-ELF files are silently ignored, so this test
+        documents observed implementation behavior.
+
+        push_config is called here (unlike other adjust tests) to verify the
+        script remains absent even after configuration is applied.
+        """
         # Arrange: create a shell script
         script = tmp_path / "script.sh"
         script.write_text("#!/bin/bash\necho hello\n")
