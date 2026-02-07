@@ -210,3 +210,12 @@ class TestACLListErrors:
         """Negative ACL ID should fail."""
         result = QDocSE.acl_list(-1).execute()
         result.fail("Should fail for negative ACL ID")
+
+    def test_acl_zero_is_builtin_allow(self):
+        """ACL ID 0 exists as built-in 'allow access' default.
+
+        Per PDF: "When the ACL ID is not specified then this is the equivalent
+        of fixed, built-in ACL ID 0 (zero) which has an 'allow access' setting."
+        """
+        result = QDocSE.acl_list(0).execute()
+        assert result.result.success or "built-in" in result.result.stdout.lower()
