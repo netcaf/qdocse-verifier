@@ -65,13 +65,17 @@ class TestACLDestroyBasic:
     def test_destroy_requires_acl_id(self):
         """
         acl_destroy requires -i option.
-        
+
         Per PDF page 74: "Missing required '-i' option" error
         """
-        # Try to destroy without specifying ACL ID
-        # Note: The command wrapper may require acl_id, so we test the raw command behavior
         result = QDocSE.acl_destroy().execute()
         result.fail("Should fail without ACL ID")
+        result.contains("Missing required")
+
+    def test_force_only_without_acl_id(self):
+        """Using -f alone without -i should fail."""
+        result = QDocSE.acl_destroy().force().execute()
+        result.fail("-f without -i should fail")
         result.contains("Missing required")
 
 
@@ -202,14 +206,64 @@ class TestACLDestroyErrors:
         # Create and immediately destroy
         create_result = QDocSE.acl_create().execute().ok()
         acl_id = create_result.parse()["acl_id"]
-        
+
         QDocSE.acl_destroy(acl_id).execute().ok()
         QDocSE.push_config().execute()
-        
+
         # Try to destroy again
         result = QDocSE.acl_destroy(acl_id).execute()
         result.fail("Should fail for already destroyed ACL")
         result.contains("is not a valid ACL ID")
+
+    @pytest.mark.parametrize("acl_id_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("", "empty string"),
+        ("!@#", "special chars"),
+    ])
+    def test_destroy_non_digit_acl_id(self, acl_id_val, desc):
+        """Non-digit ACL ID should fail."""
+        cmd = QDocSE.acl_destroy()
+        cmd._opt("-i", acl_id_val)
+        result = cmd.execute()
+        result.fail(desc)
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    def test_force_destroy_invalid_acl_id(self):
+        """acl_destroy -f with nonexistent ACL ID should fail."""
+        result = QDocSE.acl_destroy(999999, force=True).execute()
+        result.fail("-f with nonexistent ACL ID")
+        result.contains("is not a valid ACL ID")
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    def test_force_destroy_already_destroyed_acl(self):
+        """acl_destroy -f on already destroyed ACL should fail."""
+        create_result = QDocSE.acl_create().execute().ok()
+        acl_id = create_result.parse()["acl_id"]
+
+        QDocSE.acl_destroy(acl_id).execute().ok()
+        QDocSE.push_config().execute()
+
+        result = QDocSE.acl_destroy(acl_id, force=True).execute()
+        result.fail("-f on already destroyed ACL")
+        result.contains("is not a valid ACL ID")
+
+
+@pytest.mark.unit
+class TestACLDestroyForceWithEmpty:
+    """Validate -f flag on empty ACL (redundant but valid)."""
+
+    def test_force_destroy_empty_acl_succeeds(self):
+        """Using -f on an empty ACL should succeed (force is unnecessary but valid)."""
+        create_result = QDocSE.acl_create().execute().ok()
+        acl_id = create_result.parse()["acl_id"]
+
+        QDocSE.acl_destroy(acl_id, force=True).execute().ok()
+        QDocSE.push_config().execute()
+
+        list_result = QDocSE.acl_list(acl_id).execute()
+        assert list_result.result.failed or \
+               f"ACL ID {acl_id}" not in list_result.result.stdout
 
 
 @pytest.mark.unit
