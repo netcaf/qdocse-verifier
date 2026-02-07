@@ -1,0 +1,602 @@
+Complete Test Case List for acl_file Command
+1. Required Options Tests
+1.1 Directory (-d) Option Tests
+
+TC-001: Execute without -d option → Expected: Error "Option '-d' must be specified"
+TC-002: Execute with valid directory path → Expected: Success (with -A or -P)
+TC-003: Execute with absolute path /tmp/testdir → Expected: Success
+TC-004: Execute with relative path ./testdir → Expected: Success
+TC-005: Execute with relative path ../testdir → Expected: Success
+TC-006: Execute with current directory . → Expected: Success
+TC-007: Execute with parent directory .. → Expected: Success
+TC-008: Execute with home directory ~ → Expected: Success or expanded path
+TC-009: Execute with non-existent directory → Expected: Error "Directory does not exist"
+TC-010: Execute with file path (not directory) → Expected: Error "Not a directory"
+TC-011: Execute with empty directory path -d "" → Expected: Error
+TC-012: Execute with -d without value → Expected: Error
+TC-013: Execute with very long directory path (4096+ chars) → Expected: Error "Filename path too long"
+TC-014: Execute with -d specified twice → Expected: Error or use last value
+
+1.2 ACL ID (-A and -P) Requirements Tests
+
+TC-015: Execute with neither -A nor -P → Expected: Error "One or both options '-A' or '-P' must be specified"
+TC-016: Execute with -A only → Expected: Success
+TC-017: Execute with -P only → Expected: Success
+TC-018: Execute with both -A and -P → Expected: Success
+TC-019: Execute with -A 0 (invalid) → Expected: Error "Invalid ACL ID specified to '-A'"
+TC-020: Execute with -P 0 (invalid) → Expected: Error "Invalid ACL ID specified to '-P'"
+TC-021: Execute with negative -A value → Expected: Error "Invalid ACL ID"
+TC-022: Execute with negative -P value → Expected: Error "Invalid ACL ID"
+TC-023: Execute with non-numeric -A value → Expected: Error
+TC-024: Execute with non-numeric -P value → Expected: Error
+TC-025: Execute with non-existent ACL ID for -A → Expected: Error "Invalid ACL ID specified to '-A'"
+TC-026: Execute with non-existent ACL ID for -P → Expected: Error "Invalid ACL ID specified to '-P'"
+TC-027: Execute with valid ACL ID for -A → Expected: Success
+TC-028: Execute with valid ACL ID for -P → Expected: Success
+TC-029: Execute with destroyed ACL ID → Expected: Error "Invalid ACL ID"
+TC-030: Execute with -A without value → Expected: Error
+TC-031: Execute with -P without value → Expected: Error
+
+1.3 ACL Type Validation Tests
+
+TC-032: Execute with -A specifying user/group ACL → Expected: Success
+TC-033: Execute with -A specifying program-only ACL → Expected: Error (type mismatch)
+TC-034: Execute with -P specifying program ACL → Expected: Success
+TC-035: Execute with -P specifying user/group-only ACL → Expected: Error (type mismatch)
+
+2. Directory Pattern (-dp) Option Tests
+2.1 Basic Pattern Tests
+
+TC-036: Execute without -dp (all files) → Expected: Success, applies to all files recursively
+TC-037: Execute with -dp '*.txt' → Expected: Success, matches .txt files
+TC-038: Execute with -dp '*.doc' → Expected: Success, matches .doc files
+TC-039: Execute with -dp '*.pdf' → Expected: Success, matches .pdf files
+TC-040: Execute with -dp '*' (all files) → Expected: Success, same as no pattern
+TC-041: Execute with -dp 'file.txt' (exact name) → Expected: Success, matches exact filename
+TC-042: Execute with -dp 'test*' (prefix) → Expected: Success, matches prefix
+TC-043: Execute with -dp '*test' (suffix) → Expected: Success, matches suffix
+TC-044: Execute with -dp '*test*' (contains) → Expected: Success, matches containing string
+
+2.2 Advanced Glob Pattern Tests
+
+TC-045: Execute with -dp '*.{txt,doc}' (multiple extensions) → Expected: Success
+TC-046: Execute with -dp 'file[0-9].txt' (character class) → Expected: Success
+TC-047: Execute with -dp 'file[!0-9].txt' (negated class) → Expected: Success
+TC-048: Execute with -dp '??.txt' (single char wildcard) → Expected: Success
+TC-049: Execute with -dp 'dir/**/file.txt' (recursive) → Expected: Success or Error (glob support)
+TC-050: Execute with -dp '[abc]*.txt' (character range) → Expected: Success
+TC-051: Execute with -dp 'file.??' (two-char extension) → Expected: Success
+TC-052: Execute with complex pattern → Expected: Success
+
+2.3 Pattern Quoting Tests
+
+TC-053: Execute with -dp '*.txt' (single quotes) → Expected: Success
+TC-054: Execute with -dp "*.txt" (double quotes) → Expected: Success
+TC-055: Execute with -dp *.txt (no quotes) → Expected: Success or shell expansion issue
+TC-056: Execute with -dp '*test*.txt' (embedded wildcard) → Expected: Success
+TC-057: Verify shell doesn't expand pattern with proper quoting → Expected: Pattern passed to command
+
+2.4 Pattern Matching Behavior Tests
+
+TC-058: Pattern matches 0 files → Expected: Success, no changes (or warning)
+TC-059: Pattern matches 1 file → Expected: Success, 1 file updated
+TC-060: Pattern matches 10 files → Expected: Success, 10 files updated
+TC-061: Pattern matches 1000 files → Expected: Success, 1000 files updated
+TC-062: Pattern matches files in subdirectories → Expected: Success, recursive matching
+
+2.5 Case Sensitivity Tests
+
+TC-063: Execute with -dp '*.TXT' (uppercase) → Expected: Match based on filesystem case sensitivity
+TC-064: Execute with -dp '*.Txt' (mixed case) → Expected: Match based on filesystem
+TC-065: Test pattern matching on case-sensitive filesystem → Expected: Exact case match
+TC-066: Test pattern matching on case-insensitive filesystem → Expected: Case-insensitive match
+
+3. Exclude Pattern (-excl) Option Tests
+3.1 Basic Exclude Tests
+
+TC-067: Execute without -excl → Expected: No exclusions
+TC-068: Execute with -excl '*.tmp' → Expected: Success, excludes .tmp files
+TC-069: Execute with -excl '*.bak' → Expected: Success, excludes .bak files
+TC-070: Execute with -excl 'test*' → Expected: Success, excludes files starting with test
+TC-071: Execute with -excl '*~' → Expected: Success, excludes backup files
+TC-072: Execute with -excl '*' (exclude all) → Expected: Success, no files processed
+
+3.2 Combined -dp and -excl Tests
+
+TC-073: Execute with -dp '*.txt' -excl '*.tmp.txt' → Expected: Match .txt, exclude .tmp.txt
+TC-074: Execute with -dp '*' -excl '*.bak' → Expected: All files except .bak
+TC-075: Execute with -dp 'test*' -excl 'test.old*' → Expected: test* except test.old*
+TC-076: Verify -dp matches added first, then -excl removes → Expected: Correct order
+TC-077: Execute with -dp matching 100 files, -excl excluding 10 → Expected: 90 files updated
+TC-078: Execute with overlapping -dp and -excl patterns → Expected: Exclude wins
+
+3.3 Multiple Patterns Tests (if supported)
+
+TC-079: Execute with multiple -dp options → Expected: All patterns matched or error
+TC-080: Execute with multiple -excl options → Expected: All patterns excluded or error
+TC-081: Execute with 3 -dp and 2 -excl → Expected: Complex matching
+
+3.4 Exclude Pattern Edge Cases
+
+TC-082: -excl pattern matches no files → Expected: Success, no exclusions
+TC-083: -excl pattern matches all -dp matches → Expected: No files processed
+TC-084: -excl without -dp → Expected: Success, excludes from all files
+
+4. Basic Functionality Tests
+4.1 Single File Tests
+
+TC-085: Apply ACL to directory with 1 file → Expected: Success, 1 file updated
+TC-086: Apply -A 1 to single file → Expected: File has user/group ACL ID 1
+TC-087: Apply -P 2 to single file → Expected: File has program ACL ID 2
+TC-088: Apply -A 1 -P 2 to single file → Expected: File has both ACL IDs
+
+4.2 Multiple File Tests
+
+TC-089: Apply ACL to directory with 10 files → Expected: Success, all 10 updated
+TC-090: Apply ACL to directory with 100 files → Expected: Success, all 100 updated
+TC-091: Apply ACL to directory with 1000 files → Expected: Success, all 1000 updated
+
+4.3 Recursive Directory Tests
+
+TC-092: Apply ACL to directory with subdirectories → Expected: Recursive application
+TC-093: Apply ACL to 3-level deep directory structure → Expected: All levels processed
+TC-094: Apply ACL to 10-level deep directory structure → Expected: All levels processed
+TC-095: Verify files in subdirectories get ACL IDs → Expected: Recursive success
+
+4.4 Empty Directory Tests
+
+TC-096: Apply ACL to empty directory → Expected: Success, no files to update
+TC-097: Apply ACL to directory with only subdirectories (no files) → Expected: Success
+
+4.5 File Type Tests
+
+TC-098: Apply ACL to regular files → Expected: Success
+TC-099: Apply ACL to symbolic links → Expected: Success or skip (verify behavior)
+TC-100: Apply ACL to device files → Expected: Success or skip
+TC-101: Apply ACL to named pipes → Expected: Success or skip
+TC-102: Apply ACL to sockets → Expected: Success or skip
+
+5. ACL Update Behavior Tests
+5.1 Setting New ACL IDs
+
+TC-103: File with no ACL IDs, apply -A 1 → Expected: User/group ACL ID set to 1
+TC-104: File with no ACL IDs, apply -P 2 → Expected: Program ACL ID set to 2
+TC-105: File with no ACL IDs, apply -A 1 -P 2 → Expected: Both set
+
+5.2 Updating Existing ACL IDs
+
+TC-106: File with -A 1, update to -A 2 → Expected: User/group ACL ID changed to 2
+TC-107: File with -P 1, update to -P 2 → Expected: Program ACL ID changed to 2
+TC-108: File with -A 1 -P 1, update to -A 2 -P 2 → Expected: Both changed
+
+5.3 Partial Update Tests
+
+TC-109: File with -A 1 -P 2, apply only -A 3 → Expected: A changed to 3, P remains 2
+TC-110: File with -A 1 -P 2, apply only -P 3 → Expected: P changed to 3, A remains 1
+TC-111: Verify "current ACL ID unchanged" when option not specified → Expected: Preserved
+
+5.4 Removing ACL IDs (if supported)
+
+TC-112: Test if ACL IDs can be removed → Expected: Check if supported
+TC-113: Test behavior with special value to clear ACL ID → Expected: Document behavior
+
+6. Verification Tests
+6.1 ACL Application Verification
+
+TC-114: Apply ACL, verify file has correct ACL IDs → Expected: IDs set correctly
+TC-115: Apply to multiple files, verify all have correct IDs → Expected: All updated
+TC-116: Apply with pattern, verify only matching files updated → Expected: Selective update
+TC-117: Apply with exclusion, verify excluded files unchanged → Expected: Unchanged
+TC-118: Use file query command to verify ACL IDs → Expected: Correct IDs shown
+
+6.2 Non-Matching Files Verification
+
+TC-119: Apply with -dp '*.txt', verify .doc files unchanged → Expected: .doc unchanged
+TC-120: Apply with exclusion, verify excluded files retain old ACL IDs → Expected: Preserved
+
+7. System State and Prerequisites Tests
+7.1 ACL Configuration Tests
+
+TC-121: Execute when no ACL configuration exists → Expected: Error "No ACL configuration found"
+TC-122: Execute when ACL configuration file exists → Expected: Success
+TC-123: Execute when ACL configuration is corrupted → Expected: Error
+TC-124: Execute with valid ACL IDs → Expected: Success
+TC-125: Execute after destroying ACL → Expected: Error "Invalid ACL ID"
+
+7.2 Active Mode Tests
+
+TC-126: Execute in Elevated mode → Expected: Success
+TC-127: Execute in Learning mode → Expected: Success
+TC-128: Execute in both Elevated and Learning modes → Expected: Success
+TC-129: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+
+7.3 License Tests
+
+TC-130: Execute with License type A → Expected: Success
+TC-131: Execute without License type A → Expected: Error
+TC-132: Execute with expired License type A → Expected: Error
+
+7.4 Permission Tests
+
+TC-133: Execute as root user → Expected: Success
+TC-134: Execute as non-root user with sufficient permissions → Expected: Success or error
+TC-135: Execute as non-root user without permissions → Expected: Error "Operation not permitted"
+TC-136: Execute on files owned by different user → Expected: Success or permission error
+TC-137: Execute on read-only files → Expected: Success or error
+TC-138: Execute on directory without write permissions → Expected: Error
+
+8. Path and Directory Tests
+8.1 Directory Existence Tests
+
+TC-139: Execute with existing directory → Expected: Success
+TC-140: Execute with non-existent directory → Expected: Error "Directory does not exist"
+TC-141: Execute with file path (not directory) → Expected: Error "Not a directory"
+TC-142: Execute with symbolic link to directory → Expected: Success or follow link
+TC-143: Execute with broken symbolic link → Expected: Error "Path does not exist"
+
+8.2 Special Path Tests
+
+TC-144: Execute with path containing spaces /my data/files → Expected: Success (with quoting)
+TC-145: Execute with path containing special chars /data@2024/files → Expected: Success
+TC-146: Execute with Unicode characters in path → Expected: Success or error
+TC-147: Execute with very long path (4096+ chars) → Expected: Error "Filename path too long"
+TC-148: Execute with path containing .. segments → Expected: Success, resolved path
+TC-149: Execute with path containing . segments → Expected: Success, resolved path
+
+8.3 Mount Point and Filesystem Tests
+
+TC-150: Execute on local filesystem → Expected: Success
+TC-151: Execute on NFS mount → Expected: Success or error
+TC-152: Execute on network share → Expected: Success or error
+TC-153: Execute on read-only filesystem → Expected: Error
+TC-154: Execute across filesystem boundaries → Expected: Test behavior
+
+9. Error Handling Tests
+9.1 Error Message Tests
+
+TC-155: Verify "Option '-d' must be specified" error → Expected: Exact message
+TC-156: Verify "One or both options '-A' or '-P' must be specified" error → Expected: Exact message
+TC-157: Verify "No ACL configuration found" error → Expected: Exact message
+TC-158: Verify "Invalid ACL ID specified to '-A'" error → Expected: Exact message
+TC-159: Verify "Invalid ACL ID specified to '-P'" error → Expected: Exact message
+TC-160: Verify "Path does not exist" error → Expected: Exact message
+TC-161: Verify "Directory does not exist" error → Expected: Exact message
+TC-162: Verify "Not a directory" error → Expected: Exact message
+TC-163: Verify "Filename path too long" error → Expected: Exact message
+TC-164: Verify "Operation not permitted" error → Expected: Exact message
+
+9.2 Partial Failure Tests
+
+TC-165: Apply ACL to 100 files, 10 fail → Expected: 90 succeed, errors reported
+TC-166: Apply ACL, permission denied on some files → Expected: Partial success, errors logged
+TC-167: Apply ACL, some files being modified → Expected: Handle locked files
+
+9.3 Error Recovery Tests
+
+TC-168: Error on first file, verify rest processed → Expected: Continue or stop
+TC-169: Error midway, verify partial application → Expected: Consistent state
+TC-170: Trigger error, retry → Expected: Second attempt succeeds
+
+10. Integration with Other ACL Commands Tests
+10.1 Integration with acl_create
+
+TC-171: Create ACL, apply to files → Expected: Both succeed
+TC-172: Apply ACL, verify it's the one created → Expected: Correct ACL used
+
+10.2 Integration with acl_add
+
+TC-173: Create ACL, add entries, apply to files → Expected: File protection works
+TC-174: Apply ACL without entries, test access → Expected: Default behavior
+
+10.3 Integration with acl_destroy
+
+TC-175: Apply ACL to files, destroy ACL → Expected: Test file behavior
+TC-176: Destroy ACL, attempt to apply destroyed ACL ID → Expected: Error "Invalid ACL ID"
+
+10.4 Integration with protect Command
+
+TC-177: Apply ACL using acl_file vs protect command → Expected: Same result or different purpose
+TC-178: Verify acl_file sets ACL IDs for file protection → Expected: Protection enabled
+
+11. Performance Tests
+11.1 Execution Time Tests
+
+TC-179: Measure time to apply ACL to 10 files → Expected: < threshold
+TC-180: Measure time to apply ACL to 100 files → Expected: < threshold
+TC-181: Measure time to apply ACL to 1000 files → Expected: < threshold
+TC-182: Measure time to apply ACL to 10000 files → Expected: Acceptable
+
+11.2 Scalability Tests
+
+TC-183: Apply ACL to deep directory structure (20 levels) → Expected: Success
+TC-184: Apply ACL to wide directory structure (1000 files/dir) → Expected: Success
+TC-185: Apply ACL with complex pattern matching → Expected: Acceptable performance
+
+11.3 Resource Usage Tests
+
+TC-186: Monitor memory usage during large operation → Expected: No memory leaks
+TC-187: Monitor CPU usage → Expected: Reasonable CPU usage
+TC-188: Monitor I/O during operation → Expected: Efficient I/O
+
+12. Concurrent Execution Tests
+12.1 Concurrent Operations
+
+TC-189: Execute on 2 different directories simultaneously → Expected: Both succeed
+TC-190: Execute on same directory simultaneously → Expected: Proper locking or conflicts
+TC-191: Execute while files being modified → Expected: Handle gracefully
+
+12.2 Race Condition Tests
+
+TC-192: Test race condition: apply ACL vs modify file → Expected: Proper synchronization
+TC-193: Test race condition: apply ACL vs delete file → Expected: Handle missing file
+
+13. Documentation and Examples Tests
+13.1 Documentation Example Tests
+
+TC-194: Execute example 1 from doc: QDocSEConsole -c acl_file -d datadir2 -P 2 -A 4 → Expected: Success
+TC-195: Execute example 2 from doc: QDocSEConsole -c acl_file -d datadir2 -dp '*.doc' -P 5 → Expected: Success
+TC-196: Execute example from help: QDocSEConsole -c acl_file -d /data1 -dp '*.txt' -A 2 -P 3 → Expected: Success
+
+13.2 Documentation Consistency Tests
+
+TC-197: Verify "applies to all files and subdirectories recursively" by default → Expected: Correct
+TC-198: Verify glob(7) pattern rules work → Expected: Standard glob behavior
+TC-199: Verify non-matching files remain unchanged → Expected: Preserved
+TC-200: Verify -dp and -excl order (dp first, excl last) → Expected: Correct order
+
+13.3 Notes Section Validation
+
+TC-201: Verify "At least one option of '-A' or '-P' must be specified" → Expected: Enforced
+TC-202: Verify "ACL ID must exist" → Expected: Validated
+
+14. Pattern Matching Edge Cases
+14.1 Special Pattern Tests
+
+TC-203: Pattern with no wildcards (exact filename) → Expected: Match only that file
+TC-204: Pattern matching hidden files (.file) → Expected: Match or exclude by default
+TC-205: Pattern with multiple wildcards *test*.txt → Expected: Complex matching
+TC-206: Pattern matching directories (if applicable) → Expected: Document behavior
+TC-207: Empty pattern → Expected: Error or match nothing
+
+14.2 Pattern Matching Subdirectories
+
+TC-208: Pattern *.txt matches .txt in subdirectories → Expected: Recursive matching
+TC-209: Pattern subdir/*.txt (specific subdir) → Expected: Match only in subdir
+TC-210: Pattern with directory component → Expected: Proper handling
+
+14.3 Pattern Special Cases
+
+TC-211: Pattern with escaped special chars \*.txt → Expected: Literal match
+TC-212: Pattern with brackets file[12].txt → Expected: Match file1.txt, file2.txt
+TC-213: Pattern with negation [!a-z]*.txt → Expected: Match non-lowercase start
+
+15. Output and Reporting Tests
+15.1 Success Output Tests
+
+TC-214: Verify success message → Expected: Clear indication
+TC-215: Verify number of files updated shown → Expected: Count displayed
+TC-216: Verify output lists processed files → Expected: File list or summary
+TC-217: Verify quiet operation (if supported) → Expected: Minimal output
+
+15.2 Verbose Output Tests (if supported)
+
+TC-218: Execute with verbose flag → Expected: Detailed processing info
+TC-219: Verify verbose shows each file processed → Expected: Per-file info
+TC-220: Verify verbose shows pattern matches → Expected: Matching details
+
+15.3 Error Reporting Tests
+
+TC-221: Verify errors for individual files reported → Expected: Per-file errors
+TC-222: Verify summary of failures → Expected: Error count
+TC-223: Verify partial success reported → Expected: Success + error counts
+
+16. Security Tests
+16.1 Access Control Tests
+
+TC-224: Verify only authorized users can apply ACLs → Expected: Access control enforced
+TC-225: Test privilege escalation attempts → Expected: Blocked
+TC-226: Verify audit logging of ACL application → Expected: Logged
+
+16.2 Path Traversal Tests
+
+TC-227: Test path traversal attempts ../../etc → Expected: Blocked or proper handling
+TC-228: Test symbolic link attacks → Expected: Protected
+TC-229: Verify operation stays within specified directory → Expected: No escape
+
+16.3 Input Validation Tests
+
+TC-230: Test command injection in directory path → Expected: Blocked/escaped
+TC-231: Test command injection in pattern → Expected: Blocked/escaped
+TC-232: Test buffer overflow with long inputs → Expected: Handled safely
+
+17. Filesystem State Tests
+17.1 File System Changes During Operation
+
+TC-233: Files added during operation → Expected: May or may not be processed
+TC-234: Files deleted during operation → Expected: Handle gracefully
+TC-235: Files renamed during operation → Expected: Handle gracefully
+TC-236: Directory structure changes during operation → Expected: Handle gracefully
+
+17.2 File State Tests
+
+TC-237: Apply ACL to locked files → Expected: Error or wait
+TC-238: Apply ACL to files being written → Expected: Handle gracefully
+TC-239: Apply ACL to hardlinked files → Expected: All links updated or one
+TC-240: Apply ACL to files with special attributes → Expected: Preserve attributes
+
+18. Help and Syntax Tests
+18.1 Help Option Tests
+
+TC-241: Execute QDocSEConsole -c acl_file -h → Expected: Display help
+TC-242: Verify help is comprehensive → Expected: All options explained
+TC-243: Verify examples in help are accurate → Expected: Work as shown
+
+18.2 Invalid Options Tests
+
+TC-244: Execute with unknown option -x → Expected: Error
+TC-245: Execute with invalid option combination → Expected: Error
+TC-246: Execute with extra parameters → Expected: Error or ignored
+
+18.3 Command Line Parsing Tests
+
+TC-247: Execute with options in different order → Expected: Success
+TC-248: Execute with extra spaces → Expected: Success
+TC-249: Execute with quoted paths containing spaces → Expected: Success
+
+19. Shell Integration Tests
+19.1 Scripting Tests
+
+TC-250: Use in bash script → Expected: Success
+TC-251: Use in automation script → Expected: Success
+TC-252: Capture exit code → Expected: 0 on success, non-zero on error
+TC-253: Use in pipeline → Expected: Success
+
+19.2 Automation Tests
+
+TC-254: Automated ACL application script → Expected: Works reliably
+TC-255: Batch processing script → Expected: Processes all directories
+TC-256: Integration with file monitoring → Expected: Apply ACL on new files
+
+20. Usability Tests
+20.1 User Experience Tests
+
+TC-257: Verify command is intuitive → Expected: Clear usage
+TC-258: Verify pattern syntax is documented → Expected: glob(7) reference
+TC-259: Verify error messages are helpful → Expected: Actionable guidance
+TC-260: Verify recursive behavior is clear → Expected: Well documented
+
+20.2 Common Usage Patterns
+
+TC-261: Apply ACL to all files in directory → Expected: Simple command
+TC-262: Apply ACL to specific file types → Expected: Pattern matching works
+TC-263: Exclude backup files from ACL application → Expected: Exclusion works
+TC-264: Update ACL IDs on existing protected files → Expected: Easy update
+
+20.3 Common Mistakes
+
+TC-265: Forget to quote pattern → Expected: Shell expansion issue or error
+TC-266: Use wrong directory path → Expected: Clear error
+TC-267: Forget required options → Expected: Clear error messages
+
+
+Test Summary
+Total Test Cases: 267
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-035, TC-085 to TC-120, TC-194 to TC-202 (90 test cases)
+
+Required options validation
+Basic ACL application functionality
+Pattern matching behavior
+Verification of ACL application
+Documentation examples
+
+
+P1 (High): TC-036 to TC-084, TC-121 to TC-154, TC-155 to TC-178, TC-224 to TC-232 (125 test cases)
+
+Pattern matching (all variants)
+Exclude patterns
+System prerequisites
+Error handling
+Path and directory tests
+Integration tests
+Security tests
+
+
+P2 (Medium): TC-179 to TC-223, TC-233 to TC-249 (50 test cases)
+
+Performance tests
+Concurrent execution
+Filesystem state changes
+Output and reporting
+Help and syntax
+
+
+P3 (Low): TC-250 to TC-267 (18 test cases)
+
+Shell integration
+Usability tests
+
+
+
+Test Coverage:
+✅ Core Functionality:
+
+Required -d directory option
+Required -A or -P (or both) ACL ID options
+ACL ID validation and type checking
+Recursive directory processing by default
+
+✅ Pattern Matching:
+
+Optional -dp matching pattern (glob rules)
+Optional -excl excluding pattern
+Pattern order: -dp matches first, -excl removes last
+All glob(7) pattern types: *, ?, [], {}, etc.
+Pattern quoting to prevent shell expansion
+
+✅ ACL Application:
+
+Setting new ACL IDs
+Updating existing ACL IDs
+Partial updates (only -A or only -P)
+Preservation of unspecified ACL IDs
+Recursive processing
+
+✅ File Selection:
+
+All files by default (no pattern)
+Pattern-based selection
+Pattern-based exclusion
+Combined pattern and exclusion
+Non-matching files remain unchanged
+
+✅ Error Handling:
+
+All 10 documented error messages
+Directory existence validation
+ACL ID existence validation
+Permission checks
+Path length limits
+
+✅ Integration:
+
+Works with ACL configuration from other commands
+Applies ACLs created with acl_create/acl_add
+Validates ACL IDs exist
+Enables file protection
+
+✅ Advanced Features:
+
+Glob pattern matching (glob(7) rules)
+Recursive subdirectory processing
+Include and exclude patterns
+Pattern matching order
+File type handling
+
+Key Features Tested:
+
+Recursive Processing: By default applies to all files and subdirectories
+Pattern Flexibility: Glob patterns for fine-grained file selection
+Exclusion Capability: Exclude specific patterns from matching
+Pattern Order: -dp adds to list first, -excl removes from list last
+Partial Updates: Can update only user/group ACL or only program ACL
+ACL Type Validation: Ensures -A gets user/group ACL, -P gets program ACL
+
+Important Notes:
+⚠️ Recursive by Default: Without patterns, applies to ALL files in directory and subdirectories
+⚠️ Pattern Quoting: Patterns should be single-quoted to prevent shell expansion
+⚠️ Pattern Order: -dp matches are added first, then -excl matches are removed
+⚠️ Non-Matching Files: Files not matching pattern remain unchanged (ACL IDs preserved)
+⚠️ Glob Rules: Follows glob(7) standard (see manual page Appendix C reference in doc)
+⚠️ ACL Type Validation: Must use correct ACL type (-A for user/group, -P for program)
+Testing Strategy Recommendation:
+Test in this order:
+
+Required options (TC-001 to TC-035)
+Basic functionality without patterns (TC-085 to TC-095)
+Simple pattern matching (TC-036 to TC-062)
+Exclude patterns and combinations (TC-067 to TC-084)
+Verification tests (TC-114 to TC-120)
+Error handling (TC-155 to TC-170)
+Performance and edge cases (remaining tests)

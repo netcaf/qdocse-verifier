@@ -1,0 +1,590 @@
+Complete Test Case List for acl_program Command
+1. Required Options Tests
+1.1 ACL ID (-A) Option Tests
+
+TC-001: Execute without -A option → Expected: Error "Missing required '-A' option" or similar
+TC-002: Execute with valid ACL ID → Expected: Success (with -p)
+TC-003: Execute with ACL ID = 1 → Expected: Success
+TC-004: Execute with ACL ID = 10 → Expected: Success
+TC-005: Execute with ACL ID = 0 → Expected: Error (invalid ID)
+TC-006: Execute with negative ACL ID → Expected: Error
+TC-007: Execute with non-existent ACL ID → Expected: Error
+TC-008: Execute with destroyed ACL ID → Expected: Error
+TC-009: Execute with non-numeric ACL ID → Expected: Error
+TC-010: Execute with -A without value → Expected: Error
+TC-011: Execute with empty ACL ID -A "" → Expected: Error
+TC-012: Execute with -A specified twice → Expected: Error or use last value
+
+1.2 Program Index (-p) Option Tests
+
+TC-013: Execute without -p option → Expected: Error "Missing required '-p' option" or similar
+TC-014: Execute with valid program index → Expected: Success (with -A)
+TC-015: Execute with program index = 1 → Expected: Success
+TC-016: Execute with program index = 5 → Expected: Success
+TC-017: Execute with program index = 0 → Expected: Error (invalid index)
+TC-018: Execute with negative program index → Expected: Error
+TC-019: Execute with non-existent program index → Expected: Error "Program index X does not exist"
+TC-020: Execute with program index beyond authorized programs list → Expected: Error
+TC-021: Execute with non-numeric program index → Expected: Error
+TC-022: Execute with -p without value → Expected: Error
+TC-023: Execute with empty program index -p "" → Expected: Error
+TC-024: Execute with -p specified twice → Expected: Error or use last value
+
+1.3 Both Options Required Tests
+
+TC-025: Execute with neither -A nor -p → Expected: Error (both required)
+TC-026: Execute with -A only → Expected: Error (missing -p)
+TC-027: Execute with -p only → Expected: Error (missing -A)
+TC-028: Execute with both -A and -p → Expected: Success (if valid)
+
+1.4 Option Order Tests
+
+TC-029: Execute with -A 1 -p 2 → Expected: Success
+TC-030: Execute with -p 2 -A 1 → Expected: Success
+TC-031: Verify option order doesn't matter → Expected: Same result
+
+2. ACL Validation Tests
+2.1 ACL Entry Type Validation Tests
+
+TC-032: Assign ACL with user entries only → Expected: Success
+TC-033: Assign ACL with group entries only → Expected: Success
+TC-034: Assign ACL with mixed user and group entries → Expected: Success
+TC-035: Assign ACL with program entries → Expected: Error "ACL needs user/group entry. Cannot assign"
+TC-036: Assign ACL with mixed user/group and program entries → Expected: Error (cannot mix)
+TC-037: Verify ACL type is validated before assignment → Expected: Proper validation
+
+2.2 ACL Empty Validation Tests
+
+TC-038: Assign empty ACL (0 entries) → Expected: Error "ACL is empty. Cannot assign"
+TC-039: Create ACL, assign before adding entries → Expected: Error "ACL is empty"
+TC-040: Add entries, remove all, attempt to assign → Expected: Error "ACL is empty"
+TC-041: Verify "at least one entry" requirement enforced → Expected: Enforced
+
+2.3 ACL Entry Count Tests
+
+TC-042: Assign ACL with 1 entry → Expected: Success
+TC-043: Assign ACL with 2 entries → Expected: Success
+TC-044: Assign ACL with 5 entries → Expected: Success
+TC-045: Assign ACL with 10 entries → Expected: Success
+TC-046: Assign ACL with 100 entries → Expected: Success
+
+2.4 ACL Allow/Deny Type Tests
+
+TC-047: Assign ACL with only Allow entries → Expected: Success
+TC-048: Assign ACL with only Deny entries → Expected: Success
+TC-049: Assign ACL with mixed Allow and Deny entries → Expected: Success
+
+3. Basic Functionality Tests
+3.1 Initial Assignment Tests
+
+TC-050: Assign ACL to program with no previous ACL → Expected: Success
+TC-051: Assign ACL ID 1 to program index 1 → Expected: Success
+TC-052: Assign ACL ID 5 to program index 3 → Expected: Success
+TC-053: Verify program ACL is set → Expected: Assignment successful
+
+3.2 Updating Assignment Tests
+
+TC-054: Assign ACL 1 to program, then assign ACL 2 → Expected: Success, updated
+TC-055: Change program ACL from 3 to 7 → Expected: Success, changed
+TC-056: Update program ACL multiple times → Expected: Each update succeeds
+TC-057: Verify latest assignment overwrites previous → Expected: Overwritten
+
+3.3 Multiple Programs Tests
+
+TC-058: Assign ACL 1 to program 1 → Expected: Success
+TC-059: Assign ACL 2 to program 2 → Expected: Success
+TC-060: Assign same ACL to multiple programs → Expected: Success for all
+TC-061: Assign different ACLs to different programs → Expected: Success for all
+TC-062: Verify each program has correct ACL → Expected: Correct assignments
+
+3.4 Assignment Verification Tests
+
+TC-063: Assign ACL, verify with view command → Expected: Assignment shown
+TC-064: Assign ACL, verify program can access files → Expected: Access control works
+TC-065: Assign ACL, verify program validation uses ACL → Expected: ACL evaluated
+
+4. Program Validation Behavior Tests
+4.1 ACL Match Validation Tests
+
+TC-066: Assign ACL, program matches ACL → Expected: Program may be valid (with other criteria)
+TC-067: Assign ACL, program doesn't match ACL → Expected: Program invalid
+TC-068: Assign ACL with user entry, run as that user → Expected: ACL matched
+TC-069: Assign ACL with user entry, run as different user → Expected: ACL not matched
+TC-070: Assign ACL with group entry, run as member of group → Expected: ACL matched
+TC-071: Assign ACL with group entry, run as non-member → Expected: ACL not matched
+
+4.2 Other Validation Criteria Tests
+
+TC-072: Program matches ACL but signature invalid → Expected: Program still invalid (signature required)
+TC-073: Program matches ACL, signature valid → Expected: Program valid
+TC-074: Verify ACL is necessary but not sufficient for validity → Expected: Other criteria also checked
+TC-075: Verify documentation: "program must still pass other criteria" → Expected: Multi-factor validation
+
+4.3 ACL Entry Evaluation Tests
+
+TC-076: Assign ACL with time restrictions, run during allowed time → Expected: ACL matched
+TC-077: Assign ACL with time restrictions, run outside allowed time → Expected: ACL not matched
+TC-078: Assign ACL with mode restrictions, access with allowed mode → Expected: ACL matched
+TC-079: Assign ACL with mode restrictions, access with disallowed mode → Expected: ACL not matched
+
+5. Integration with Other Commands Tests
+5.1 Integration with acl_create
+
+TC-080: Create ACL, assign to program → Expected: Both succeed
+TC-081: Create empty ACL, attempt to assign → Expected: Error "ACL is empty"
+
+5.2 Integration with acl_add
+
+TC-082: Create ACL, add user entry, assign to program → Expected: Success
+TC-083: Create ACL, add group entry, assign to program → Expected: Success
+TC-084: Create ACL, add program entry, attempt to assign → Expected: Error (wrong type)
+TC-085: Assign ACL, then add more user entries → Expected: Program still has ACL (updated)
+
+5.3 Integration with acl_remove
+
+TC-086: Assign ACL with 2 entries, remove 1 entry → Expected: Program still has ACL
+TC-087: Assign ACL, remove all entries → Expected: Program behavior (still assigned but empty?)
+TC-088: Remove last entry from assigned ACL → Expected: Test behavior
+
+5.4 Integration with acl_destroy
+
+TC-089: Assign ACL to program, destroy ACL → Expected: Test program behavior
+TC-090: Destroy ACL, attempt to assign it → Expected: Error (ACL doesn't exist)
+TC-091: Assign ACL, destroy it, verify program state → Expected: Document behavior
+
+5.5 Integration with view Command
+
+TC-092: Assign ACL, verify with view command → Expected: ACL assignment shown
+TC-093: View command shows program index → Expected: Index matches -p parameter
+TC-094: View shows associated ACL ID → Expected: ID matches -A parameter
+TC-095: Update ACL assignment, verify view shows new ACL → Expected: Updated shown
+
+5.6 Integration with adjust Command
+
+TC-096: Use adjust command to set ACL vs acl_program → Expected: Same result
+TC-097: Use acl_program then adjust → Expected: Both work, latest wins
+TC-098: Verify adjust and acl_program are equivalent for ACL assignment → Expected: Same functionality
+
+5.7 Integration with acl_file
+
+TC-099: Assign program ACL, apply file ACL, test access → Expected: Both ACLs evaluated
+TC-100: Program ACL controls program validity, file ACL controls file access → Expected: Separate functions
+
+6. Error Handling Tests
+6.1 Error Message Tests
+
+TC-101: Verify "ACL is empty. Cannot assign" error → Expected: Exact error message
+TC-102: Verify "ACL needs user/group entry. Cannot assign" error → Expected: Exact error message
+TC-103: Verify "Program index X does not exist" error format → Expected: Shows actual index
+TC-104: Verify error messages are clear and actionable → Expected: Helpful guidance
+
+6.2 Validation Error Tests
+
+TC-105: Attempt to assign empty ACL → Expected: Error before assignment
+TC-106: Attempt to assign program-type ACL → Expected: Error before assignment
+TC-107: Attempt to assign non-existent ACL → Expected: Error
+TC-108: Attempt to assign to non-existent program → Expected: Error
+TC-109: Verify no partial assignment on error → Expected: All-or-nothing
+
+6.3 Error Recovery Tests
+
+TC-110: Trigger error, correct parameters, retry → Expected: Success
+TC-111: Assign invalid ACL, fix ACL, retry → Expected: Success
+TC-112: Error on assignment, verify program state unchanged → Expected: Previous state preserved
+
+7. System State and Prerequisites Tests
+7.1 ACL Configuration Tests
+
+TC-113: Execute when no ACL configuration exists → Expected: Error
+TC-114: Execute when ACL configuration file exists → Expected: Success
+TC-115: Execute when ACL configuration is corrupted → Expected: Error
+TC-116: Execute after creating valid ACL → Expected: Success
+
+7.2 Authorized Programs Tests
+
+TC-117: Execute when no authorized programs exist → Expected: Error (no program index)
+TC-118: Execute with authorized programs list → Expected: Success
+TC-119: Execute after program added to authorized list → Expected: Success
+TC-120: Verify program must be in authorized list → Expected: Validated
+
+7.3 Active Mode Tests
+
+TC-121: Execute in Elevated mode → Expected: Success
+TC-122: Execute in Learning mode → Expected: Success
+TC-123: Execute in both Elevated and Learning modes → Expected: Success
+TC-124: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+
+7.4 License Tests
+
+TC-125: Execute with License type A → Expected: Success
+TC-126: Execute without License type A → Expected: Error
+TC-127: Execute with expired License type A → Expected: Error
+
+7.5 Permission Tests
+
+TC-128: Execute as root user → Expected: Success
+TC-129: Execute as non-root user with sufficient permissions → Expected: Success or error
+TC-130: Execute as non-root user without permissions → Expected: Error
+
+8. Program Access Control Tests
+8.1 File Access Tests with Program ACL
+
+TC-131: Assign ACL to program, program accesses protected file → Expected: ACL evaluated
+TC-132: Program matches ACL, file access allowed → Expected: Access granted
+TC-133: Program doesn't match ACL, file access denied → Expected: Access denied
+TC-134: No ACL assigned to program, access denied → Expected: Program invalid
+
+8.2 Multi-Factor Validation Tests
+
+TC-135: Program matches ACL + valid signature → Expected: Program valid
+TC-136: Program matches ACL + invalid signature → Expected: Program invalid
+TC-137: Program doesn't match ACL + valid signature → Expected: Program invalid
+TC-138: Verify all validation criteria must pass → Expected: Multi-factor check
+
+8.3 ACL Evaluation Order Tests
+
+TC-139: Assign ACL with Allow then Deny entries → Expected: First match wins
+TC-140: Assign ACL with Deny then Allow entries → Expected: First match wins
+TC-141: Verify ACL evaluation follows acl_list order → Expected: Sequential evaluation
+
+9. Documentation and Examples Tests
+9.1 Documentation Example Tests
+
+TC-142: Execute example 1 from doc: QDocSEConsole -c acl_program -A 1 -p 1 → Expected: Success
+TC-143: Execute example 2 from doc: QDocSEConsole -c acl_program -A 7 -p 3 → Expected: Success
+TC-144: Execute example from help: QDocSEConsole -c acl_program -A 1 -p 2 → Expected: Success
+
+9.2 Documentation Consistency Tests
+
+TC-145: Verify "ACL will have User/Group entries (not program entries)" → Expected: Enforced
+TC-146: Verify "ACL not matched = program invalid" → Expected: Correct behavior
+TC-147: Verify "ACL matched = program may be valid" → Expected: Still needs other criteria
+TC-148: Verify "program must still pass other criteria" → Expected: Multi-factor validation
+TC-149: Verify "ACL must have at least one entry" → Expected: Enforced
+TC-150: Verify "same setting can be performed with adjust command" → Expected: Equivalent functionality
+
+9.3 Help Output Validation
+
+TC-151: Verify help states "ACL entries can only be user/group entries" → Expected: Documented
+TC-152: Verify help states "ACL determine if program is valid or not valid" → Expected: Purpose clear
+TC-153: Verify help shows both options as required → Expected: Both required
+
+10. Performance Tests
+10.1 Execution Time Tests
+
+TC-154: Measure time to assign ACL to program → Expected: < threshold (e.g., 100ms)
+TC-155: Measure time with large ACL (100 entries) → Expected: < threshold
+TC-156: Assign ACLs to 10 programs, measure total time → Expected: Linear scaling
+
+10.2 Validation Performance Tests
+
+TC-157: Measure time for ACL type validation → Expected: Fast
+TC-158: Measure time for empty ACL check → Expected: Fast
+TC-159: Measure time for program index validation → Expected: Fast
+
+10.3 Runtime Performance Tests
+
+TC-160: Test program validation performance with assigned ACL → Expected: Acceptable overhead
+TC-161: Compare performance: program with ACL vs without → Expected: Minimal overhead
+TC-162: Test ACL evaluation performance during program execution → Expected: Acceptable
+
+11. Concurrent Execution Tests
+11.1 Concurrent Assignment Tests
+
+TC-163: Assign ACL to 2 different programs simultaneously → Expected: Both succeed
+TC-164: Assign different ACLs to same program simultaneously → Expected: Proper locking, one wins
+TC-165: Assign ACL while program is running → Expected: Handle gracefully
+
+11.2 Race Condition Tests
+
+TC-166: Test race: assign ACL vs destroy ACL → Expected: Proper synchronization
+TC-167: Test race: assign ACL vs modify ACL entries → Expected: Consistent state
+TC-168: Test race: assign ACL vs program execution → Expected: Proper locking
+
+12. State Consistency Tests
+12.1 Assignment State Tests
+
+TC-169: Assign ACL, verify assignment persists → Expected: Persistent
+TC-170: Assign ACL, reboot system, verify assignment → Expected: Survives reboot
+TC-171: Assign ACL, restart service, verify assignment → Expected: Persistent
+
+12.2 Configuration Consistency Tests
+
+TC-172: Assign ACL, export config, verify assignment included → Expected: Exportable
+TC-173: Export config, import, verify program ACL assignments → Expected: Imported correctly
+TC-174: Assign ACL, verify consistency across system → Expected: Consistent
+
+12.3 Update Consistency Tests
+
+TC-175: Update ACL entries, verify program validation uses updated ACL → Expected: Uses latest
+TC-176: Reassign different ACL, verify old ACL no longer used → Expected: Updated
+TC-177: Modify program, verify ACL still assigned → Expected: Assignment persists
+
+13. Help and Syntax Tests
+13.1 Help Option Tests
+
+TC-178: Execute QDocSEConsole -c acl_program -h → Expected: Display help
+TC-179: Verify help is comprehensive → Expected: All options explained
+TC-180: Verify examples in help are accurate → Expected: Work as shown
+
+13.2 Invalid Options Tests
+
+TC-181: Execute with unknown option -x → Expected: Error
+TC-182: Execute with invalid option combination → Expected: Error
+TC-183: Execute with extra parameters → Expected: Error or ignored
+
+13.3 Command Line Parsing Tests
+
+TC-184: Execute with options in different order → Expected: Success
+TC-185: Execute with extra spaces → Expected: Success
+TC-186: Execute with tabs → Expected: Success
+
+14. Shell Integration Tests
+14.1 Scripting Tests
+
+TC-187: Use in bash script → Expected: Success
+TC-188: Use in automation script → Expected: Success
+TC-189: Capture exit code → Expected: 0 on success, non-zero on error
+TC-190: Use in conditional statement → Expected: Proper boolean result
+
+14.2 Automation Tests
+
+TC-191: Automated program ACL assignment script → Expected: Works reliably
+TC-192: Script to assign ACLs to multiple programs → Expected: Batch processing works
+TC-193: Integration with program authorization workflow → Expected: Seamless integration
+
+14.3 Exit Code Tests
+
+TC-194: Verify exit code 0 on success → Expected: Exit code = 0
+TC-195: Verify non-zero exit code on error → Expected: Exit code ≠ 0
+TC-196: Verify consistent exit codes for same error type → Expected: Same code
+
+15. Security Tests
+15.1 Access Control Tests
+
+TC-197: Verify only authorized users can assign program ACLs → Expected: Access control enforced
+TC-198: Test privilege escalation attempts → Expected: Blocked
+TC-199: Verify audit logging of ACL assignments → Expected: Logged
+
+15.2 Validation Bypass Tests
+
+TC-200: Attempt to bypass ACL type validation → Expected: Cannot bypass
+TC-201: Attempt to bypass empty ACL validation → Expected: Cannot bypass
+TC-202: Attempt to assign ACL to unauthorized program → Expected: Blocked
+
+15.3 Program Security Tests
+
+TC-203: Verify program ACL prevents unauthorized program execution → Expected: Enforced
+TC-204: Verify program ACL doesn't allow privilege escalation → Expected: Protected
+TC-205: Test program tampering detection with ACL → Expected: Signature validation still required
+
+16. Advanced Scenarios Tests
+16.1 Complex ACL Tests
+
+TC-206: Assign ACL with complex time restrictions to program → Expected: Success
+TC-207: Assign ACL with multiple user/group entries to program → Expected: Success
+TC-208: Assign ACL with 50 entries to program → Expected: Success
+TC-209: Verify complex ACL evaluation during program execution → Expected: Correct evaluation
+
+16.2 Multiple Programs Sharing ACL
+
+TC-210: Assign same ACL to 5 programs → Expected: All succeed
+TC-211: Update shared ACL, verify all programs affected → Expected: All use updated ACL
+TC-212: Destroy shared ACL, test all programs → Expected: Test behavior
+
+16.3 Program Update Scenarios
+
+TC-213: Update program binary, verify ACL still assigned → Expected: Assignment persists
+TC-214: Update program, re-authorize, verify ACL preserved → Expected: ACL maintained
+TC-215: Remove and re-add program, verify ACL reset → Expected: New assignment needed
+
+17. Usability Tests
+17.1 User Experience Tests
+
+TC-216: Verify command is intuitive → Expected: Clear usage
+TC-217: Verify error messages are helpful → Expected: Actionable guidance
+TC-218: Verify help text is comprehensive → Expected: Complete information
+TC-219: Verify program index source is clear (view command) → Expected: Well documented
+
+17.2 Common Usage Patterns
+
+TC-220: Authorize program, assign ACL → Expected: Smooth workflow
+TC-221: Update program ACL → Expected: Easy to change
+TC-222: Assign ACLs to multiple programs → Expected: Batch-friendly
+TC-223: Verify program access control → Expected: Test and validate
+
+17.3 Common Mistakes
+
+TC-224: Forget required option → Expected: Clear error
+TC-225: Use wrong ACL type (program entries) → Expected: Clear error with explanation
+TC-226: Assign empty ACL → Expected: Clear error with guidance
+TC-227: Use wrong program index → Expected: Clear error
+
+18. Documentation Clarification Tests
+18.1 ACL Type Clarification
+
+TC-228: Verify only user/group ACLs can be assigned → Expected: Enforced
+TC-229: Verify program-type ACLs cannot be assigned → Expected: Rejected
+TC-230: Understand distinction: program ACL (this command) vs file ACL (acl_file) → Expected: Different purposes
+
+18.2 Validation Logic Clarification
+
+TC-231: ACL assignment sets requirement, not permission → Expected: Program must match ACL
+TC-232: ACL match is necessary but not sufficient → Expected: Other criteria also required
+TC-233: Understand "may be valid" means other checks still needed → Expected: Multi-factor
+
+18.3 Relationship with adjust Command
+
+TC-234: Verify adjust command can do same thing → Expected: Equivalent functionality
+TC-235: Test both commands produce same result → Expected: Same assignment
+TC-236: Understand when to use each command → Expected: Both valid options
+
+
+Test Summary
+Total Test Cases: 236
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-049, TC-050 to TC-079, TC-101 to TC-104, TC-142 to TC-153 (110 test cases)
+
+Required options validation
+ACL type validation (user/group only, not program)
+Empty ACL validation
+Basic assignment functionality
+Program validation behavior
+Error messages
+Documentation examples and requirements
+
+
+P1 (High): TC-080 to TC-100, TC-105 to TC-141, TC-178 to TC-205 (85 test cases)
+
+Integration with other ACL commands
+Error handling and recovery
+System prerequisites
+Access control tests
+Help and syntax
+Security tests
+
+
+P2 (Medium): TC-154 to TC-177, TC-206 to TC-227 (35 test cases)
+
+Performance tests
+Concurrent execution
+State consistency
+Advanced scenarios
+Usability tests
+
+
+P3 (Low): TC-228 to TC-236 (9 test cases)
+
+Documentation clarification tests
+
+
+
+Test Coverage:
+✅ Core Functionality:
+
+Both required options (-A and -p)
+Assign ACL to authorized program
+Update existing program ACL assignment
+Multiple programs with different ACLs
+
+✅ ACL Validation (Critical):
+
+ACL must have user/group entries only (NOT program entries)
+ACL must have at least one entry (cannot be empty)
+ACL must exist
+Proper error messages for violations
+
+✅ Program Validation Logic:
+
+ACL not matched → program invalid
+ACL matched → program may be valid (still needs other criteria)
+Other criteria: signature validation, etc.
+Multi-factor validation required
+
+✅ Integration:
+
+Works with ACLs from acl_create/acl_add
+Shown in view command
+Equivalent to adjust command ACL option
+Survives export/import
+
+✅ Error Handling:
+
+"ACL is empty. Cannot assign"
+"ACL needs user/group entry. Cannot assign"
+"Program index X does not exist"
+Clear, actionable error messages
+
+✅ System Requirements:
+
+Active modes: Elevated or Learning
+License type: A
+Authorized program must exist
+ACL configuration must exist
+
+Key Features Tested:
+
+ACL Type Restriction: Only user/group ACLs can be assigned (NOT program ACLs)
+Non-Empty Requirement: ACL must have at least one entry
+Program Validation: ACL determines if program is valid or invalid
+Multi-Factor Validation: ACL match is necessary but not sufficient (signature also required)
+Program Index: Must reference authorized program from view command
+Equivalent to adjust: Same functionality available in adjust command
+
+Critical Validation Rules:
+⚠️ ACL Type: MUST contain user/group entries only, NOT program entries
+⚠️ ACL Entries: MUST have at least one entry (cannot be empty)
+⚠️ Program Validity:
+
+ACL not matched → program INVALID
+ACL matched → program MAY be valid (other checks still apply)
+⚠️ Multi-Factor: Program must pass ACL check AND signature check AND other criteria
+
+Important Concepts from Documentation:
+
+Program Validation Flow:
+
+Check if program matches assigned ACL
+If no match → program invalid (cannot access protected files)
+If match → program may be valid (still needs signature check, etc.)
+
+
+ACL Requirements:
+
+Must have user/group entries (not program entries)
+Must have at least one entry
+Determines program validity
+
+
+Relationship with adjust Command:
+
+Same setting can be performed with adjust command
+Both commands are equivalent for this purpose
+
+
+Purpose:
+
+Controls which users/groups can run the authorized program
+Part of multi-factor program authorization
+Works alongside signature validation
+
+
+
+Testing Strategy Recommendation:
+Test in this order:
+
+Required options and basic functionality (TC-001 to TC-049)
+ACL type validation - CRITICAL (TC-032 to TC-041)
+Program validation behavior (TC-066 to TC-079)
+Error handling (TC-101 to TC-112)
+Integration tests (TC-080 to TC-100)
+Documentation examples (TC-142 to TC-153)
+Advanced scenarios and edge cases (remaining tests)
+
+Critical test focus:
+
+Ensure program ACLs are rejected (only user/group allowed)
+Ensure empty ACLs are rejected
+Verify multi-factor validation (ACL + signature)
+Verify proper error messages guide user correctly

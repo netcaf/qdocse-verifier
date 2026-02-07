@@ -1,0 +1,648 @@
+Complete Test Case List for adjust Command
+1. Basic Functionality Tests - No Options Required
+1.1 Command Execution Tests
+
+TC-001: Execute adjust with no options → Expected: Error or help (at least one option needed)
+TC-002: Execute with valid option → Expected: Success
+TC-003: Verify at least one option required → Expected: Error without options
+
+2. Allow Program by Path (-apf) Option Tests
+2.1 Basic Allow by Path Tests
+
+TC-004: Execute -apf /usr/bin/less → Expected: Success, program authorized
+TC-005: Execute -apf /usr/bin/cat → Expected: Success, program authorized
+TC-006: Execute -apf /bin/bash → Expected: Success (but see warning notes)
+TC-007: Authorize program, verify it appears in view → Expected: Listed in authorized programs
+TC-008: Authorize program, verify it can access protected files → Expected: Access granted
+
+2.2 Path Validation Tests
+
+TC-009: Execute with valid absolute path → Expected: Success
+TC-010: Execute with relative path ./program → Expected: Error or normalized to absolute
+TC-011: Execute with relative path ../bin/program → Expected: Error or normalized
+TC-012: Execute with non-existent path → Expected: Error "path not valid"
+TC-013: Execute with path to directory (not file) → Expected: Error
+TC-014: Execute with path to non-executable file → Expected: Error or warning
+TC-015: Execute with empty path -apf "" → Expected: Error
+TC-016: Execute with -apf without value → Expected: Error
+
+2.3 Path Format Tests
+
+TC-017: Execute with path containing spaces /usr/bin/my program → Expected: Success (with proper quoting)
+TC-018: Execute with path containing special characters → Expected: Success or error
+TC-019: Execute with very long path (4096+ chars) → Expected: Error or success
+TC-020: Execute with path containing symbolic link → Expected: Success or resolved path
+TC-021: Execute with path containing .. segments → Expected: Normalized or error
+
+2.4 Path Location Restrictions Tests
+
+TC-022: Authorize program in directory with protected files → Expected: Error (restriction noted)
+TC-023: Authorize program in unprotected directory → Expected: Success
+TC-024: Verify "program must be monitored by SG" requirement → Expected: Enforced
+TC-025: Authorize program in directory with DG protection → Expected: Error (restriction)
+
+2.5 Shared Libraries Processing Tests
+
+TC-026: Authorize small program (few libraries), measure time → Expected: Fast processing
+TC-027: Authorize large program (many libraries), measure time → Expected: Longer processing
+TC-028: Authorize program with 10 shared libraries → Expected: Success, all evaluated
+TC-029: Authorize program with 50 shared libraries → Expected: Success, longer time
+TC-030: Verify documentation: "takes time to process each program" → Expected: Observable delay
+
+2.6 Already Authorized Program Tests
+
+TC-031: Authorize program already in allowed list → Expected: Success or "already authorized"
+TC-032: Authorize program that was previously blocked → Expected: Moves from blocked to allowed
+TC-033: Re-authorize same program multiple times → Expected: Idempotent operation
+
+3. Allow Program by Index (-api) Option Tests
+3.1 Basic Allow by Index Tests
+
+TC-034: Execute -api 1 with valid index → Expected: Success
+TC-035: Execute -api 5 with valid index → Expected: Success
+TC-036: Move program from blocked to allowed using -api → Expected: Success, moved
+TC-037: Verify program appears in allowed list after -api → Expected: In authorized list
+
+3.2 Index Validation Tests
+
+TC-038: Execute with valid index from view command → Expected: Success
+TC-039: Execute with index = 0 → Expected: Error (invalid index)
+TC-040: Execute with negative index → Expected: Error
+TC-041: Execute with non-existent index → Expected: Error "index_number not currently valid"
+TC-042: Execute with index beyond list size → Expected: Error
+TC-043: Execute with non-numeric index → Expected: Error
+TC-044: Execute with -api without value → Expected: Error
+
+3.3 Index Reference Tests
+
+TC-045: Execute with index from view command output → Expected: Success, correct program
+TC-046: Verify index matches view command display → Expected: Consistent numbering
+TC-047: Execute after programs added/removed (index changes) → Expected: Uses current index
+
+3.4 Move from Blocked to Allowed Tests
+
+TC-048: Block program, then use -api to allow → Expected: Moved to allowed
+TC-049: Verify program removed from blocked list → Expected: Not in blocked list
+TC-050: Verify program added to allowed list → Expected: In authorized list
+TC-051: Move multiple programs from blocked to allowed → Expected: All moved
+
+4. Block Program by Index (-b) Option Tests
+4.1 Basic Block by Index Tests
+
+TC-052: Execute -b 1 with valid index → Expected: Success, program blocked
+TC-053: Execute -b 2 → Expected: Success (example from doc)
+TC-054: Block program, verify it appears in blocked list → Expected: Listed
+TC-055: Block program, verify it cannot access protected files → Expected: Access denied
+
+4.2 Index Validation Tests
+
+TC-056: Execute with valid index from view command → Expected: Success
+TC-057: Execute with index = 0 → Expected: Error
+TC-058: Execute with negative index → Expected: Error
+TC-059: Execute with non-existent index → Expected: Error "index_number not currently valid"
+TC-060: Execute with non-numeric index → Expected: Error
+TC-061: Execute with -b without value → Expected: Error
+
+4.3 Move from Allowed to Blocked Tests
+
+TC-062: Authorize program, then use -b to block → Expected: Moved to blocked
+TC-063: Verify program removed from allowed list → Expected: Not in authorized list
+TC-064: Verify program added to blocked list → Expected: In blocked list
+TC-065: Block multiple programs using -b → Expected: All blocked
+
+4.4 Already Blocked Program Tests
+
+TC-066: Block program already in blocked list → Expected: Success or "already blocked"
+TC-067: Block program multiple times → Expected: Idempotent operation
+
+5. Block Program by Path (-bpf) Option Tests
+5.1 Basic Block by Path Tests
+
+TC-068: Execute -bpf /usr/bin/vi → Expected: Success, program blocked (example from doc)
+TC-069: Execute -bpf /usr/bin/cat → Expected: Success, program blocked
+TC-070: Block program, verify in blocked list → Expected: Listed
+TC-071: Block program, verify cannot access protected files → Expected: Access denied
+
+5.2 Path Validation Tests (Similar to -apf)
+
+TC-072: Execute with valid absolute path → Expected: Success
+TC-073: Execute with non-existent path → Expected: Error "path not valid"
+TC-074: Execute with path to directory → Expected: Error
+TC-075: Execute with path to non-executable → Expected: Error or warning
+TC-076: Execute with empty path -bpf "" → Expected: Error
+TC-077: Execute with -bpf without value → Expected: Error
+
+5.3 Learning Mode Usage Tests
+
+TC-078: Use -bpf in Learning mode → Expected: Success
+TC-079: Block program in Learning mode, verify not auto-added → Expected: Prevented from auto-add
+TC-080: Verify documentation: "most often used in Learning mode" → Expected: Works as intended
+TC-081: Block program before it's accessed in Learning mode → Expected: Stays blocked
+
+5.4 Already Blocked Program Tests
+
+TC-082: Block program already in blocked list → Expected: Success or "already blocked"
+TC-083: Block program that was authorized → Expected: Moved to blocked
+TC-084: Re-block same program multiple times → Expected: Idempotent
+
+6. ACL Association (-A) Option Tests
+6.1 Basic ACL Association Tests
+
+TC-085: Execute -A 1 -apf /usr/bin/program → Expected: Success, ACL assigned
+TC-086: Execute -A 5 -api 2 → Expected: Success, ACL assigned
+TC-087: Verify ACL association shown in view → Expected: ACL ID displayed
+TC-088: Verify program uses ACL for validation → Expected: ACL evaluated
+
+6.2 ACL ID Validation Tests
+
+TC-089: Execute with valid ACL ID → Expected: Success
+TC-090: Execute with ACL ID = 0 → Expected: "allow access" (built-in ACL)
+TC-091: Execute with ACL ID = 1 → Expected: Success
+TC-092: Execute with non-existent ACL ID → Expected: Error
+TC-093: Execute with destroyed ACL ID → Expected: Error
+TC-094: Execute with negative ACL ID → Expected: Error
+TC-095: Execute with non-numeric ACL ID → Expected: Error
+TC-096: Execute with -A without value → Expected: Error
+
+6.3 ACL ID = 0 (Default) Tests
+
+TC-097: Authorize program without -A option → Expected: ACL ID 0 (allow access)
+TC-098: Execute with -A 0 explicitly → Expected: "allow access" setting
+TC-099: Verify ACL ID 0 is built-in and always available → Expected: Works without acl_create
+TC-100: Verify ACL ID 0 means "allow access" → Expected: No ACL restrictions
+
+6.4 ACL Type Validation Tests
+
+TC-101: Execute with user/group ACL → Expected: Success
+TC-102: Execute with program ACL → Expected: Error (wrong type, based on acl_program knowledge)
+TC-103: Execute with empty ACL → Expected: Error (based on acl_program knowledge)
+TC-104: Verify ACL must have user/group entries → Expected: Validated
+
+6.5 ACL with Authorization Tests
+
+TC-105: Execute -A 2 -apf /usr/bin/program → Expected: Program authorized with ACL 2
+TC-106: Execute -A 3 -api 1 → Expected: Program gets ACL 3
+TC-107: Update ACL ID for existing program → Expected: ACL changed
+TC-108: Remove ACL by authorizing without -A → Expected: Reverts to ACL 0
+
+6.6 ACL with Blocking Tests
+
+TC-109: Execute -A 1 -bpf /usr/bin/program → Expected: Test if ACL can be assigned to blocked program
+TC-110: Execute -A 2 -b 1 → Expected: Test if ACL applies to blocked programs
+TC-111: Verify ACL behavior with blocked programs → Expected: Document behavior
+
+6.7 Integration with acl_program Command Tests
+
+TC-112: Use adjust -A vs acl_program → Expected: Same result (adjust can do same)
+TC-113: Set ACL with adjust, verify with view → Expected: Consistent
+TC-114: Set ACL with acl_program, update with adjust → Expected: Both work
+
+7. Option Combination Tests
+7.1 Valid Combination Tests
+
+TC-115: Execute -apf /path -A 1 → Expected: Success, both applied
+TC-116: Execute -api 1 -A 2 → Expected: Success, both applied
+TC-117: Execute with multiple options in different order → Expected: Success
+
+7.2 Invalid Combination Tests
+
+TC-118: Execute -apf /path1 -apf /path2 → Expected: Error or only last one
+TC-119: Execute -api 1 -api 2 → Expected: Error or only last one
+TC-120: Execute -apf /path -bpf /path2 → Expected: Test behavior
+TC-121: Execute -api 1 -b 2 → Expected: Test behavior
+TC-122: Execute -apf /path -api 1 → Expected: Test behavior (both allow methods)
+
+7.3 Contradictory Option Tests
+
+TC-123: Execute -apf /path -bpf /path (same program) → Expected: Error or last wins
+TC-124: Execute -api 1 -b 1 (same index) → Expected: Error or last wins
+TC-125: Verify contradictory operations are handled → Expected: Error or precedence
+
+8. System State and Prerequisites Tests
+8.1 Active Mode Tests
+
+TC-126: Execute in Elevated mode → Expected: Success
+TC-127: Execute in Learning mode → Expected: Success
+TC-128: Execute in neither Elevated nor Learning mode → Expected: Error
+TC-129: Verify "only available in Elevated Mode" (from help) → Expected: Enforced
+TC-130: Verify both modes work (doc says both, help says Elevated only) → Expected: Clarify
+
+8.2 After Finalize Tests
+
+TC-131: Execute after finalize command → Expected: Error "command disabled"
+TC-132: Verify adjust disabled after finalize → Expected: Cannot use
+TC-133: Verify documentation warning about finalize → Expected: Enforced
+
+8.3 License Tests
+
+TC-134: Execute with License type A → Expected: Success
+TC-135: Execute without valid license → Expected: Error "does not have valid license"
+TC-136: Execute with expired License type A → Expected: Error
+TC-137: Execute with wrong license type → Expected: Error
+
+8.4 Permission Tests
+
+TC-138: Execute as root user → Expected: Success
+TC-139: Execute as non-root user with permissions → Expected: Success or error
+TC-140: Execute as non-root user without permissions → Expected: Error
+
+8.5 ACL Configuration Tests
+
+TC-141: Execute when ACL configuration exists → Expected: Success (for -A option)
+TC-142: Execute when no ACL configuration → Expected: Success (ACL 0 always available)
+TC-143: Execute -A with corrupted ACL config → Expected: Error
+
+9. Program Access Control Tests
+9.1 Authorized Program Access Tests
+
+TC-144: Authorize program, access protected file → Expected: Access allowed
+TC-145: Authorize with ACL, user matches ACL → Expected: Access allowed
+TC-146: Authorize with ACL, user doesn't match ACL → Expected: Access denied
+TC-147: Authorize without ACL (ACL 0) → Expected: Access allowed (allow access)
+
+9.2 Blocked Program Access Tests
+
+TC-148: Block program, attempt to access protected file → Expected: Access denied
+TC-149: Block program with -b, verify blocked → Expected: Cannot access
+TC-150: Block program with -bpf, verify blocked → Expected: Cannot access
+
+9.3 Learning Mode Behavior Tests
+
+TC-151: In Learning mode, access with unauthorized program → Expected: Auto-added to allowed list
+TC-152: In Learning mode, access with blocked program → Expected: Stays blocked (not auto-added)
+TC-153: Block program in Learning mode, verify not auto-added later → Expected: Blocked persists
+
+10. Integration with Other Commands Tests
+10.1 Integration with view Command
+
+TC-154: Adjust program, verify appears in view → Expected: Listed
+TC-155: Verify index numbers in view match adjust → Expected: Consistent
+TC-156: Block program, verify in blocked list in view → Expected: Shown as blocked
+TC-157: Authorize program with ACL, verify ACL shown in view → Expected: ACL ID displayed
+
+10.2 Integration with acl_program Command
+
+TC-158: Set ACL with adjust -A → Expected: Same as acl_program
+TC-159: Use both adjust and acl_program → Expected: Both work, latest wins
+TC-160: Verify adjust can do same as acl_program → Expected: Equivalent functionality
+
+10.3 Integration with protect Command
+
+TC-161: Authorize program, protect files, test access → Expected: Authorized program can access
+TC-162: Block program, protect files, test access → Expected: Blocked program cannot access
+TC-163: Protect files, then adjust programs → Expected: Protection applies immediately
+
+10.4 Integration with finalize Command
+
+TC-164: Use adjust, then finalize → Expected: Adjust disabled after finalize
+TC-165: Try adjust after finalize → Expected: Error
+TC-166: Verify finalize permanently disables adjust → Expected: Cannot re-enable
+
+11. Performance Tests
+11.1 Single Program Processing Tests
+
+TC-167: Measure time to authorize small program (5 libraries) → Expected: < threshold
+TC-168: Measure time to authorize medium program (20 libraries) → Expected: < threshold
+TC-169: Measure time to authorize large program (50+ libraries) → Expected: Longer but acceptable
+TC-170: Measure time to block program → Expected: Fast (no library processing)
+
+11.2 Shared Libraries Processing Tests
+
+TC-171: Authorize program with 10 shared libraries → Expected: 10x processing
+TC-172: Authorize program with 100 shared libraries → Expected: Significant time
+TC-173: Compare processing time: small vs large program → Expected: Proportional to libraries
+
+11.3 Batch Operations Tests
+
+TC-174: Authorize 10 programs sequentially → Expected: Sum of individual times
+TC-175: Block 10 programs sequentially → Expected: Fast (no library processing)
+TC-176: Mix authorize and block operations → Expected: Authorize takes longer
+
+12. Error Handling Tests
+12.1 Error Message Tests
+
+TC-177: Verify error for invalid index_number → Expected: Clear error message
+TC-178: Verify error for invalid path → Expected: Clear error message
+TC-179: Verify error for invalid license → Expected: Clear error message
+TC-180: Verify error for disabled command (after finalize) → Expected: Clear error
+TC-181: Verify all error messages are actionable → Expected: Helpful guidance
+
+12.2 Path Error Tests
+
+TC-182: Non-existent path → Expected: Error "path not valid"
+TC-183: Path to directory → Expected: Error
+TC-184: Path to non-executable → Expected: Error or warning
+TC-185: Malformed path → Expected: Error
+
+12.3 Index Error Tests
+
+TC-186: Invalid index number → Expected: Error "index_number not currently valid"
+TC-187: Index out of range → Expected: Error
+TC-188: Non-numeric index → Expected: Error
+
+12.4 ACL Error Tests
+
+TC-189: Non-existent ACL ID → Expected: Error
+TC-190: Invalid ACL type (program entries) → Expected: Error
+TC-191: Empty ACL → Expected: Error
+
+13. Security and Warning Tests
+13.1 General Purpose Utility Warning Tests
+
+TC-192: Authorize cat (general utility) → Expected: Success with warning (see notes)
+TC-193: Authorize bash (shell) → Expected: Success with warning
+TC-194: Authorize more, vi, ssh → Expected: Success with warnings
+TC-195: Verify documentation warns against general utilities → Expected: Noted in docs
+
+13.2 Trojan Malware Risk Tests
+
+TC-196: Verify documentation warns about Trojan targets → Expected: Warning present
+TC-197: Understand risk of authorizing general utilities → Expected: Security consideration
+
+13.3 ACL Recommendation Tests
+
+TC-198: Authorize program without ACL → Expected: Works but less secure
+TC-199: Authorize program with ACL → Expected: Better security
+TC-200: Verify documentation recommends ACL usage → Expected: Best practice documented
+
+13.4 Program Location Security Tests
+
+TC-201: Attempt to authorize program in protected directory → Expected: Error (restriction)
+TC-202: Verify "must be monitored by SG" requirement → Expected: Security enforcement
+TC-203: Understand DG/SG distinction for programs → Expected: Documented restriction
+
+14. Documentation and Examples Tests
+14.1 Documentation Example Tests
+
+TC-204: Execute example 1 from doc: QDocSEConsole -c adjust -apf /usr/bin/less → Expected: Success
+TC-205: Execute example 2 from doc: QDocSEConsole -c adjust -bpf /usr/bin/vi → Expected: Success
+TC-206: Execute example 3 from doc: QDocSEConsole -c adjust -b 2 → Expected: Success
+TC-207: Execute example from help: QDocSEConsole -c adjust -b 1 → Expected: Success
+TC-208: Execute example from help: QDocSEConsole -c adjust -apf /usr/bin/cat → Expected: Success
+
+14.2 Documentation Consistency Tests
+
+TC-209: Verify "blocked programs not allowed to access protected files" → Expected: Correct
+TC-210: Verify "ACL ID 0 = allow access" → Expected: Correct
+TC-211: Verify "takes time to process" → Expected: Observable
+TC-212: Verify "-api can move from blocked to allowed" → Expected: Correct
+TC-213: Verify "programs must be monitored by SG" → Expected: Enforced
+
+14.3 Help vs Documentation Differences
+
+TC-214: Doc says "Elevated, Learning" modes, help says "only in Elevated Mode" → Expected: Clarify
+TC-215: Help mentions finalize disables adjust → Expected: Verify
+TC-216: Help uses "index" while doc uses "index_number" → Expected: Same thing
+
+15. Help and Syntax Tests
+15.1 Help Option Tests
+
+TC-217: Execute QDocSEConsole -c adjust -h → Expected: Display help
+TC-218: Verify help is comprehensive → Expected: All options explained
+TC-219: Verify examples in help are accurate → Expected: Work as shown
+
+15.2 Invalid Options Tests
+
+TC-220: Execute with unknown option -x → Expected: Error
+TC-221: Execute with invalid option format → Expected: Error
+TC-222: Execute with extra parameters → Expected: Error or ignored
+
+15.3 Command Line Parsing Tests
+
+TC-223: Execute with options in different order → Expected: Success
+TC-224: Execute with extra spaces → Expected: Success
+TC-225: Execute with tabs → Expected: Success
+
+16. Concurrent Execution Tests
+16.1 Concurrent Adjust Tests
+
+TC-226: Authorize 2 different programs simultaneously → Expected: Both succeed
+TC-227: Authorize same program simultaneously → Expected: Proper locking
+TC-228: Adjust while program is running → Expected: Handle gracefully
+
+16.2 Race Condition Tests
+
+TC-229: Test race: authorize vs block same program → Expected: Proper synchronization
+TC-230: Test race: adjust vs program execution → Expected: Proper handling
+
+17. Shell Integration Tests
+17.1 Scripting Tests
+
+TC-231: Use in bash script → Expected: Success
+TC-232: Authorize multiple programs in loop → Expected: All succeed
+TC-233: Capture exit code → Expected: 0 on success, non-zero on error
+
+17.2 Automation Tests
+
+TC-234: Automated program authorization script → Expected: Works reliably
+TC-235: Batch processing script → Expected: Efficient
+TC-236: Integration with deployment workflow → Expected: Seamless
+
+17.3 Exit Code Tests
+
+TC-237: Verify exit code 0 on success → Expected: Exit code = 0
+TC-238: Verify non-zero exit code on error → Expected: Exit code ≠ 0
+TC-239: Verify consistent exit codes → Expected: Same for same error
+
+18. State Consistency Tests
+18.1 Authorization State Tests
+
+TC-240: Authorize program, verify persistent → Expected: Survives reboot
+TC-241: Block program, verify persistent → Expected: Survives reboot
+TC-242: Set ACL, verify persistent → Expected: Survives reboot
+
+18.2 List Consistency Tests
+
+TC-243: Authorize program, verify in allowed list → Expected: Listed
+TC-244: Block program, verify in blocked list → Expected: Listed
+TC-245: Move program, verify removed from old list → Expected: Moved
+
+18.3 Index Consistency Tests
+
+TC-246: Verify index numbers remain consistent → Expected: Stable unless list changes
+TC-247: Add/remove programs, verify indexes update → Expected: Renumbered
+TC-248: Use index after list changes → Expected: References correct program
+
+19. Usability Tests
+19.1 User Experience Tests
+
+TC-249: Verify command is intuitive → Expected: Clear usage
+TC-250: Verify options are well-named → Expected: Obvious purpose
+TC-251: Verify error messages are helpful → Expected: Actionable guidance
+TC-252: Verify help text is comprehensive → Expected: Complete information
+
+19.2 Common Usage Patterns
+
+TC-253: Authorize program for first time → Expected: Straightforward
+TC-254: Block unwanted program → Expected: Simple
+TC-255: Move program from blocked to allowed → Expected: Clear method (-api)
+TC-256: Assign ACL to program → Expected: Single command
+
+19.3 Common Mistakes
+
+TC-257: Use relative path instead of absolute → Expected: Error with guidance
+TC-258: Forget to use index from view → Expected: Error
+TC-259: Try to authorize general utility → Expected: Success but warned
+TC-260: Use after finalize → Expected: Clear error
+
+20. Advanced Scenarios Tests
+20.1 Complex Authorization Scenarios
+
+TC-261: Authorize 100 programs with different ACLs → Expected: All succeed
+TC-262: Build comprehensive allowed/blocked lists → Expected: Works at scale
+TC-263: Authorize programs with complex dependencies → Expected: All libraries evaluated
+
+20.2 ACL Integration Scenarios
+
+TC-264: Multiple programs sharing same ACL → Expected: All use same ACL
+TC-265: Different programs with different ACLs → Expected: Each uses own ACL
+TC-266: Update shared ACL, verify all programs affected → Expected: All updated
+
+20.3 Learning Mode Scenarios
+
+TC-267: Block programs before entering Learning mode → Expected: Protected from auto-add
+TC-268: Use Learning mode to discover programs, block unwanted → Expected: Workflow works
+TC-269: Combine manual authorization and Learning mode → Expected: Both methods work
+
+
+Test Summary
+Total Test Cases: 269
+Priority Distribution:
+
+P0 (Critical): TC-004 to TC-084, TC-144 to TC-153, TC-204 to TC-213 (110 test cases)
+
+All four program selection methods (-apf, -api, -b, -bpf)
+ACL association (-A) including ACL ID 0
+Program access control (authorized vs blocked)
+Learning mode behavior
+Documentation examples
+
+
+P1 (High): TC-085 to TC-143, TC-154 to TC-176, TC-217 to TC-243 (115 test cases)
+
+ACL validation and type checking
+System prerequisites (modes, finalize, license)
+Integration with view, acl_program, protect
+Performance tests (shared libraries processing)
+State consistency
+
+
+P2 (Medium): TC-177 to TC-203, TC-244 to TC-260 (40 test cases)
+
+Error handling
+Security warnings and restrictions
+Usability tests
+Concurrent execution
+
+
+P3 (Low): TC-261 to TC-269 (9 test cases)
+
+Advanced scenarios
+Complex integrations
+
+
+
+Test Coverage:
+✅ Core Functionality - Four Program Selection Methods:
+
+-apf (allow by path): Authorize program by full path
+-api (allow by index): Authorize program by index, moves from blocked to allowed
+-b (block by index): Block program by index, moves from allowed to blocked
+-bpf (block by path): Block program by full path
+
+✅ ACL Association (-A):
+
+Assign ACL ID to program for runtime validation
+ACL ID 0 = built-in "allow access" (default when -A not specified)
+User/group ACL required (not program ACL)
+Empty ACL not allowed
+Same functionality as acl_program command
+
+✅ Key Features:
+
+Shared libraries evaluation (takes time)
+Learning mode usage (-bpf prevents auto-add)
+Move between allowed and blocked lists
+Disabled after finalize command
+Programs must be monitored by SG (not in DG-protected directories)
+
+✅ Integration:
+
+Works with view command (index numbers)
+Works with acl_program (equivalent for ACL assignment)
+Works with protect (authorized programs can access)
+Works with finalize (disables adjust)
+
+✅ System Requirements:
+
+Active modes: Elevated, Learning (doc) vs "only Elevated" (help) - clarify
+License type: A
+Disabled after finalize
+Programs must be in SG-monitored directories
+
+✅ Security:
+
+Warning against general utilities (cat, bash, vi, ssh, etc.)
+Trojan malware risk for general utilities
+Recommendation to use ACLs with authorized programs
+Program location restrictions (no DG-protected directories)
+
+Key Features Tested:
+
+Four Selection Methods: Path-based and index-based for both allow and block
+ACL ID 0: Built-in "allow access" when -A not specified
+Shared Libraries: Processing time proportional to libraries count
+Learning Mode: -bpf prevents auto-authorization in Learning mode
+List Movement: -api moves blocked→allowed, -b moves allowed→blocked
+Finalize: Permanently disables adjust command
+Program Location: Must be monitored by SG, not in DG-protected directories
+
+Important Concepts:
+⚠️ ACL ID 0 (Zero): Built-in ACL with "allow access" setting - no restrictions
+⚠️ Shared Libraries: Processing takes time - all libraries evaluated
+⚠️ Learning Mode: Use -bpf to prevent unwanted auto-authorization
+⚠️ General Utilities: Avoid authorizing cat, bash, vi, ssh, etc. (security risk)
+⚠️ ACL Recommendation: Use ACLs to limit who can run authorized programs
+⚠️ Program Location: Cannot authorize programs in DG-protected directories
+⚠️ Finalize: adjust command disabled after finalize (permanent)
+Documentation Notes:
+DG vs SG:
+
+DG (Data Guard): File protection
+SG (System Guard): Program monitoring
+Authorized programs must be monitored by SG
+Cannot authorize programs in directories with DG protection
+
+ACL ID 0: Fixed, built-in ACL that means "allow access" - always available
+Processing Time: "It will take time to process each program being added to the authorized list because every shared library used by the program is being evaluated too."
+Security Warnings:
+
+Avoid general utilities (Trojan targets)
+Use ACLs to limit who can run programs
+Consider program location carefully
+
+Testing Strategy Recommendation:
+Test in this order:
+
+Basic program authorization/blocking (TC-004 to TC-084)
+ACL association including ACL ID 0 (TC-085 to TC-114)
+Program access control (TC-144 to TC-153)
+Integration with view and other commands (TC-154 to TC-176)
+System prerequisites and restrictions (TC-126 to TC-143)
+Documentation examples (TC-204 to TC-213)
+Performance tests (shared libraries) (TC-167 to TC-176)
+Security warnings and edge cases (remaining tests)
+
+Critical test focus:
+
+All four selection methods work correctly
+ACL ID 0 default behavior
+Shared libraries processing time
+Learning mode prevention with -bpf
+finalize disabling adjust
+Program location restrictions (SG vs DG)
+Move between allowed/blocked lists
+
+Clarifications needed:
+
+Active modes: Doc says "Elevated, Learning" but help says "only available when QDocSE is in Elevated Mode" - which is correct?

@@ -1,0 +1,572 @@
+Yes, combining acl_export and acl_import into one test suite is highly recommended because:
+
+They are complementary operations - export creates files that import consumes
+Round-trip testing is essential - export → import → verify is a critical workflow
+They share similar structure - both have single -f option, similar prerequisites
+Integration testing is more important than isolated testing - the value is in ensuring data integrity across the export/import cycle
+
+Complete Test Case List for acl_export and acl_import Commands
+1. acl_export - Required Option Tests
+1.1 Filename (-f) Option Tests
+
+TC-001: Execute acl_export without -f option → Expected: Error "Missing required '-f' option"
+TC-002: Execute with valid filename → Expected: Success, file created
+TC-003: Execute with absolute path /tmp/acl_config → Expected: Success
+TC-004: Execute with relative path ./acl_config → Expected: Success
+TC-005: Execute with filename only acl_config → Expected: Success (current directory)
+TC-006: Execute with -f without value → Expected: Error
+TC-007: Execute with empty filename -f "" → Expected: Error
+TC-008: Execute with -f specified twice → Expected: Error or use last value
+
+1.2 Filename Path Tests
+
+TC-009: Export to /tmp/test.cfg → Expected: Success
+TC-010: Export to /home/user/exports/acl.cfg → Expected: Success
+TC-011: Export to nested directory /a/b/c/d/acl.cfg (exists) → Expected: Success
+TC-012: Export to non-existent directory /nonexistent/acl.cfg → Expected: Error (directory doesn't exist)
+TC-013: Export to root directory /acl.cfg → Expected: Success (if permissions allow)
+TC-014: Export with very long path (255+ chars) → Expected: Success or Error
+TC-015: Export with very long filename (255+ chars) → Expected: Success or Error
+
+1.3 Filename Special Characters Tests
+
+TC-016: Export to file with spaces acl config.cfg → Expected: Success (with proper quoting)
+TC-017: Export to file with underscores acl_config.cfg → Expected: Success
+TC-018: Export to file with hyphens acl-config.cfg → Expected: Success
+TC-019: Export to file with dots acl.config.cfg → Expected: Success
+TC-020: Export to file with special chars acl@config#1.cfg → Expected: Success or Error
+TC-021: Export to file with unicode characters → Expected: Success or Error
+
+1.4 File Extension Tests
+
+TC-022: Export to .cfg extension → Expected: Success
+TC-023: Export to .txt extension → Expected: Success
+TC-024: Export to .dat extension → Expected: Success
+TC-025: Export to no extension acl_config → Expected: Success
+TC-026: Export to multiple extensions acl.config.backup.cfg → Expected: Success
+
+2. acl_export - Basic Functionality Tests
+2.1 Export Success Tests
+
+TC-027: Export ACL configuration with no ACLs → Expected: Success or "No ACL configuration yet"
+TC-028: Export ACL configuration with 1 ACL (empty) → Expected: Success
+TC-029: Export ACL configuration with 1 ACL (with entries) → Expected: Success
+TC-030: Export ACL configuration with 5 ACLs → Expected: Success
+TC-031: Export ACL configuration with 100 ACLs → Expected: Success
+TC-032: Export ACL configuration with mixed ACL types (user, group, program) → Expected: Success
+
+2.2 Export Content Verification Tests
+
+TC-033: Export, verify file is created → Expected: File exists
+TC-034: Export, verify file is not empty → Expected: File size > 0
+TC-035: Export, verify file is readable → Expected: Can read file
+TC-036: Export, verify file format is valid → Expected: Valid QDocSE ACL format
+TC-037: Export with 1 ACL, verify ACL is in export file → Expected: ACL present
+TC-038: Export with 5 ACLs, verify all 5 are in export file → Expected: All ACLs present
+
+2.3 Export File Overwrite Tests
+
+TC-039: Export to new file → Expected: Success, file created
+TC-040: Export to existing file → Expected: Success, file overwritten
+TC-041: Export to existing file with content → Expected: Success, old content replaced
+TC-042: Export twice to same file → Expected: Both succeed, second overwrites first
+TC-043: Verify no backup of original file created → Expected: Only export file exists
+
+2.4 Export File Permissions Tests
+
+TC-044: Export, verify file permissions → Expected: Appropriate permissions set
+TC-045: Export to directory with write permissions → Expected: Success
+TC-046: Export to directory without write permissions → Expected: Error (cannot write)
+TC-047: Export to read-only filesystem → Expected: Error
+TC-048: Export as root user → Expected: Success
+TC-049: Export as non-root user → Expected: Success or Error based on permissions
+
+3. acl_export - System State and Prerequisites Tests
+3.1 ACL Configuration State Tests
+
+TC-050: Export when no ACL configuration exists → Expected: Error "No ACL configuration yet"
+TC-051: Export when ACL configuration file is empty → Expected: Error or export empty config
+TC-052: Export when ACL configuration file is corrupted → Expected: Error "Open ACL configuration error"
+TC-053: Export after creating ACLs → Expected: Success
+TC-054: Export after destroying all ACLs → Expected: Success or "No ACL configuration yet"
+
+3.2 Active Mode Tests
+
+TC-055: Execute in Elevated mode → Expected: Success
+TC-056: Execute in Learning mode → Expected: Success
+TC-057: Execute in both Elevated and Learning modes → Expected: Success
+TC-058: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+
+3.3 License Tests
+
+TC-059: Execute with License type A → Expected: Success
+TC-060: Execute without License type A → Expected: Error
+TC-061: Execute with expired License type A → Expected: Error
+
+4. acl_export - Error Handling Tests
+4.1 Error Message Tests
+
+TC-062: Verify "Missing required '-f' option" error → Expected: Exact error message
+TC-063: Verify "No ACL configuration yet" error → Expected: Exact error message
+TC-064: Verify "Open ACL configuration error" error → Expected: Exact error message
+TC-065: Verify "Memory allocation error" error → Expected: Exact error message
+TC-066: Verify "ACL configuration read error" error → Expected: Exact error message
+TC-067: Verify "ACL export error" error → Expected: Exact error message
+
+4.2 Error Recovery Tests
+
+TC-068: Trigger export error, retry → Expected: Second attempt succeeds
+TC-069: Export to invalid location, correct and retry → Expected: Success
+TC-070: Export with low disk space, free space and retry → Expected: Success
+
+5. acl_import - Required Option Tests
+5.1 Filename (-f) Option Tests
+
+TC-071: Execute acl_import without -f option → Expected: Error "Missing required option '-f'"
+TC-072: Execute with valid filename → Expected: Success
+TC-073: Execute with absolute path → Expected: Success
+TC-074: Execute with relative path → Expected: Success
+TC-075: Execute with -f without value → Expected: Error
+TC-076: Execute with empty filename -f "" → Expected: Error
+TC-077: Execute with -f specified twice → Expected: Error or use last value
+
+5.2 Import File Existence Tests
+
+TC-078: Import existing valid file → Expected: Success
+TC-079: Import non-existent file → Expected: Error "Import file missing"
+TC-080: Import from empty path → Expected: Error
+TC-081: Import from directory (not file) → Expected: Error "Import file open error"
+
+6. acl_import - Basic Functionality Tests
+6.1 Import Success Tests
+
+TC-082: Import valid ACL export file → Expected: Success
+TC-083: Import file with 1 ACL → Expected: Success, ACL created
+TC-084: Import file with 5 ACLs → Expected: Success, all ACLs created
+TC-085: Import file with 100 ACLs → Expected: Success, all ACLs created
+TC-086: Import file with empty ACL → Expected: Success
+TC-087: Import file with ACL containing entries → Expected: Success, entries preserved
+
+6.2 Import Content Verification Tests
+
+TC-088: Import, verify ACLs are created → Expected: ACLs present
+TC-089: Import, verify ACL count matches export → Expected: Same count
+TC-090: Import, verify ACL entries match export → Expected: Entries identical
+TC-091: Import, verify ACL IDs match export → Expected: IDs preserved
+TC-092: Import, list ACLs, verify all present → Expected: All ACLs shown
+
+6.3 Configuration Override Tests
+
+TC-093: Import when no previous configuration exists → Expected: Success, new config created
+TC-094: Import when previous configuration exists → Expected: Success, config overridden
+TC-095: Create 5 ACLs, import file with 3 ACLs → Expected: Only 3 ACLs exist after import
+TC-096: Import, verify old ACLs are removed → Expected: Old config completely replaced
+TC-097: Import, verify no merge of old and new → Expected: Only new config exists
+
+7. acl_import - System State Tests
+7.1 Active Mode Tests
+
+TC-098: Execute in Elevated mode → Expected: Success
+TC-099: Execute in Learning mode → Expected: Success
+TC-100: Execute in both Elevated and Learning modes → Expected: Success
+TC-101: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+
+7.2 License Tests
+
+TC-102: Execute with License type A → Expected: Success
+TC-103: Execute without License type A → Expected: Error
+TC-104: Execute with expired License type A → Expected: Error
+
+8. acl_import - Error Handling Tests
+8.1 Error Message Tests
+
+TC-105: Verify "Missing required option '-f'" error → Expected: Exact error message
+TC-106: Verify "Import file missing" error → Expected: Exact error message
+TC-107: Verify "Import file open error" error → Expected: Exact error message
+TC-108: Verify "Open ACL configuration error" error → Expected: Exact error message
+TC-109: Verify "Memory allocation error" error → Expected: Exact error message
+TC-110: Verify "ACL import read error" error → Expected: Exact error message
+TC-111: Verify "ACL import hash verify error" error → Expected: Exact error message
+TC-112: Verify "File lseek error" error → Expected: Exact error message
+TC-113: Verify "ACL import error" error → Expected: Exact error message
+TC-114: Verify "Import file trim error" error → Expected: Exact error message
+TC-115: Verify "Bad magic number in ACL import file" error → Expected: Exact error message
+
+8.2 Invalid File Tests
+
+TC-116: Import plain text file → Expected: Error "Bad magic number in ACL import file"
+TC-117: Import binary file (not ACL format) → Expected: Error "Bad magic number"
+TC-118: Import corrupted ACL export file → Expected: Error "ACL import hash verify error"
+TC-119: Import truncated ACL export file → Expected: Error "ACL import read error"
+TC-120: Import file with wrong magic number → Expected: Error "Bad magic number"
+TC-121: Import file with tampered content → Expected: Error "hash verify error"
+TC-122: Import empty file → Expected: Error
+TC-123: Import file with wrong format version → Expected: Error or handled gracefully
+
+9. Round-Trip Testing (Export → Import)
+9.1 Basic Round-Trip Tests
+
+TC-124: Export ACL config, import it, verify identical → Expected: Perfect match
+TC-125: Create 1 ACL, export, import, verify ACL exists → Expected: ACL recreated
+TC-126: Create 5 ACLs, export, import, verify all 5 exist → Expected: All ACLs recreated
+TC-127: Create ACL with entries, export, import, verify entries → Expected: Entries preserved
+TC-128: Create empty ACL, export, import, verify empty → Expected: ACL still empty
+
+9.2 Data Integrity Round-Trip Tests
+
+TC-129: Export/import, verify ACL IDs preserved → Expected: Same IDs
+TC-130: Export/import, verify entry order preserved → Expected: Same order
+TC-131: Export/import, verify user entries preserved → Expected: Users unchanged
+TC-132: Export/import, verify group entries preserved → Expected: Groups unchanged
+TC-133: Export/import, verify program entries preserved → Expected: Programs unchanged
+TC-134: Export/import, verify time restrictions preserved → Expected: Times unchanged
+TC-135: Export/import, verify mode settings preserved → Expected: Modes unchanged
+TC-136: Export/import, verify allow/deny settings preserved → Expected: Settings unchanged
+
+9.3 Complex Configuration Round-Trip Tests
+
+TC-137: Export/import ACL with 100 entries → Expected: All entries preserved
+TC-138: Export/import mixed ACL types (user, group, program) → Expected: All preserved
+TC-139: Export/import ACLs with time-based entries → Expected: Time specs preserved
+TC-140: Export/import ACLs with complex mode combinations → Expected: Modes preserved
+TC-141: Export/import 100 ACLs → Expected: All ACLs and entries preserved
+
+9.4 Multiple Round-Trip Tests
+
+TC-142: Export, import, export again, verify files identical → Expected: Same content
+TC-143: Export, import, export, import, verify consistency → Expected: Consistent
+TC-144: Perform 5 export/import cycles, verify no data loss → Expected: No degradation
+
+10. Cross-System Testing
+10.1 Export on System A, Import on System B
+
+TC-145: Export on System A, import on System B → Expected: Success
+TC-146: Verify ACLs work on System B after import → Expected: Functional
+TC-147: Export from different QDocSE version, import → Expected: Success or version error
+TC-148: Export from newer version, import to older version → Expected: Compatibility check
+
+10.2 File Transfer Method Tests
+
+TC-149: Export, transfer via SCP, import → Expected: Success
+TC-150: Export, transfer via USB, import → Expected: Success
+TC-151: Export, transfer via network share, import → Expected: Success
+TC-152: Export, compress, decompress, import → Expected: Success
+TC-153: Export, verify file integrity (checksum), import → Expected: Success
+
+11. Configuration Management Workflows
+11.1 Backup and Restore
+
+TC-154: Export as backup, make changes, import to restore → Expected: Restored to backup state
+TC-155: Export daily backups, restore from specific date → Expected: Correct restore
+TC-156: Export before upgrade, upgrade fails, import to rollback → Expected: Successful rollback
+
+11.2 Configuration Distribution
+
+TC-157: Export from master system, import to 10 systems → Expected: All systems identical
+TC-158: Export template configuration, import to new systems → Expected: Consistent setup
+TC-159: Update master config, export, distribute to all systems → Expected: Synchronized
+
+11.3 Configuration Migration
+
+TC-160: Export from old system, import to new system → Expected: Successful migration
+TC-161: Export, modify file externally (not recommended), import → Expected: Error or warning
+TC-162: Merge configurations from two systems → Expected: Manual process required
+
+12. State Changes Around Import
+12.1 Import Impact on Existing ACLs
+
+TC-163: Create ACLs, import different config, verify old ACLs gone → Expected: Replaced
+TC-164: Apply ACL to files, import new config, verify file protection → Expected: Check behavior
+TC-165: Create ACL ID 5, import config without ID 5 → Expected: ID 5 removed
+TC-166: Import, verify ACL ID sequence continues from import → Expected: New IDs after max imported ID
+
+12.2 Import Impact on Protected Files
+
+TC-167: Protect files with ACL, import config without that ACL → Expected: Test file behavior
+TC-168: Import new config, verify files need ACL reassignment → Expected: Documentation check
+TC-169: Import config, verify existing file protections → Expected: State documented
+
+13. File Format and Validation Tests
+13.1 Export File Format Tests
+
+TC-170: Verify export file has magic number → Expected: Magic number present
+TC-171: Verify export file has hash/checksum → Expected: Integrity check present
+TC-172: Verify export file format is binary (not text) → Expected: Binary format
+TC-173: Verify export file can't be easily edited → Expected: Binary/protected format
+
+13.2 Import Validation Tests
+
+TC-174: Import validates magic number → Expected: Checked
+TC-175: Import validates hash/checksum → Expected: Integrity verified
+TC-176: Import rejects modified files → Expected: Hash verify error
+TC-177: Import validates file structure → Expected: Structure checked
+
+14. Performance Tests
+14.1 Export Performance Tests
+
+TC-178: Measure time to export small config (5 ACLs) → Expected: < threshold
+TC-179: Measure time to export medium config (50 ACLs) → Expected: < threshold
+TC-180: Measure time to export large config (500 ACLs) → Expected: < threshold
+TC-181: Measure export file size for 100 ACLs → Expected: Reasonable size
+
+14.2 Import Performance Tests
+
+TC-182: Measure time to import small config (5 ACLs) → Expected: < threshold
+TC-183: Measure time to import medium config (50 ACLs) → Expected: < threshold
+TC-184: Measure time to import large config (500 ACLs) → Expected: < threshold
+TC-185: Compare import time: small vs large config → Expected: Reasonable scaling
+
+14.3 Round-Trip Performance Tests
+
+TC-186: Measure total time for export + import cycle → Expected: < threshold
+TC-187: Test with 1000 ACLs, measure export+import time → Expected: Acceptable
+TC-188: Monitor memory usage during export/import → Expected: No memory leaks
+
+15. Concurrent Execution Tests
+15.1 Concurrent Export Tests
+
+TC-189: Export to 2 different files simultaneously → Expected: Both succeed
+TC-190: Export to same file simultaneously → Expected: Proper locking or one fails
+TC-191: Export while ACL operations ongoing → Expected: Consistent snapshot
+
+15.2 Concurrent Import Tests
+
+TC-192: Import from 2 different files simultaneously → Expected: Last one wins or error
+TC-193: Import while ACL operations ongoing → Expected: Proper locking
+TC-194: Import while export running → Expected: Proper synchronization
+
+16. Edge Cases and Special Scenarios
+16.1 Special Configuration States
+
+TC-195: Export config with destroyed ACL IDs (gaps in sequence) → Expected: Success
+TC-196: Import config with non-sequential ACL IDs → Expected: Success
+TC-197: Export/import very large ACL (1000+ entries) → Expected: Success
+TC-198: Export/import ACL with maximum entry count → Expected: Success
+
+16.2 Filesystem Edge Cases
+
+TC-199: Export to full filesystem → Expected: Error (no space)
+TC-200: Export to NFS/network filesystem → Expected: Success
+TC-201: Import from NFS/network filesystem → Expected: Success
+TC-202: Export/import with different filesystem types → Expected: Success
+TC-203: Export to temporary filesystem (/tmp) → Expected: Success
+
+16.3 Path and Filename Edge Cases
+
+TC-204: Export to / (root directory) → Expected: Success or Error
+TC-205: Export with relative path ../../acl.cfg → Expected: Success
+TC-206: Export with symbolic link path → Expected: Success
+TC-207: Import from symbolic link → Expected: Success
+
+17. Documentation and Examples Tests
+17.1 Export Documentation Tests
+
+TC-208: Execute example from doc: QDocSEConsole -c acl_export -f /tmp/acl_config → Expected: Success
+TC-209: Execute example from help: QDocSEConsole -c acl_export -f foo.cfg → Expected: Success
+TC-210: Verify help output matches documentation → Expected: Consistent
+
+17.2 Import Documentation Tests
+
+TC-211: Execute example from doc: QDocSEConsole -c acl_import -f /tmp/acl_config → Expected: Success
+TC-212: Execute example from help: QDocSEConsole -c acl_import -f foo.cfg → Expected: Success
+TC-213: Verify help output matches documentation → Expected: Consistent
+
+17.3 Documentation Claims Verification
+
+TC-214: Verify "configuration can be imported onto other systems" → Expected: Works cross-system
+TC-215: Verify "same configuration exists on all systems" → Expected: Identical after import
+TC-216: Verify "any previous configuration will be overridden" → Expected: Complete replacement
+TC-217: Verify "files will still need ACL IDs set" → Expected: File protection requires reassignment
+
+18. Security Tests
+18.1 Access Control Tests
+
+TC-218: Verify only authorized users can export → Expected: Access control enforced
+TC-219: Verify only authorized users can import → Expected: Access control enforced
+TC-220: Test privilege escalation attempts → Expected: Blocked
+TC-221: Verify export file permissions are restrictive → Expected: Protected file
+
+18.2 Data Integrity and Security Tests
+
+TC-222: Verify export file cannot be tampered → Expected: Hash verification detects changes
+TC-223: Test importing tampered file → Expected: Error "hash verify error"
+TC-224: Verify sensitive data in export file is protected → Expected: No plaintext secrets
+TC-225: Test file encryption (if supported) → Expected: Encrypted format
+
+18.3 Audit and Logging Tests
+
+TC-226: Verify export operation is logged → Expected: Logged with timestamp
+TC-227: Verify import operation is logged → Expected: Logged with timestamp
+TC-228: Verify log includes filename and user → Expected: Complete audit trail
+
+19. Error Recovery and Rollback Tests
+19.1 Import Failure Recovery
+
+TC-229: Import fails midway, verify ACL config state → Expected: Rolled back or consistent
+TC-230: Import invalid file, verify original config intact → Expected: No changes
+TC-231: Import with insufficient memory, verify no corruption → Expected: Clean error
+
+19.2 Export Failure Recovery
+
+TC-232: Export fails midway, verify partial file handling → Expected: File deleted or marked invalid
+TC-233: Export to full disk, verify error handling → Expected: Clean error, no partial file
+
+20. Help and Syntax Tests
+20.1 Help Option Tests
+
+TC-234: Execute QDocSEConsole -c acl_export -h → Expected: Display help
+TC-235: Execute QDocSEConsole -c acl_import -h → Expected: Display help
+TC-236: Verify help is clear and complete → Expected: All options explained
+
+20.2 Invalid Options Tests
+
+TC-237: Execute export with unknown option -x → Expected: Error
+TC-238: Execute import with unknown option -x → Expected: Error
+TC-239: Execute export with extra parameters → Expected: Error or ignored
+TC-240: Execute import with extra parameters → Expected: Error or ignored
+
+21. Shell Integration Tests
+21.1 Scripting Tests
+
+TC-241: Use export in bash script → Expected: Success
+TC-242: Use import in bash script → Expected: Success
+TC-243: Export/import in single script → Expected: Both succeed
+TC-244: Capture exit codes → Expected: 0 on success, non-zero on error
+
+21.2 Automation Tests
+
+TC-245: Automated daily export backup script → Expected: Works reliably
+TC-246: Automated config distribution script → Expected: Works reliably
+TC-247: Disaster recovery script using import → Expected: Successful recovery
+
+22. Usability Tests
+22.1 User Experience Tests
+
+TC-248: Verify export command is intuitive → Expected: Clear usage
+TC-249: Verify import command is intuitive → Expected: Clear usage
+TC-250: Verify error messages are helpful → Expected: Actionable guidance
+TC-251: Verify documentation explains override behavior → Expected: Clear warning
+
+22.2 Common Usage Patterns
+
+TC-252: Export before making changes (backup) → Expected: Easy workflow
+TC-253: Distribute config to multiple systems → Expected: Straightforward
+TC-254: Restore from backup after mistake → Expected: Quick recovery
+
+
+Test Summary
+Total Test Cases: 254
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-028, TC-071 to TC-097, TC-124 to TC-144, TC-208 to TC-217 (100 test cases)
+
+Required options
+Basic export/import functionality
+Round-trip data integrity
+Configuration override behavior
+Documentation examples
+
+
+P1 (High): TC-029 to TC-070, TC-098 to TC-123, TC-145 to TC-169, TC-218 to TC-233 (95 test cases)
+
+Export content verification
+Import validation
+Error handling
+Cross-system testing
+File format validation
+Security tests
+Error recovery
+
+
+P2 (Medium): TC-170 to TC-207, TC-234 to TC-247 (50 test cases)
+
+Performance tests
+Concurrent execution
+Edge cases
+Automation and scripting
+
+
+P3 (Low): TC-248 to TC-254 (7 test cases)
+
+Usability tests
+
+
+
+Test Coverage:
+✅ Export Functionality:
+
+Required -f option
+File creation and overwriting
+Content verification
+Format validation
+Error handling
+All documented errors
+
+✅ Import Functionality:
+
+Required -f option
+File validation
+Configuration override
+Content restoration
+Error handling
+All documented errors (11 error types)
+
+✅ Round-Trip Testing (Critical):
+
+Export → Import → Verify identical
+ACL IDs preservation
+Entry order preservation
+Entry content preservation (users, groups, programs, times, modes)
+Multiple round-trip cycles
+No data loss verification
+
+✅ Cross-System:
+
+Export on System A, import on System B
+Configuration distribution
+Version compatibility
+File transfer methods
+
+✅ Data Integrity:
+
+Magic number validation
+Hash/checksum verification
+Tamper detection
+Binary format protection
+
+✅ Configuration Management:
+
+Backup and restore workflows
+Configuration distribution
+Migration scenarios
+Override behavior verification
+
+✅ Error Scenarios:
+
+Export: 6 documented error types
+Import: 11 documented error types
+Invalid file detection
+Corrupted file handling
+
+Key Testing Focus Areas:
+
+Round-Trip Integrity: Most critical - data must survive export/import perfectly
+Configuration Override: Import completely replaces existing configuration
+File Format Validation: Magic number and hash verification
+Cross-System Portability: Export from one system, import to another
+Error Detection: Comprehensive validation (especially import has 11 error types)
+Data Preservation: All ACL properties must be preserved exactly
+
+Important Notes:
+⚠️ Configuration Override: Import completely replaces existing ACL configuration - all previous ACLs are lost
+⚠️ File Protection: Documentation notes that "specific files will still need ACL IDs set" after import
+⚠️ File Format: Binary format with magic number and hash for integrity verification
+⚠️ No Merge: Import doesn't merge with existing config - it's complete replacement
+Testing Strategy Recommendation:
+Test in this order:
+
+Basic export/import (TC-001 to TC-097)
+Round-trip testing (TC-124 to TC-144) - Most Critical
+Error handling (TC-062 to TC-070, TC-105 to TC-123)
+Cross-system testing (TC-145 to TC-153)
+Performance and edge cases (remaining tests)

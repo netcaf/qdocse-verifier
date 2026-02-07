@@ -1,0 +1,621 @@
+Complete Test Case List for acl_edit Command
+1. Required Options Tests
+1.1 ACL ID (-i) Tests
+
+TC-001: Execute without -i option → Expected: Error "Missing required '-i' option"
+TC-002: Execute with valid existing ACL ID → Expected: Success (with other required options)
+TC-003: Execute with invalid ACL ID (non-existent) → Expected: Error "X is not a valid ACL ID"
+TC-004: Execute with ACL ID = 0 → Expected: Error "X is not a valid ACL ID"
+TC-005: Execute with negative ACL ID → Expected: Error "X is not a valid ACL ID"
+TC-006: Execute with non-numeric ACL ID → Expected: Error
+TC-007: Execute with destroyed ACL ID → Expected: Error "X is not a valid ACL ID"
+TC-008: Execute with -i without value → Expected: Error
+TC-009: Execute with empty ACL ID -i "" → Expected: Error
+TC-010: Execute with -i specified twice → Expected: Error or use last value
+
+1.2 Entry Number (-e) Tests
+
+TC-011: Execute without -e option → Expected: Error "Missing required '-e' option"
+TC-012: Execute with valid entry number → Expected: Success
+TC-013: Execute with entry number 1 (first entry) → Expected: Success
+TC-014: Execute with last entry number → Expected: Success
+TC-015: Execute with middle entry number → Expected: Success
+TC-016: Execute with entry number 0 → Expected: Error (entries start at 1)
+TC-017: Execute with negative entry number → Expected: Error
+TC-018: Execute with entry number beyond list size → Expected: Error "entry must already exist"
+TC-019: Execute with non-numeric entry number → Expected: Error
+TC-020: Execute with -e without value → Expected: Error
+TC-021: Execute with empty entry number -e "" → Expected: Error
+TC-022: Execute with -e specified twice → Expected: Error or use last value
+
+1.3 Position (-p) Tests
+1.3.1 Numeric Position Tests
+
+TC-023: Execute without -p option → Expected: Error "Missing required '-p' option"
+TC-024: Execute with valid numeric position → Expected: Success
+TC-025: Execute with position 1 (first) → Expected: Success
+TC-026: Execute with last position number → Expected: Success
+TC-027: Execute with middle position → Expected: Success
+TC-028: Execute with position 0 → Expected: Error (positions start at 1)
+TC-029: Execute with negative position → Expected: Error
+TC-030: Execute with position beyond list size → Expected: Error "position must be valid"
+TC-031: Execute with position = current entry position → Expected: Error "No change – item does not need to move"
+TC-032: Execute with -p without value → Expected: Error
+TC-033: Execute with -p specified twice → Expected: Error or use last value
+
+1.3.2 Descriptive Word Tests - Synonyms for First
+
+TC-034: Execute with -p first → Expected: Success (move to position 1)
+TC-035: Execute with -p begin → Expected: Success (move to position 1)
+TC-036: Execute with -p beginning → Expected: Success (move to position 1)
+TC-037: Execute with -p top → Expected: Success (move to position 1)
+
+1.3.3 Descriptive Word Tests - Synonyms for Last
+
+TC-038: Execute with -p last → Expected: Success (move to last position)
+TC-039: Execute with -p end → Expected: Success (move to last position)
+TC-040: Execute with -p bottom → Expected: Success (move to last position)
+
+1.3.4 Descriptive Word Tests - Relative Movement
+
+TC-041: Execute with -p up → Expected: Success (move up one position)
+TC-042: Execute with -p down → Expected: Success (move down one position)
+
+1.3.5 Case Sensitivity Tests
+
+TC-043: Execute with -p UP (uppercase) → Expected: Success or Error
+TC-044: Execute with -p Down (mixed case) → Expected: Success or Error
+TC-045: Execute with -p FIRST (uppercase) → Expected: Success or Error
+TC-046: Execute with -p Last (mixed case) → Expected: Success or Error
+TC-047: Execute with -p TOP (uppercase) → Expected: Success or Error
+
+1.3.6 Invalid Position Tests
+
+TC-048: Execute with -p invalid (unknown word) → Expected: Error "position must be valid"
+TC-049: Execute with -p middle (unsupported word) → Expected: Error
+TC-050: Execute with -p next (unsupported word) → Expected: Error
+TC-051: Execute with -p previous (unsupported word) → Expected: Error
+TC-052: Execute with empty position -p "" → Expected: Error
+
+1.4 Option Order Tests
+
+TC-053: Execute with -i 1 -e 2 -p 3 → Expected: Success
+TC-054: Execute with -e 2 -p 3 -i 1 → Expected: Success
+TC-055: Execute with -p 3 -i 1 -e 2 → Expected: Success
+TC-056: Execute with options in random order → Expected: Success
+
+2. Basic Functionality Tests - Numeric Positions
+2.1 Moving to Specific Positions
+
+TC-057: Create ACL with 5 entries, move entry 2 to position 1 → Expected: Success
+TC-058: Create ACL with 5 entries, move entry 2 to position 3 → Expected: Success
+TC-059: Create ACL with 5 entries, move entry 2 to position 5 → Expected: Success
+TC-060: Create ACL with 5 entries, move entry 1 to position 3 → Expected: Success
+TC-061: Create ACL with 5 entries, move entry 5 to position 1 → Expected: Success
+TC-062: Create ACL with 5 entries, move entry 5 to position 3 → Expected: Success
+
+2.2 Moving Forward (Higher Position Number)
+
+TC-063: Move entry 1 to position 2 → Expected: Success
+TC-064: Move entry 1 to position 5 → Expected: Success
+TC-065: Move entry 2 to position 4 → Expected: Success
+TC-066: Move entry 3 to position 10 → Expected: Success
+
+2.3 Moving Backward (Lower Position Number)
+
+TC-067: Move entry 5 to position 4 → Expected: Success
+TC-068: Move entry 5 to position 1 → Expected: Success
+TC-069: Move entry 4 to position 2 → Expected: Success
+TC-070: Move entry 10 to position 3 → Expected: Success
+
+2.4 No Change Scenarios
+
+TC-071: Move entry 1 to position 1 → Expected: Error "No change – item does not need to move"
+TC-072: Move entry 3 to position 3 → Expected: Error "No change – item does not need to move"
+TC-073: Move entry 10 to position 10 → Expected: Error "No change – item does not need to move"
+
+3. Basic Functionality Tests - Descriptive Words
+3.1 Moving to First/Top/Begin/Beginning
+
+TC-074: Move entry 2 to first → Expected: Entry moves to position 1
+TC-075: Move entry 5 to top → Expected: Entry moves to position 1
+TC-076: Move entry 3 to begin → Expected: Entry moves to position 1
+TC-077: Move entry 4 to beginning → Expected: Entry moves to position 1
+TC-078: Move entry 1 to first → Expected: Error "No change" (already at position 1)
+TC-079: Move entry 1 to top → Expected: Error "No change" (already at position 1)
+
+3.2 Moving to Last/Bottom/End
+
+TC-080: Move entry 2 to last → Expected: Entry moves to last position
+TC-081: Move entry 1 to bottom → Expected: Entry moves to last position
+TC-082: Move entry 3 to end → Expected: Entry moves to last position
+TC-083: Move last entry to last → Expected: Error "No change" (already at last position)
+TC-084: Move last entry to bottom → Expected: Error "No change"
+TC-085: Move last entry to end → Expected: Error "No change"
+
+3.3 Moving Up
+
+TC-086: Move entry 2 to up → Expected: Entry moves to position 1
+TC-087: Move entry 5 to up → Expected: Entry moves to position 4
+TC-088: Move entry 10 to up → Expected: Entry moves to position 9
+TC-089: Move entry 1 to up → Expected: Error "No change" or Error (cannot move up from position 1)
+TC-090: Move first entry to up → Expected: Error (already at top)
+
+3.4 Moving Down
+
+TC-091: Move entry 1 to down → Expected: Entry moves to position 2
+TC-092: Move entry 2 to down → Expected: Entry moves to position 3
+TC-093: Move entry 5 to down → Expected: Entry moves to position 6
+TC-094: Move last entry to down → Expected: Error "No change" or Error (cannot move down from last)
+TC-095: Move entry at last position to down → Expected: Error (already at bottom)
+
+4. Entry List Size Tests
+4.1 Small Lists (2-3 entries)
+
+TC-096: ACL with 2 entries, move entry 1 to position 2 → Expected: Success
+TC-097: ACL with 2 entries, move entry 2 to position 1 → Expected: Success
+TC-098: ACL with 3 entries, move entry 1 to position 3 → Expected: Success
+TC-099: ACL with 3 entries, move entry 3 to position 1 → Expected: Success
+TC-100: ACL with 3 entries, move entry 2 to up → Expected: Success
+TC-101: ACL with 3 entries, move entry 2 to down → Expected: Success
+
+4.2 Medium Lists (5-10 entries)
+
+TC-102: ACL with 10 entries, move entry 5 to position 1 → Expected: Success
+TC-103: ACL with 10 entries, move entry 1 to position 10 → Expected: Success
+TC-104: ACL with 10 entries, move entry 5 to up → Expected: Success
+TC-105: ACL with 10 entries, move entry 5 to down → Expected: Success
+
+4.3 Large Lists (50+ entries)
+
+TC-106: ACL with 50 entries, move entry 25 to position 1 → Expected: Success
+TC-107: ACL with 50 entries, move entry 1 to position 50 → Expected: Success
+TC-108: ACL with 100 entries, move entry 50 to position 1 → Expected: Success
+TC-109: ACL with 100 entries, move entry 50 to position 100 → Expected: Success
+
+4.4 Single Entry List
+
+TC-110: ACL with 1 entry, attempt to move entry 1 to position 1 → Expected: Error "No change"
+TC-111: ACL with 1 entry, attempt to move entry 1 to up → Expected: Error
+TC-112: ACL with 1 entry, attempt to move entry 1 to down → Expected: Error
+TC-113: ACL with 1 entry, attempt to move entry 1 to first → Expected: Error "No change"
+
+4.5 Empty ACL
+
+TC-114: ACL with 0 entries, attempt to move any entry → Expected: Error "entry must already exist"
+
+5. Order Verification Tests
+5.1 Verify Entry Movement
+
+TC-115: Move entry, verify it's at new position with acl_list → Expected: Position changed
+TC-116: Move entry 3 to position 1, verify old position 1-2 shifted to 2-3 → Expected: Correct shift
+TC-117: Move entry 1 to position 5, verify positions 2-5 shifted to 1-4 → Expected: Correct shift
+TC-118: Move entry forward, verify all entries between shift back → Expected: Correct order
+TC-119: Move entry backward, verify all entries between shift forward → Expected: Correct order
+
+5.2 Multiple Sequential Edits
+
+TC-120: Move entry 1 to position 3, then entry 2 to position 1 → Expected: Both succeed
+TC-121: Move entry 5 to position 1, then entry 1 to position 5 → Expected: Both succeed
+TC-122: Move entry up, then down, verify back to original position → Expected: Back to original
+TC-123: Perform 10 moves sequentially, verify final order → Expected: Correct final order
+
+5.3 Entry Content Preservation
+
+TC-124: Move entry, verify entry content unchanged → Expected: Content preserved
+TC-125: Move entry with user specification, verify user preserved → Expected: User unchanged
+TC-126: Move entry with time restrictions, verify time preserved → Expected: Time preserved
+TC-127: Move entry with mode settings, verify mode preserved → Expected: Mode unchanged
+
+6. System State and Prerequisites Tests
+6.1 ACL Configuration File Tests
+
+TC-128: Execute when no ACL configuration file exists → Expected: Error "No ACL configuration file found"
+TC-129: Execute when ACL configuration file exists → Expected: Success
+TC-130: Execute when ACL configuration file is corrupted → Expected: Error
+TC-131: Execute when ACL configuration file is read-only → Expected: Error (cannot write)
+TC-132: Verify configuration file is updated after edit → Expected: Updated correctly
+
+6.2 Active Mode Tests
+
+TC-133: Execute in Elevated mode → Expected: Success
+TC-134: Execute in Learning mode → Expected: Success
+TC-135: Execute in both Elevated and Learning modes → Expected: Success
+TC-136: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+TC-137: Execute in Normal mode → Expected: Error
+
+6.3 License Tests
+
+TC-138: Execute with License type A → Expected: Success
+TC-139: Execute without License type A → Expected: Error
+TC-140: Execute with expired License type A → Expected: Error
+TC-141: Execute with License type B/C/D (not A) → Expected: Error
+
+6.4 Permission Tests
+
+TC-142: Execute as root user → Expected: Success
+TC-143: Execute as non-root user with sufficient permissions → Expected: Success or error
+TC-144: Execute as non-root user without permissions → Expected: Error
+
+7. Integration with Other ACL Commands Tests
+7.1 Integration with acl_add
+
+TC-145: Add entry, edit order, add another entry → Expected: All succeed
+TC-146: Create ACL, add 5 entries, reorder them → Expected: All succeed
+TC-147: Add entry at specific position, verify with acl_list → Expected: Correct position
+
+7.2 Integration with acl_list
+
+TC-148: Edit entry order, list ACL, verify new order → Expected: Order changed
+TC-149: Move entry to top, verify acl_list shows it first → Expected: First in list
+TC-150: Move entry to bottom, verify acl_list shows it last → Expected: Last in list
+TC-151: Perform multiple edits, verify acl_list reflects all changes → Expected: All changes shown
+
+7.3 Integration with acl_remove
+
+TC-152: Edit order, remove an entry, verify remaining order → Expected: Order maintained
+TC-153: Remove entry at position 2, verify position numbers adjust → Expected: Positions renumbered
+
+7.4 Integration with acl_destroy
+
+TC-154: Edit order, destroy ACL → Expected: Both succeed
+TC-155: Edit order in ACL being used, verify no issues → Expected: Success
+
+7.5 Integration with protect Command
+
+TC-156: Edit ACL order, verify file protection still works → Expected: Protection maintained
+TC-157: Edit order of ACL applied to files, verify access control behavior → Expected: New order applied
+
+8. Access Control Impact Tests
+8.1 Allow/Deny Entry Order Impact
+
+TC-158: ACL with deny then allow, swap order, test access → Expected: Different access result
+TC-159: ACL with allow then deny, swap order, test access → Expected: Different access result
+TC-160: Move deny entry to top, verify it's evaluated first → Expected: Deny takes precedence
+TC-161: Move allow entry to top, verify it's evaluated first → Expected: Allow evaluated first
+
+8.2 Priority Testing
+
+TC-162: Create ACL: allow user A, deny user A; move deny to top → Expected: Access denied
+TC-163: Create ACL: deny user A, allow user A; move allow to top → Expected: Access allowed
+TC-164: Test "first match wins" with reordered entries → Expected: First entry determines access
+
+9. Error Handling and Validation Tests
+9.1 Error Message Tests
+
+TC-165: Verify "Missing required '-i' option" error → Expected: Exact error message
+TC-166: Verify "Missing required '-e' option" error → Expected: Exact error message
+TC-167: Verify "Missing required '-p' option" error → Expected: Exact error message
+TC-168: Verify "No ACL configuration file found" error → Expected: Exact error message
+TC-169: Verify "X is not a valid ACL ID" error format → Expected: Shows actual ID
+TC-170: Verify "No change – item does not need to move" error → Expected: Exact message
+TC-171: Verify "Error with acl_edit" error → Expected: Generic error message
+TC-172: Verify "entry must already exist" error (from notes) → Expected: Clear message
+TC-173: Verify "position must be valid" error (from notes) → Expected: Clear message
+
+9.2 Validation Tests
+
+TC-174: Attempt invalid entry number, verify validation → Expected: Error before any changes
+TC-175: Attempt invalid position, verify validation → Expected: Error before any changes
+TC-176: Verify no partial edits on error → Expected: All-or-nothing operation
+
+10. Command Syntax and Help Tests
+10.1 Help Option Tests
+
+TC-177: Execute QDocSEConsole -c acl_edit -h → Expected: Display help text
+TC-178: Execute QDocSEConsole -c acl_edit --help → Expected: Display help or error
+TC-179: Execute QDocSEConsole -c acl_edit -? → Expected: Display help or error
+TC-180: Verify help output matches documented options → Expected: Consistent
+
+10.2 Invalid Options Tests
+
+TC-181: Execute with unknown option -x → Expected: Error
+TC-182: Execute with extra parameters → Expected: Error or ignored
+TC-183: Execute with long options --entry → Expected: Error or success
+
+10.3 Command Line Parsing Tests
+
+TC-184: Execute with extra spaces between options → Expected: Success
+TC-185: Execute with tabs between options → Expected: Success
+TC-186: Execute with quoted parameters → Expected: Success
+
+11. Output Validation Tests
+11.1 Success Output Tests
+
+TC-187: Verify success message on edit → Expected: Clear success indication
+TC-188: Verify output mentions ACL ID and changes → Expected: ID shown
+TC-189: Verify output format is consistent → Expected: Standard format
+TC-190: Verify output is on stdout → Expected: Stdout
+
+11.2 Verbose/Quiet Modes (if applicable)
+
+TC-191: Execute with verbose flag (if exists) → Expected: Detailed output or error
+TC-192: Execute with quiet flag (if exists) → Expected: Minimal output or error
+
+12. Performance Tests
+12.1 Execution Time Tests
+
+TC-193: Measure time to edit in small list (5 entries) → Expected: < threshold
+TC-194: Measure time to edit in medium list (50 entries) → Expected: < threshold
+TC-195: Measure time to edit in large list (500 entries) → Expected: < threshold
+TC-196: Measure time to move entry to position 1 vs position 100 → Expected: Similar time
+
+12.2 Scalability Tests
+
+TC-197: Edit entries in ACL with 100 entries → Expected: Success, acceptable performance
+TC-198: Edit entries in ACL with 1000 entries → Expected: Success, acceptable performance
+TC-199: Perform 100 sequential edits → Expected: All succeed, linear scaling
+
+12.3 Resource Usage Tests
+
+TC-200: Monitor memory usage during edit → Expected: No memory leaks
+TC-201: Monitor file I/O during edit → Expected: Minimal operations
+
+13. Concurrent Execution Tests
+13.1 Concurrent Edit Tests
+
+TC-202: Execute edit on 2 different ACLs simultaneously → Expected: Both succeed
+TC-203: Execute edit on same ACL simultaneously → Expected: Proper locking/serialization
+TC-204: Execute edit while acl_add is running on same ACL → Expected: Proper synchronization
+
+13.2 Race Condition Tests
+
+TC-205: Test race condition: edit vs add entry to same ACL → Expected: Proper locking
+TC-206: Test race condition: edit vs remove entry from same ACL → Expected: Proper handling
+TC-207: Test race condition: edit vs destroy ACL → Expected: Proper locking
+
+14. Documentation and Examples Tests
+14.1 Documentation Example Tests
+
+TC-208: Execute example 1 from doc: QDocSEConsole -c acl_edit -i 2 -e 3 -p up → Expected: Success
+TC-209: Execute example 2 from doc: QDocSEConsole -c acl_edit -i 2 -e 3 -p down → Expected: Success
+TC-210: Execute example 3 from doc: QDocSEConsole -c acl_edit -i 2 -e 3 -p 2 → Expected: Success
+TC-211: Execute example 1 from help: QDocSEConsole -c acl_edit -i 7 -e 2 -p 3 → Expected: Success
+TC-212: Execute example 2 from help: QDocSEConsole -c acl_edit -i 7 -e 2 -p down → Expected: Success
+TC-213: Execute example 3 from help: QDocSEConsole -c acl_edit -i 7 -e 2 -p top → Expected: Success
+
+14.2 Documentation Consistency Tests
+
+TC-214: Verify "order of ACL entries is important" claim → Expected: Verified through testing
+TC-215: Verify all documented descriptive words work → Expected: All supported
+TC-216: Verify help output matches documentation → Expected: Consistent
+TC-217: Compare doc vs help descriptive words list → Expected: Help adds "beginning"
+
+14.3 Notes Section Validation
+
+TC-218: Verify "ACL ID must already exist" → Expected: Error for non-existent ID
+TC-219: Verify "entry must already exist" → Expected: Error for non-existent entry
+TC-220: Verify "position must be valid" → Expected: Error for invalid position
+
+15. Edge Cases and Special Scenarios
+15.1 Boundary Position Tests
+
+TC-221: Move to position at exact list boundary → Expected: Success
+TC-222: Move entry 1 in 100-entry list to position 100 → Expected: Success
+TC-223: Move entry 100 in 100-entry list to position 1 → Expected: Success
+
+15.2 Rapid Sequential Edits
+
+TC-224: Move same entry up and down repeatedly → Expected: All succeed
+TC-225: Move all entries to different positions sequentially → Expected: All succeed
+TC-226: Randomize entire entry order through edits → Expected: All succeed
+
+15.3 Special Entry Types
+
+TC-227: Edit order of ACL with only user entries → Expected: Success
+TC-228: Edit order of ACL with only group entries → Expected: Success
+TC-229: Edit order of ACL with only program entries → Expected: Success
+TC-230: Edit order of ACL with mixed entry types → Expected: Success
+
+16. Data Integrity Tests
+16.1 Configuration File Integrity
+
+TC-231: Edit entry, verify configuration file is valid → Expected: Valid format
+TC-232: Perform multiple edits, verify file integrity → Expected: No corruption
+TC-233: Edit entry, verify other ACLs unaffected → Expected: Other ACLs intact
+
+16.2 State Consistency Tests
+
+TC-234: Edit entry, verify system state consistent → Expected: Consistent
+TC-235: Verify no orphaned entries after edit → Expected: All entries accounted for
+TC-236: Verify entry numbering remains consistent → Expected: Sequential numbering
+
+16.3 Rollback and Recovery Tests
+
+TC-237: Simulate failure during edit → Expected: Rollback or consistent state
+TC-238: Test partial edit failure → Expected: Proper error handling
+TC-239: Verify system consistency after edit errors → Expected: No corruption
+
+17. Shell Integration and Scripting Tests
+17.1 Shell Integration Tests
+
+TC-240: Execute from bash script → Expected: Success
+TC-241: Use in shell pipeline → Expected: Success
+TC-242: Capture exit code in script → Expected: Correct exit code
+TC-243: Use in conditional statement → Expected: Proper boolean result
+
+17.2 Scripting Use Cases
+
+TC-244: Script to reorder all entries in ACL → Expected: Script works correctly
+TC-245: Script to move specific entry types to top → Expected: Selective reordering works
+TC-246: Automated policy adjustment script → Expected: Automation works
+
+17.3 Exit Code Tests
+
+TC-247: Verify exit code 0 on success → Expected: Exit code = 0
+TC-248: Verify non-zero exit code on error → Expected: Exit code ≠ 0
+TC-249: Verify consistent exit codes for same error type → Expected: Same code
+
+18. Security Tests
+18.1 Access Control Tests
+
+TC-250: Verify only authorized users can edit ACLs → Expected: Access control enforced
+TC-251: Test privilege escalation attempts → Expected: Blocked
+TC-252: Verify audit logging of ACL edits (if applicable) → Expected: Logged
+
+18.2 Input Validation Tests
+
+TC-253: Test command injection in parameters → Expected: Blocked/escaped
+TC-254: Test buffer overflow with malicious input → Expected: Handled safely
+TC-255: Test SQL injection patterns (if database backed) → Expected: Protected
+
+18.3 Audit and Logging Tests
+
+TC-256: Verify edit operation is logged → Expected: Logged with timestamp
+TC-257: Verify log includes user, ACL ID, and change details → Expected: Complete audit trail
+
+19. Usability Tests
+19.1 User Experience Tests
+
+TC-258: Verify command is intuitive for reordering → Expected: Clear usage
+TC-259: Verify descriptive words make reordering easy → Expected: User-friendly
+TC-260: Verify error messages guide user to solution → Expected: Actionable errors
+TC-261: Verify help text is comprehensive → Expected: All options explained
+
+19.2 Common Usage Patterns
+
+TC-262: Move deny entry to top (common security pattern) → Expected: Easy to accomplish
+TC-263: Move specific user entry to top priority → Expected: Straightforward
+TC-264: Reorganize entries after policy change → Expected: Smooth workflow
+
+19.3 Common Mistakes
+
+TC-265: Forget required option, verify clear error → Expected: Helpful error message
+TC-266: Use wrong entry number, verify clear error → Expected: Clear feedback
+TC-267: Use invalid descriptive word, verify clear error → Expected: Lists valid words
+
+20. Regression Tests
+20.1 Previously Fixed Issues
+
+TC-268: Test any previously reported bugs are fixed → Expected: No regression
+TC-269: Test edge cases from previous versions → Expected: Works correctly
+
+20.2 Version Compatibility
+
+TC-270: Verify edited ACLs work with all features → Expected: Full compatibility
+TC-271: Test upgrade scenario with existing ACLs → Expected: Smooth upgrade
+
+21. Descriptive Words Comprehensive Tests
+21.1 All Synonyms for First Position
+
+TC-272: Verify first, begin, beginning, top all move to position 1 → Expected: All work identically
+TC-273: Test each synonym from different starting positions → Expected: All reach position 1
+
+21.2 All Synonyms for Last Position
+
+TC-274: Verify last, end, bottom all move to last position → Expected: All work identically
+TC-275: Test each synonym from different starting positions → Expected: All reach last position
+
+21.3 Relative Movement Consistency
+
+TC-276: Verify up always moves one position higher (lower number) → Expected: Consistent behavior
+TC-277: Verify down always moves one position lower (higher number) → Expected: Consistent behavior
+
+
+Test Summary
+Total Test Cases: 277
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-052, TC-057 to TC-127, TC-145 to TC-164, TC-208 to TC-220 (150 test cases)
+
+All required options validation
+Basic movement functionality (numeric and descriptive)
+Entry order verification
+Access control impact
+Integration with other commands
+Documentation examples
+
+
+P1 (High): TC-128 to TC-144, TC-165 to TC-186, TC-202 to TC-207, TC-231 to TC-249, TC-250 to TC-257 (75 test cases)
+
+System prerequisites
+Error messages
+Command syntax
+Concurrent execution
+Data integrity
+Shell integration
+Security
+
+
+P2 (Medium): TC-187 to TC-201, TC-240 to TC-246, TC-258 to TC-271 (35 test cases)
+
+Output validation
+Performance tests
+Usability tests
+Regression tests
+
+
+P3 (Low): TC-272 to TC-277 (6 test cases)
+
+Comprehensive synonym testing
+
+
+
+Test Coverage:
+✅ Core Functionality:
+
+All three required options (-i, -e, -p)
+Numeric position specification
+All descriptive words: first, begin, beginning, top, last, end, bottom, up, down
+Entry order changes and verification
+No-change detection
+
+✅ Descriptive Words:
+
+4 synonyms for first: first, begin, beginning, top
+3 synonyms for last: last, end, bottom
+2 relative movements: up, down
+Case sensitivity testing
+Invalid word handling
+
+✅ Entry List Variations:
+
+Single entry (edge case)
+Small lists (2-3 entries)
+Medium lists (5-10 entries)
+Large lists (50-500 entries)
+Empty ACL (error case)
+
+✅ Order Impact:
+
+Access control behavior verification
+Allow/Deny entry priority
+First-match-wins validation
+Entry content preservation
+
+✅ Integration:
+
+acl_add (adding after reorder)
+acl_list (viewing changes)
+acl_remove (removing after reorder)
+protect (access control with reordered entries)
+
+✅ Error Handling:
+
+All documented error messages
+Invalid entry numbers
+Invalid positions
+Non-existent ACL IDs
+No-change scenarios
+
+✅ Documentation:
+
+All examples from documentation
+All examples from help output
+Notes section validation
+Descriptive words list (doc vs help comparison)
+
+Key Features Tested:
+
+Position Specification Flexibility: Both numeric (1, 2, 3...) and descriptive (up, down, top, bottom, first, last, begin, beginning, end)
+Order Importance: Verification that entry order affects access control decisions
+Entry Movement: Forward, backward, to top, to bottom, relative movements
+No-Change Detection: System correctly identifies when movement is unnecessary
+Integration Impact: Reordering affects how protect command evaluates access
+
+Documentation Notes:
+
+Doc has: first, last, begin, end, bottom, up, down, top (8 words)
+Help adds: beginning (total 9 words)
+All documented words are tested comprehensively
+Documentation references "Section AA" for order importance explanation

@@ -1,0 +1,659 @@
+Complete Test Case List for view Command
+1. Basic Functionality Tests - Default Behavior
+1.1 No Options (Default) Tests
+
+TC-001: Execute view with no options → Expected: Display all sections (authorized, blocked, license, watch points)
+TC-002: Verify default = -a -b -l -w → Expected: All four sections shown
+TC-003: Execute from different directories → Expected: Same output (system-wide info)
+TC-004: Compare no options vs -a -b -l -w explicit → Expected: Identical output
+
+1.2 Default Output Components Tests
+
+TC-005: Verify authorized programs section shown → Expected: Section present
+TC-006: Verify blocked programs section shown → Expected: Section present
+TC-007: Verify license information section shown → Expected: Section present
+TC-008: Verify watch points section shown → Expected: Section present
+TC-009: Verify section headings are displayed → Expected: Clear headers
+TC-010: Verify section separators are displayed → Expected: Clear separation
+
+2. Authorized Programs (-a) Option Tests
+2.1 Display Authorized Programs Tests
+
+TC-011: Execute -a only → Expected: Display only authorized programs
+TC-012: Execute with 0 authorized programs → Expected: Empty list or "none" message
+TC-013: Execute with 1 authorized program → Expected: Shows 1 program
+TC-014: Execute with 5 authorized programs → Expected: Shows all 5
+TC-015: Execute with 100 authorized programs → Expected: Shows all 100
+
+2.2 Program Index Display Tests
+
+TC-016: Verify each program has index number → Expected: Index shown (1, 2, 3...)
+TC-017: Verify index numbers are sequential → Expected: No gaps (unless removed)
+TC-018: Verify index format is clear → Expected: (1), [1], or similar format
+TC-019: Authorize program, verify index assigned → Expected: New index shown
+
+2.3 Program Information Display Tests
+
+TC-020: Verify program path is displayed → Expected: Full path shown
+TC-021: Verify program name is clear → Expected: Readable
+TC-022: List program with ACL, verify ACL ID shown → Expected: ACL ID displayed
+TC-023: List program without ACL → Expected: No ACL or ACL 0 shown
+TC-024: Verify all program details displayed → Expected: Complete info
+
+2.4 ACL Association Display Tests
+
+TC-025: Program with ACL ID 1, verify shown → Expected: ACL ID 1 displayed
+TC-026: Program with ACL ID 5, verify shown → Expected: ACL ID 5 displayed
+TC-027: Program with ACL ID 0 (default), verify shown → Expected: ACL 0 or implicit
+TC-028: Verify ACL ID format is clear → Expected: "ACL: 1" or similar
+
+3. Blocked Programs (-b) Option Tests
+3.1 Display Blocked Programs Tests
+
+TC-029: Execute -b only → Expected: Display only blocked programs
+TC-030: Execute with 0 blocked programs → Expected: Empty list or "none" message
+TC-031: Execute with 1 blocked program → Expected: Shows 1 program
+TC-032: Execute with 5 blocked programs → Expected: Shows all 5
+TC-033: Execute with 50 blocked programs → Expected: Shows all 50
+
+3.2 Blocked Program Index Tests
+
+TC-034: Verify each blocked program has index → Expected: Index shown
+TC-035: Verify blocked program index format → Expected: Clear format
+TC-036: Block program, verify index assigned → Expected: Index shown
+
+3.3 Blocked Program Information Tests
+
+TC-037: Verify blocked program path displayed → Expected: Full path shown
+TC-038: Verify blocked programs clearly separated from authorized → Expected: Different sections
+TC-039: Verify blocked status is obvious → Expected: Clear it's blocked
+
+4. License Information (-l) Option Tests
+4.1 Display License Information Tests
+
+TC-040: Execute -l only → Expected: Display only license info
+TC-041: Execute with valid license → Expected: License details shown
+TC-042: Execute with expired license → Expected: Expiry shown
+TC-043: Execute with no license (unlicensed) → Expected: Unlicensed status shown
+
+4.2 License Status Display Tests
+
+TC-044: Verify license type displayed → Expected: Type A, B, C, or unlicensed
+TC-045: Verify license expiry date shown → Expected: Date displayed
+TC-046: Verify license status clear → Expected: Active/expired/unlicensed
+TC-047: Expired license, verify status shown → Expected: "Expired" clear
+
+4.3 Default Cipher Display Tests
+
+TC-048: Verify default cipher is displayed → Expected: Cipher name shown
+TC-049: Default cipher = AES, verify shown → Expected: "aes" displayed
+TC-050: Default cipher = Camellia, verify shown → Expected: "camellia" displayed
+TC-051: Default cipher = Kalyna, verify shown → Expected: "kalyna" displayed
+TC-052: Default cipher = SM4, verify shown → Expected: "sm4" displayed
+TC-053: Verify cipher name format → Expected: Lowercase: aes, camellia, kalyna, sm4
+
+4.4 Working Mode Display Tests
+
+TC-054: Verify working mode is displayed → Expected: Mode shown
+TC-055: In De-elevated mode, verify shown → Expected: "De-elevated" displayed
+TC-056: In Elevated mode, verify shown → Expected: "Elevated" displayed
+TC-057: In Learning mode, verify shown → Expected: "Learning" displayed
+TC-058: Verify working mode is clear → Expected: Current mode obvious
+
+5. Watch Points (-w) Option Tests
+5.1 Display Watch Points Tests
+
+TC-059: Execute -w only → Expected: Display only watch points
+TC-060: Execute with 0 watch points → Expected: Empty list or "none" message
+TC-061: Execute with 1 watch point → Expected: Shows 1 watch point
+TC-062: Execute with 5 watch points → Expected: Shows all 5
+TC-063: Execute with 10 watch points → Expected: Shows all 10
+
+5.2 Watch Point Information Display Tests
+
+TC-064: Verify watch point path displayed → Expected: Directory path shown
+TC-065: Verify protected directory shown → Expected: Same as watch point
+TC-066: Verify mount point shown → Expected: Same as watch point
+TC-067: Verify all three terms (watch point, protected directory, mount point) refer to same thing → Expected: Documented
+
+5.3 Watch Point ID Display Tests
+
+TC-068: Verify each watch point has ID number → Expected: ID shown
+TC-069: Verify ID numbers are for visual reference only → Expected: Not used in commands
+TC-070: Verify ID format is clear → Expected: Clear numbering
+TC-071: Add watch point, verify ID assigned → Expected: ID shown
+
+5.4 Watch Point Details Tests
+
+TC-072: Verify watch point paths are full paths → Expected: Absolute paths
+TC-073: Verify watch point status shown → Expected: Active/inactive or similar
+TC-074: List multiple watch points → Expected: All details clear
+
+6. Suppress Headings (-H) Option Tests
+6.1 Heading Suppression Tests
+
+TC-075: Execute -H with default options → Expected: No section headings/separators
+TC-076: Execute -H -a → Expected: Authorized programs, no heading
+TC-077: Execute -H -b → Expected: Blocked programs, no heading
+TC-078: Execute -H -l → Expected: License info, no heading
+TC-079: Execute -H -w → Expected: Watch points, no heading
+TC-080: Execute -H -a -b -l -w → Expected: All sections, no headings
+
+6.2 Compare With/Without Headings Tests
+
+TC-081: Compare output with and without -H → Expected: Only headings differ
+TC-082: Verify -H removes section headers → Expected: Headers gone
+TC-083: Verify -H removes section separators → Expected: Separators gone
+TC-084: Verify data content unchanged with -H → Expected: Only formatting differs
+
+6.3 Machine-Readable Output Tests
+
+TC-085: Use -H for script parsing → Expected: Easier to parse
+TC-086: Verify -H makes output more machine-friendly → Expected: Cleaner output
+TC-087: Parse output with -H in script → Expected: Simplified parsing
+
+7. Option Combination Tests
+7.1 Two Option Combinations Tests
+
+TC-088: Execute -a -b → Expected: Authorized and blocked programs only
+TC-089: Execute -a -l → Expected: Authorized programs and license (example from help)
+TC-090: Execute -a -w → Expected: Authorized programs and watch points
+TC-091: Execute -b -l → Expected: Blocked programs and license
+TC-092: Execute -b -w → Expected: Blocked programs and watch points
+TC-093: Execute -l -w → Expected: License and watch points
+
+7.2 Three Option Combinations Tests
+
+TC-094: Execute -a -b -l → Expected: Authorized, blocked, license
+TC-095: Execute -a -b -w → Expected: Authorized, blocked, watch points
+TC-096: Execute -a -l -w → Expected: Authorized, license, watch points
+TC-097: Execute -b -l -w → Expected: Blocked, license, watch points
+
+7.3 All Options Combination Tests
+
+TC-098: Execute -a -b -l -w → Expected: All sections (same as default)
+TC-099: Execute all options with -H → Expected: All sections, no headings
+TC-100: Execute options in different order → Expected: Same output
+
+7.4 Single Option Tests
+
+TC-101: Execute only -a → Expected: Only authorized programs
+TC-102: Execute only -b → Expected: Only blocked programs
+TC-103: Execute only -l → Expected: Only license info
+TC-104: Execute only -w → Expected: Only watch points
+TC-105: Execute only -H → Expected: All sections, no headings (default behavior with -H)
+
+8. Index Number Usage Tests
+8.1 Index Number Reference Tests
+
+TC-106: View authorized program index 1 → Expected: Index shown
+TC-107: Use index with adjust -b → Expected: Index matches view
+TC-108: Use index with adjust -api → Expected: Index matches view
+TC-109: Use index with acl_add -p → Expected: Index matches view
+TC-110: Use index with acl_program -p → Expected: Index matches view
+TC-111: Use index with acl_remove -p → Expected: Index matches view
+
+8.2 Index Number Consistency Tests
+
+TC-112: Verify index numbers consistent across commands → Expected: Same program = same index
+TC-113: Add program, verify new index → Expected: Next available index
+TC-114: Remove program, verify index gap → Expected: Index not reused
+TC-115: Verify documentation of index usage → Expected: All commands listed
+
+8.3 Watch Point ID Non-Usage Tests
+
+TC-116: Verify watch point IDs are visual only → Expected: Not used in commands
+TC-117: Attempt to use watch point ID in command → Expected: Doesn't work or error
+TC-118: Verify documentation: "for your visual reference" → Expected: Documented
+
+9. System State and Prerequisites Tests
+9.1 Active Mode Tests
+
+TC-119: Execute in De-elevated mode → Expected: Success, mode shown
+TC-120: Execute in Elevated mode → Expected: Success, mode shown
+TC-121: Execute in Learning mode → Expected: Success, mode shown
+TC-122: Verify works in all three modes → Expected: Universal access
+
+9.2 License Tests
+
+TC-123: Execute with License type A → Expected: Success, type shown
+TC-124: Execute with License type B → Expected: Success, type shown
+TC-125: Execute with License type C → Expected: Success, type shown
+TC-126: Execute with no license (unlicensed) → Expected: Success, unlicensed shown
+TC-127: Execute with expired license → Expected: Success, expired shown
+TC-128: Verify works with all license types → Expected: "License type: All, Unlicensed"
+
+9.3 Permission Tests
+
+TC-129: Execute as root user → Expected: Success
+TC-130: Execute as non-root user → Expected: Success (read-only info)
+TC-131: Verify any user can view → Expected: No special permissions needed
+
+10. Integration with Other Commands Tests
+10.1 Integration with adjust Command
+
+TC-132: Adjust program, verify in view → Expected: Shows in authorized list
+TC-133: Block program with adjust, verify in view → Expected: Shows in blocked list
+TC-134: Verify adjust index matches view index → Expected: Consistent
+
+10.2 Integration with acl_program Command
+
+TC-135: Set ACL with acl_program, verify in view → Expected: ACL ID shown
+TC-136: Verify program index matches → Expected: Consistent
+
+10.3 Integration with protect Command
+
+TC-137: Protect directory, verify in watch points → Expected: Watch point shown
+TC-138: Multiple protected directories in view → Expected: All watch points shown
+
+10.4 Integration with view_monitored Command
+
+TC-139: Run view then view_monitored → Expected: Related info (shared libraries)
+TC-140: Verify view shows authorized programs, view_monitored shows details → Expected: Complementary
+TC-141: Check documentation note about view_monitored → Expected: Recommended to run both
+
+10.5 Integration with push_config Command
+
+TC-142: Make changes, view shows pending → Expected: Indicates pending changes (or see view_monitored)
+TC-143: Push config, view updated → Expected: Shows active config
+TC-144: Verify view_monitored note about push_config → Expected: Documented
+
+11. Output Format Tests
+11.1 Output Structure Tests
+
+TC-145: Verify output is well-formatted → Expected: Clear structure
+TC-146: Verify sections are clearly separated → Expected: Visual separation
+TC-147: Verify headings are descriptive → Expected: Clear section names
+TC-148: Verify output is readable → Expected: User-friendly
+
+11.2 Multiple Items Display Tests
+
+TC-149: Display 50 authorized programs → Expected: All listed clearly
+TC-150: Display 20 blocked programs → Expected: All listed clearly
+TC-151: Display 10 watch points → Expected: All listed clearly
+TC-152: Verify long lists are readable → Expected: Good formatting
+
+11.3 Empty Sections Display Tests
+
+TC-153: No authorized programs, verify display → Expected: Empty or "none" message
+TC-154: No blocked programs, verify display → Expected: Empty or "none" message
+TC-155: No watch points, verify display → Expected: Empty or "none" message
+TC-156: All sections empty, verify display → Expected: Shows license/mode at minimum
+
+12. Information Completeness Tests
+12.1 Authorized Programs Completeness Tests
+
+TC-157: Verify all authorized programs shown → Expected: Complete list
+TC-158: Verify program paths are full/absolute → Expected: Complete paths
+TC-159: Verify ACL associations shown → Expected: All ACL IDs shown
+TC-160: Verify no programs missing → Expected: Complete inventory
+
+12.2 License Information Completeness Tests
+
+TC-161: Verify all license details shown → Expected: Type, expiry, status
+TC-162: Verify cipher shown → Expected: Default cipher displayed
+TC-163: Verify mode shown → Expected: Working mode displayed
+TC-164: Verify all required info present → Expected: Complete license info
+
+12.3 System Configuration Completeness Tests
+
+TC-165: Verify view shows complete system state → Expected: All key info
+TC-166: Verify no critical info missing → Expected: Comprehensive
+TC-167: Compare view to actual system state → Expected: Accurate
+
+13. Performance Tests
+13.1 Execution Time Tests
+
+TC-168: Measure time to execute view (default) → Expected: < threshold (fast)
+TC-169: Measure time with 100 authorized programs → Expected: < threshold
+TC-170: Measure time with 50 watch points → Expected: < threshold
+TC-171: Measure time for single section (-a only) → Expected: Fast
+
+13.2 Scalability Tests
+
+TC-172: View with 500 authorized programs → Expected: Success, acceptable time
+TC-173: View with 100 watch points → Expected: Success, acceptable time
+TC-174: View with large configuration → Expected: Success
+
+13.3 Resource Usage Tests
+
+TC-175: Monitor memory usage → Expected: Minimal
+TC-176: Monitor CPU usage → Expected: Low
+TC-177: Verify view is read-only operation → Expected: No system changes
+
+14. Documentation and Examples Tests
+14.1 Documentation Example Tests
+
+TC-178: Execute example 1 from help: QDocSEConsole -c view → Expected: Success
+TC-179: Execute example 2 from help: QDocSEConsole -c view -a -l → Expected: Success (authorized + license only)
+TC-180: Verify examples produce documented output → Expected: As described
+
+14.2 Documentation Consistency Tests
+
+TC-181: Verify default behavior = -a -b -l -w → Expected: Documented and correct
+TC-182: Verify index numbers used in listed commands → Expected: adjust, acl_add, acl_program, acl_remove
+TC-183: Verify watch point IDs visual only → Expected: Documented
+TC-184: Verify cipher names → Expected: aes, camellia, kalyna, sm4
+
+14.3 Notes Section Validation Tests
+
+TC-185: Verify note 1: "index can be used with adjust command" → Expected: Correct
+TC-186: Verify note 2: "run view_monitored to see pending changes" → Expected: Complementary commands
+TC-187: Verify reference to view_monitored command → Expected: Related functionality
+
+15. Error Handling Tests
+15.1 No Errors Expected Tests
+
+TC-188: Verify documentation: "There are no errors" → Expected: Command always succeeds
+TC-189: Execute with invalid option → Expected: Ignored or help (no fatal error)
+TC-190: Execute in any state → Expected: Always shows current state
+TC-191: Verify command is always safe → Expected: Read-only, no errors
+
+15.2 Graceful Handling Tests
+
+TC-192: Execute with corrupted config → Expected: Shows what it can
+TC-193: Execute in unusual system state → Expected: Shows current state
+TC-194: Verify always produces output → Expected: Never fails silently
+
+16. Help and Syntax Tests
+16.1 Help Option Tests
+
+TC-195: Execute QDocSEConsole -c view -h → Expected: Display help
+TC-196: Verify help is comprehensive → Expected: All options explained
+TC-197: Verify examples in help are accurate → Expected: Work as shown
+TC-198: Verify notes in help are clear → Expected: Helpful guidance
+
+16.2 Invalid Options Tests
+
+TC-199: Execute with unknown option -x → Expected: Ignored or error (no fatal)
+TC-200: Execute with invalid option format → Expected: Handled gracefully
+TC-201: Execute with extra parameters → Expected: Ignored
+TC-202: Verify invalid options don't prevent execution → Expected: Shows info anyway
+
+16.3 Command Line Parsing Tests
+
+TC-203: Execute with options in different order → Expected: Same output
+TC-204: Execute with extra spaces → Expected: Success
+TC-205: Execute with tabs → Expected: Success
+TC-206: Execute with repeated options -a -a → Expected: Success (duplicate ignored)
+
+17. Output Destination Tests
+17.1 Standard Output Tests
+
+TC-207: Verify output goes to stdout → Expected: Stdout
+TC-208: Redirect output to file → Expected: Output captured
+TC-209: Pipe output to another command → Expected: Works correctly
+TC-210: Capture output in variable → Expected: Works correctly
+
+17.2 Output Parsing Tests
+
+TC-211: Parse output for authorized programs → Expected: Extractable
+TC-212: Parse output for blocked programs → Expected: Extractable
+TC-213: Parse output for license info → Expected: Extractable
+TC-214: Parse output for watch points → Expected: Extractable
+TC-215: Parse output with -H for easier extraction → Expected: Simpler parsing
+
+18. Shell Integration Tests
+18.1 Scripting Tests
+
+TC-216: Use in bash script → Expected: Success
+TC-217: Use to check system status in script → Expected: Works reliably
+TC-218: Capture exit code → Expected: 0 (always succeeds per doc)
+TC-219: Use in conditional statement → Expected: Always true
+
+18.2 Automation Tests
+
+TC-220: Automated system monitoring script → Expected: Works reliably
+TC-221: Script to check license expiry → Expected: Parse output
+TC-222: Script to list authorized programs → Expected: Parse output
+TC-223: Integration with monitoring tools → Expected: Machine-readable
+
+18.3 Exit Code Tests
+
+TC-224: Verify exit code 0 always → Expected: Exit code = 0 (no errors)
+TC-225: Verify consistent exit code → Expected: Always 0
+
+19. Concurrent Execution Tests
+19.1 Concurrent View Tests
+
+TC-226: Execute view multiple times simultaneously → Expected: All succeed
+TC-227: View while system is being modified → Expected: Shows snapshot
+TC-228: Multiple users running view → Expected: All succeed
+
+19.2 State Consistency Tests
+
+TC-229: View shows consistent snapshot → Expected: No partial states
+TC-230: View during configuration changes → Expected: Shows consistent state
+
+20. Usability Tests
+20.1 User Experience Tests
+
+TC-231: Verify output is easy to read → Expected: User-friendly
+TC-232: Verify all sections are clearly labeled → Expected: Obvious headers
+TC-233: Verify information is well-organized → Expected: Logical structure
+TC-234: Verify index numbers are obvious → Expected: Clear numbering
+
+20.2 Common Usage Patterns Tests
+
+TC-235: Check system status → Expected: Quick overview
+TC-236: Check authorized programs before adjustment → Expected: See current state
+TC-237: Check license before operations → Expected: Verify license status
+TC-238: Verify watch points before protecting → Expected: See protected dirs
+
+20.3 Information Utility Tests
+
+TC-239: Verify view provides actionable info → Expected: Useful for administration
+TC-240: Verify index numbers enable other commands → Expected: Can use indexes
+TC-241: Verify complete system overview → Expected: All needed info present
+
+21. Cipher Display Tests
+21.1 All Cipher Types Display Tests
+
+TC-242: System using AES, verify shown → Expected: "aes" displayed
+TC-243: System using Camellia, verify shown → Expected: "camellia" displayed
+TC-244: System using Kalyna, verify shown → Expected: "kalyna" displayed
+TC-245: System using SM4, verify shown → Expected: "sm4" displayed
+
+21.2 Cipher Format Tests
+
+TC-246: Verify cipher name is lowercase → Expected: aes, not AES
+TC-247: Verify cipher display format → Expected: "Default cipher: aes" or similar
+TC-248: Verify only one cipher shown as default → Expected: Single default
+
+22. Working Mode Display Tests
+22.1 All Mode Display Tests
+
+TC-249: In De-elevated, verify display → Expected: "De-elevated" shown
+TC-250: In Elevated, verify display → Expected: "Elevated" shown
+TC-251: In Learning, verify display → Expected: "Learning" shown
+
+22.2 Mode Format Tests
+
+TC-252: Verify mode display format → Expected: "Working mode: Elevated" or similar
+TC-253: Verify mode is prominently displayed → Expected: Easy to see current mode
+TC-254: Verify mode matches actual system mode → Expected: Accurate
+
+23. Special Terminology Tests
+23.1 Watch Point Terminology Tests
+
+TC-255: Verify watch point = protected directory → Expected: Same thing
+TC-256: Verify watch point = mount point → Expected: Same thing (aka)
+TC-257: Verify documentation explains "aka" → Expected: Clarified
+
+23.2 Index vs ID Tests
+
+TC-258: Verify program index is different from watch point ID → Expected: Different uses
+TC-259: Verify index is used in commands → Expected: Documented commands
+TC-260: Verify ID is visual only → Expected: Not used in commands
+
+
+Test Summary
+Total Test Cases: 260
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-074, TC-178 to TC-187 (85 test cases)
+
+Default behavior (all sections)
+All four main sections (-a, -b, -l, -w)
+Index number display and usage
+License info and cipher display
+Working mode display
+Documentation examples
+
+
+P1 (High): TC-075 to TC-118, TC-132 to TC-167, TC-195 to TC-215 (100 test cases)
+
+Suppress headings (-H) option
+Option combinations
+Index usage in other commands
+Integration with other commands
+Information completeness
+Output format
+Help and parsing
+
+
+P2 (Medium): TC-119 to TC-131, TC-168 to TC-177, TC-216 to TC-241 (55 test cases)
+
+System prerequisites (works in all modes, all licenses)
+Performance tests
+Shell integration
+Usability tests
+
+
+P3 (Low): TC-242 to TC-260 (19 test cases)
+
+Cipher display details
+Working mode display details
+Terminology clarifications
+
+
+
+Test Coverage:
+✅ Core Functionality - Four Main Sections:
+
+Authorized Programs (-a): List with index numbers, ACL associations
+Blocked Programs (-b): List with index numbers
+License Information (-l): Type, expiry, status, default cipher, working mode
+Watch Points (-w): Protected directories with ID numbers (visual only)
+
+✅ Key Features:
+
+Default behavior: No options = shows all four sections (-a -b -l -w)
+Index numbers: Each authorized/blocked program has index for use in commands
+Watch point IDs: Visual reference only, not used in commands
+Default cipher: Shown with license info (aes, camellia, kalyna, sm4)
+Working mode: Shown with license info (De-elevated, Elevated, Learning)
+Suppress headings (-H): Remove section headers for machine parsing
+
+✅ Index Number Usage:
+Index numbers can be used with:
+
+adjust command: -b and -api options
+acl_add command: -p option
+acl_program command: -p option
+acl_remove command: -p option
+
+✅ System Requirements:
+
+Active modes: De-elevated, Elevated, Learning (works in ALL modes)
+License type: All, Unlicensed (works with ANY license or no license)
+No errors: Command always succeeds
+
+✅ Integration:
+
+Shows programs from adjust command
+Shows ACL associations from acl_program
+Shows watch points from protect command
+Complementary to view_monitored (shows shared libraries)
+Related to push_config (pending changes)
+
+Key Features Tested:
+
+Universal Access: Works in all modes, all license types, even unlicensed
+No Errors: Documentation explicitly states "There are no errors"
+Four Sections: Authorized, blocked, license, watch points
+Index Numbers: Critical for use with other commands
+Watch Point IDs: Visual only, not used in commands
+Default Cipher: Four possible ciphers (aes, camellia, kalyna, sm4)
+Working Mode: Current system mode displayed
+Suppress Headings: Machine-readable output with -H
+
+Important Information Displayed:
+Authorized Programs:
+
+Index number (used in commands)
+Program path
+ACL ID (if assigned)
+
+Blocked Programs:
+
+Index number
+Program path
+
+License Information:
+
+License type (A, B, C, or unlicensed)
+License expiry date
+License status (active/expired)
+Default cipher (aes, camellia, kalyna, sm4)
+Working mode (De-elevated, Elevated, Learning)
+
+Watch Points:
+
+ID number (visual reference only)
+Directory path
+
+Terminology Clarifications:
+Watch Point = Protected Directory = Mount Point
+
+Three terms for same concept (aka)
+Directories protected by QDocSE
+
+Index vs ID:
+
+Index: Authorized/blocked programs - used in commands
+ID: Watch points - visual reference only, not used in commands
+
+Related Commands:
+view_monitored:
+
+Shows shared libraries for authorized programs
+Documentation recommends running both view and view_monitored
+Shows pending changes that need push_config
+
+push_config:
+
+Activates pending changes
+view_monitored shows what needs push_config
+
+Testing Strategy Recommendation:
+Test in this order:
+
+Default behavior (TC-001 to TC-010)
+All four main sections individually (TC-011 to TC-074)
+Index number display and usage (TC-106 to TC-118)
+License info and cipher display (TC-040 to TC-058)
+Option combinations (TC-088 to TC-105)
+Suppress headings (-H) (TC-075 to TC-087)
+Integration with other commands (TC-132 to TC-144)
+Documentation examples (TC-178 to TC-187)
+Output format and usability (remaining tests)
+
+Critical test focus:
+
+Default shows all four sections
+Index numbers match across commands
+Watch point IDs are visual only
+Cipher display shows one of four types
+Working mode is current mode
+Suppress headings works for machine parsing
+No errors (always succeeds)
+
+Key validation points:
+
+-a -b -l -w = default (no options)
+Index numbers enable other commands
+Watch point IDs NOT used in commands
+Cipher: aes, camellia, kalyna, or sm4 (lowercase)
+Mode: De-elevated, Elevated, or Learning
+Works in all modes with all licenses

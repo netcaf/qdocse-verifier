@@ -1,0 +1,632 @@
+Complete Test Case List for acl_list Command
+1. Basic Functionality Tests
+1.1 List All ACLs Tests
+
+TC-001: Execute acl_list with no options → Expected: Display all ACLs
+TC-002: Execute with 0 ACLs in system → Expected: Empty list or "No ACLs" message
+TC-003: Execute with 1 ACL in system → Expected: Display 1 ACL
+TC-004: Execute with 5 ACLs in system → Expected: Display all 5 ACLs
+TC-005: Execute with 100 ACLs in system → Expected: Display all 100 ACLs
+TC-006: Execute with 1000 ACLs in system → Expected: Display all 1000 ACLs or paginated
+
+1.2 List Specific ACL Tests (-i option)
+
+TC-007: Execute acl_list -i 1 with valid ACL ID → Expected: Display only ACL 1
+TC-008: Execute acl_list -i 5 with valid ACL ID → Expected: Display only ACL 5
+TC-009: Execute acl_list -i 100 with valid ACL ID → Expected: Display only ACL 100
+TC-010: Execute with non-existent ACL ID → Expected: Error or "ACL not found" message
+TC-011: Execute with destroyed ACL ID → Expected: Error or "ACL not found"
+TC-012: Execute with ACL ID = 0 → Expected: Error (invalid ID)
+TC-013: Execute with negative ACL ID → Expected: Error
+TC-014: Execute with non-numeric ACL ID → Expected: Error
+TC-015: Execute with -i without value → Expected: Error
+TC-016: Execute with -i specified twice → Expected: Error or use last value
+
+1.3 ACL ID Display Tests
+
+TC-017: Verify ACL ID is displayed for each ACL → Expected: ID shown
+TC-018: Verify ACL IDs are displayed in order → Expected: Sequential or sorted
+TC-019: List multiple ACLs, verify all IDs shown → Expected: All IDs present
+TC-020: Verify ACL ID format is clear and readable → Expected: Clear display
+
+2. Entry Display Tests
+2.1 Zero Entry Tests
+
+TC-021: List ACL with 0 entries → Expected: Display "No entries (Deny)"
+TC-022: Create empty ACL, list it → Expected: Shows "No entries (Deny)"
+TC-023: Verify "No entries (Deny)" message exact format → Expected: Exact message
+
+2.2 Single Entry Tests
+
+TC-024: List ACL with 1 entry → Expected: Display "Entry:" with entry number 1
+TC-025: Verify entry number displayed → Expected: Entry number shown
+TC-026: Verify entry number format → Expected: Clear numbering
+
+2.3 Multiple Entry Tests
+
+TC-027: List ACL with 2 entries → Expected: Display Entry: 1 and Entry: 2
+TC-028: List ACL with 5 entries → Expected: Display all 5 entries numbered
+TC-029: List ACL with 10 entries → Expected: Display all 10 entries
+TC-030: List ACL with 100 entries → Expected: Display all 100 entries
+TC-031: Verify entry numbers are sequential → Expected: 1, 2, 3, 4...
+TC-032: Verify entry numbers match acl_edit/acl_remove usage → Expected: Consistent numbering
+
+2.4 Entry Number Display Tests
+
+TC-033: Verify entry number can be used with acl_remove → Expected: Correct reference
+TC-034: Verify entry number can be used with acl_edit → Expected: Correct reference
+TC-035: List entries after reordering with acl_edit → Expected: New order shown
+
+3. Entry Type Display Tests
+3.1 Allow Entry Tests
+
+TC-036: List entry with type "Allow" → Expected: Display "Allow"
+TC-037: Verify "Allow" format and clarity → Expected: Clear display
+TC-038: List multiple Allow entries → Expected: All show "Allow"
+
+3.2 Deny Entry Tests
+
+TC-039: List entry with type "Deny" → Expected: Display "Deny"
+TC-040: Verify "Deny" format and clarity → Expected: Clear display
+TC-041: List multiple Deny entries → Expected: All show "Deny"
+
+3.3 Mixed Entry Types
+
+TC-042: List ACL with both Allow and Deny entries → Expected: Each shows correct type
+TC-043: List ACL with Allow then Deny → Expected: Order preserved, types shown
+TC-044: List ACL with Deny then Allow → Expected: Order preserved, types shown
+
+4. User/Group/Program Display Tests
+4.1 User Entry Display Tests
+
+TC-045: List entry for user → Expected: Display UID and user name
+TC-046: List entry for user ID 0 (root) → Expected: Display "0 (root)" or similar
+TC-047: List entry for user ID 1000 → Expected: Display "1000 (username)"
+TC-048: List entry for non-existent user (deleted user) → Expected: Display UID (no name) or UID (deleted)
+TC-049: List multiple user entries → Expected: All show UID and name
+TC-050: Verify user name is readable → Expected: Clear display
+
+4.2 Group Entry Display Tests
+
+TC-051: List entry for group → Expected: Display GID and group name
+TC-052: List entry for group ID 0 → Expected: Display "0 (root)" or similar
+TC-053: List entry for group ID 100 → Expected: Display "100 (groupname)"
+TC-054: List entry for non-existent group (deleted group) → Expected: Display GID (no name) or GID (deleted)
+TC-055: List multiple group entries → Expected: All show GID and name
+TC-056: Verify group name is readable → Expected: Clear display
+
+4.3 Program Entry Display Tests
+
+TC-057: List entry for program → Expected: Display program index and path
+TC-058: List entry for program index 1 → Expected: Display "1 (/path/to/program)"
+TC-059: List entry for program index 5 → Expected: Display "5 (/another/path)"
+TC-060: List entry for non-existent program index → Expected: Display index (no path) or error
+TC-061: List multiple program entries → Expected: All show index and path
+TC-062: Verify program path is readable → Expected: Clear display
+TC-063: List program entry with very long path → Expected: Display full path or truncated
+
+4.4 Program Options Display Tests (-b, -l)
+
+TC-064: List program entry with -b (backup) option → Expected: Display backup indicator
+TC-065: List program entry with -l (limited) option → Expected: Display limited indicator
+TC-066: List program entry without -b or -l → Expected: Display plaintext indicator or no marker
+
+4.5 Mixed Entry Types Display
+
+TC-067: List ACL with user, group, and program entries (if allowed) → Expected: All displayed correctly
+TC-068: List ACL with only user entries → Expected: All users shown
+TC-069: List ACL with only group entries → Expected: All groups shown
+TC-070: List ACL with only program entries → Expected: All programs shown
+
+5. Mode Display Tests
+5.1 Single Mode Display Tests
+
+TC-071: List entry with mode 'r' → Expected: Display "r" or "read"
+TC-072: List entry with mode 'w' → Expected: Display "w" or "write"
+TC-073: List entry with mode 'x' → Expected: Display "x" or "execute"
+
+5.2 Combined Mode Display Tests
+
+TC-074: List entry with mode 'rw' → Expected: Display "rw" or "read, write"
+TC-075: List entry with mode 'rx' → Expected: Display "rx" or "read, execute"
+TC-076: List entry with mode 'wx' → Expected: Display "wx" or "write, execute"
+TC-077: List entry with mode 'rwx' → Expected: Display "rwx" or "read, write, execute"
+
+5.3 Mode Format Tests
+
+TC-078: Verify mode display format is consistent → Expected: Consistent format
+TC-079: Verify mode display is clear → Expected: Readable format
+TC-080: List multiple entries with different modes → Expected: All modes shown correctly
+
+5.4 Octal Mode Display Tests
+
+TC-081: List entry created with octal mode → Expected: Display as symbolic (rwx) or octal
+TC-082: Verify mode display matches entry definition → Expected: Correct representation
+
+6. Time Restriction Display Tests
+6.1 No Time Restriction Tests
+
+TC-083: List entry with no time restriction → Expected: Display "all times" or no time info
+TC-084: Verify default time display for entries without -t option → Expected: Clear indication
+
+6.2 Single Time Range Tests
+
+TC-085: List entry with time 09:00:00-17:00:00 → Expected: Display time range
+TC-086: List entry with time 08:30:00-16:00:00 → Expected: Display time range
+TC-087: List entry with time 00:00:00-23:59:59 → Expected: Display full day range
+
+6.3 Day-Specific Time Tests
+
+TC-088: List entry with mon-09:00:00-17:00:00 → Expected: Display day and time
+TC-089: List entry with monwedfri-08:30:00-16:00:00 → Expected: Display days and time
+TC-090: List entry with satsun-00:00:00-23:59:59 → Expected: Display weekend times
+TC-091: List entry with all days specified → Expected: Display all days
+
+6.4 Multiple Time Ranges Tests
+
+TC-092: List entry with 2 time ranges → Expected: Display both ranges
+TC-093: List entry with 3 time ranges → Expected: Display all 3 ranges
+TC-094: List entry with 5 time ranges → Expected: Display all 5 ranges
+TC-095: Verify multiple time ranges are clearly separated → Expected: Clear formatting
+
+6.5 Time Display Format Tests
+
+TC-096: Verify time format is HH:MM:SS → Expected: Standard format
+TC-097: Verify day abbreviations are clear → Expected: Readable (mon, tue, etc.)
+TC-098: Verify time display is consistent → Expected: Same format throughout
+
+7. Complete Entry Display Tests
+7.1 All Components Together
+
+TC-099: List complete entry: Allow, user, mode, time → Expected: All components displayed
+TC-100: List complete entry: Deny, group, mode, time → Expected: All components displayed
+TC-101: List complete entry: Allow, program, mode, no time → Expected: All components displayed
+TC-102: Verify entry display is well-formatted → Expected: Clear, readable layout
+TC-103: Verify all components are on correct lines/sections → Expected: Organized display
+
+7.2 Complex Entry Display
+
+TC-104: List entry with all features (user, multiple times, all modes) → Expected: Complete display
+TC-105: List entry with long user name → Expected: Displayed correctly
+TC-106: List entry with long program path → Expected: Displayed correctly or truncated
+TC-107: Verify complex entries are readable → Expected: Clear formatting
+
+8. ACL Display Order Tests
+8.1 ACL Ordering Tests
+
+TC-108: List all ACLs, verify order → Expected: ID order (1, 2, 3...)
+TC-109: Create ACL IDs out of order, list all → Expected: Sorted or creation order
+TC-110: Destroy ACL ID 3, list all → Expected: 1, 2, 4, 5... (3 missing)
+
+8.2 Entry Ordering Tests
+
+TC-111: List ACL, verify entries in correct order → Expected: Entry 1, 2, 3...
+TC-112: Reorder entries with acl_edit, list ACL → Expected: New order shown
+TC-113: Verify entry order matches evaluation order → Expected: Correct precedence
+
+9. System State Display Tests
+9.1 Configuration State Tests
+
+TC-114: List ACLs with no pending changes → Expected: No pending message
+TC-115: List ACLs with pending changes → Expected: Display "Pending configuration: see push_config command"
+TC-116: Make changes, list ACLs before push_config → Expected: Show pending message
+TC-117: Make changes, push_config, list ACLs → Expected: No pending message
+TC-118: Verify pending message format → Expected: Exact message as documented
+
+9.2 Empty Configuration Tests
+
+TC-119: List ACLs when no ACL configuration exists → Expected: Error "No ACL configuration file found"
+TC-120: List ACLs after deleting all ACLs → Expected: Empty list or appropriate message
+TC-121: List ACLs in fresh system → Expected: Error or empty list
+
+10. Output Format and Readability Tests
+10.1 Output Structure Tests
+
+TC-122: Verify output has clear ACL sections → Expected: ACLs separated clearly
+TC-123: Verify output has clear entry sections → Expected: Entries separated clearly
+TC-124: Verify indentation/formatting is consistent → Expected: Professional layout
+TC-125: Verify headers and labels are clear → Expected: Easy to understand
+
+10.2 Long Output Tests
+
+TC-126: List 100 ACLs, verify output is readable → Expected: Clear throughout
+TC-127: List ACL with 100 entries, verify readable → Expected: Clear throughout
+TC-128: Verify long output doesn't corrupt formatting → Expected: Consistent format
+
+10.3 Special Character Handling
+
+TC-129: List entry with user name containing special chars → Expected: Displayed correctly
+TC-130: List entry with group name containing special chars → Expected: Displayed correctly
+TC-131: List entry with program path containing spaces → Expected: Displayed correctly
+
+11. Output Destination Tests
+11.1 Standard Output Tests
+
+TC-132: Verify output goes to stdout → Expected: Stdout
+TC-133: Redirect output to file → Expected: Output captured
+TC-134: Pipe output to another command → Expected: Works correctly
+TC-135: Capture output in variable → Expected: Works correctly
+
+11.2 Paging Tests (if applicable)
+
+TC-136: List many ACLs, check if paged → Expected: Paging if supported
+TC-137: List many entries, check if paged → Expected: Paging if supported
+TC-138: Test with PAGER environment variable → Expected: Uses specified pager
+
+12. System State and Prerequisites Tests
+12.1 ACL Configuration Tests
+
+TC-139: Execute when no ACL configuration exists → Expected: Error "No ACL configuration file found"
+TC-140: Execute when ACL configuration file exists → Expected: Success
+TC-141: Execute when ACL configuration is corrupted → Expected: Error or partial display
+TC-142: Execute after creating ACLs → Expected: Shows created ACLs
+TC-143: Execute after destroying ACLs → Expected: Doesn't show destroyed ACLs
+
+12.2 Active Mode Tests
+
+TC-144: Execute in Elevated mode → Expected: Success
+TC-145: Execute in Learning mode → Expected: Success
+TC-146: Execute in both Elevated and Learning modes → Expected: Success
+TC-147: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+
+12.3 License Tests
+
+TC-148: Execute with License type A → Expected: Success
+TC-149: Execute without License type A → Expected: Error
+TC-150: Execute with expired License type A → Expected: Error
+
+12.4 Permission Tests
+
+TC-151: Execute as root user → Expected: Success
+TC-152: Execute as non-root user with sufficient permissions → Expected: Success or error
+TC-153: Execute as non-root user without permissions → Expected: Error
+
+13. Integration with Other ACL Commands Tests
+13.1 Integration with acl_create
+
+TC-154: Create ACL, list it → Expected: Shows new ACL
+TC-155: Create multiple ACLs, list all → Expected: Shows all created ACLs
+TC-156: Verify created ACL has 0 entries → Expected: Shows "No entries (Deny)"
+
+13.2 Integration with acl_add
+
+TC-157: Add entry, list ACL → Expected: Shows new entry
+TC-158: Add multiple entries, list ACL → Expected: Shows all entries in order
+TC-159: Verify entry details match acl_add parameters → Expected: Correct display
+
+13.3 Integration with acl_remove
+
+TC-160: Remove entry, list ACL → Expected: Entry removed from list
+TC-161: Remove all entries, list ACL → Expected: Shows "No entries (Deny)"
+TC-162: Verify entry numbers update after removal → Expected: Renumbered
+
+13.4 Integration with acl_edit
+
+TC-163: Edit entry order, list ACL → Expected: Shows new order
+TC-164: Move entry to top, list ACL → Expected: Entry now at position 1
+TC-165: Verify entry numbers reflect new order → Expected: Correct numbering
+
+13.5 Integration with acl_destroy
+
+TC-166: Destroy ACL, list all → Expected: Destroyed ACL not shown
+TC-167: Destroy ACL, list specific ACL ID → Expected: Error or "not found"
+TC-168: Destroy multiple ACLs, list all → Expected: Only remaining ACLs shown
+
+13.6 Integration with acl_export/acl_import
+
+TC-169: Export, import, list ACLs → Expected: Shows imported ACLs
+TC-170: Verify imported ACL details match original → Expected: Identical display
+
+13.7 Integration with acl_file
+
+TC-171: Apply ACL to files, list ACL → Expected: ACL display unchanged (metadata only)
+TC-172: Verify acl_list doesn't show which files use ACL → Expected: Only ACL definition shown
+
+14. Entry Evaluation Logic Display Tests
+14.1 Matching Success Conditions Display
+
+TC-173: Verify documentation: "UID/GID/index + mode + time = action" → Expected: Logic clear from display
+TC-174: Verify documentation: "UID match but mode/time fail = Deny" → Expected: Understanding from display
+TC-175: Verify documentation: "UID no match = skip to next entry" → Expected: Order matters (shown)
+TC-176: Verify documentation: "No entries or all checked = Deny" → Expected: Default deny clear
+
+14.2 Entry Order Significance Display
+
+TC-177: List ACL with multiple entries → Expected: Order displayed clearly
+TC-178: Verify first-match logic understandable from display → Expected: Sequential numbering clear
+TC-179: Verify entry position matches evaluation order → Expected: Entry 1 evaluated first
+
+15. Error Handling Tests
+15.1 Error Message Tests
+
+TC-180: Verify "No ACL configuration file found" error → Expected: Exact error message
+TC-181: Trigger error with invalid -i value → Expected: Clear error message
+TC-182: Verify error messages are helpful → Expected: Actionable guidance
+
+15.2 Partial Failure Tests
+
+TC-183: List ACLs when some are corrupted → Expected: Show valid ones, error for corrupted
+TC-184: List specific ACL with corrupted entry → Expected: Show what's possible, error for rest
+
+16. Performance Tests
+16.1 Execution Time Tests
+
+TC-185: Measure time to list 10 ACLs → Expected: < threshold
+TC-186: Measure time to list 100 ACLs → Expected: < threshold
+TC-187: Measure time to list 1000 ACLs → Expected: < threshold
+TC-188: Measure time to list ACL with 100 entries → Expected: < threshold
+
+16.2 Scalability Tests
+
+TC-189: List system with 5000 ACLs → Expected: Success, acceptable time
+TC-190: List ACL with 1000 entries → Expected: Success, acceptable time
+TC-191: Verify performance doesn't degrade with ACL count → Expected: Linear scaling
+
+16.3 Output Size Tests
+
+TC-192: Test output size for 1000 ACLs → Expected: Manageable size
+TC-193: Test output for very long program paths → Expected: Handled correctly
+
+17. Documentation and Examples Tests
+17.1 Documentation Example Tests
+
+TC-194: Execute example 1 from doc: QDocSEConsole -c acl_list → Expected: Success
+TC-195: Execute example 2 from doc: QDocSEConsole -c acl_list -i 6 → Expected: Success
+TC-196: Execute example 1 from help: QDocSEConsole -c acl_list -i 1 → Expected: Success
+TC-197: Execute example 2 from help: QDocSEConsole -c acl_list → Expected: Success
+
+17.2 Documentation Consistency Tests
+
+TC-198: Verify "displays numeric position information" → Expected: Position numbers shown
+TC-199: Verify "No entries (Deny)" message exact → Expected: Exact message
+TC-200: Verify "Entry:" display format → Expected: As documented
+TC-201: Verify all documented display components present → Expected: Complete display
+TC-202: Verify "Pending configuration" message exact → Expected: Exact message
+
+17.3 Display Format Verification
+
+TC-203: Verify ACL ID display format → Expected: Clear and consistent
+TC-204: Verify entry number display format → Expected: Usable with other commands
+TC-205: Verify type (Allow/Deny) display → Expected: Clear
+TC-206: Verify UID/GID/index display with name → Expected: Both shown
+TC-207: Verify mode display format → Expected: Clear (r, w, x)
+TC-208: Verify time display format → Expected: Days and times clear
+
+18. Help and Syntax Tests
+18.1 Help Option Tests
+
+TC-209: Execute QDocSEConsole -c acl_list -h → Expected: Display help
+TC-210: Verify help is comprehensive → Expected: All options explained
+TC-211: Verify examples in help are accurate → Expected: Work as shown
+
+18.2 Invalid Options Tests
+
+TC-212: Execute with unknown option -x → Expected: Error or ignored
+TC-213: Execute with invalid option combination → Expected: Error or ignored
+TC-214: Execute with extra parameters → Expected: Error or ignored
+
+18.3 Command Line Parsing Tests
+
+TC-215: Execute with extra spaces → Expected: Success
+TC-216: Execute with tabs → Expected: Success
+TC-217: Execute with options in different order → Expected: Success
+
+19. Shell Integration Tests
+19.1 Scripting Tests
+
+TC-218: Use in bash script → Expected: Success
+TC-219: Capture output in variable → Expected: Success
+TC-220: Parse output in script → Expected: Parseable format
+TC-221: Use in pipeline → Expected: Success
+
+19.2 Automation Tests
+
+TC-222: Automated ACL monitoring script → Expected: Works reliably
+TC-223: Script to check ACL configuration → Expected: Works reliably
+TC-224: Script to verify ACL entries → Expected: Parseable output
+
+19.3 Exit Code Tests
+
+TC-225: Verify exit code 0 on success → Expected: Exit code = 0
+TC-226: Verify non-zero exit code on error → Expected: Exit code ≠ 0
+TC-227: Use exit code in conditional → Expected: Works correctly
+
+20. Output Parsing Tests
+20.1 Machine-Readable Format Tests
+
+TC-228: Parse ACL ID from output → Expected: Extractable
+TC-229: Parse entry number from output → Expected: Extractable
+TC-230: Parse entry type from output → Expected: Extractable
+TC-231: Parse UID/GID from output → Expected: Extractable
+TC-232: Parse mode from output → Expected: Extractable
+TC-233: Parse time restrictions from output → Expected: Extractable
+
+20.2 Consistency Tests
+
+TC-234: Verify output format is consistent across runs → Expected: Consistent
+TC-235: Verify output format doesn't change with content → Expected: Stable format
+TC-236: Verify output can be reliably parsed → Expected: Structured output
+
+21. Usability Tests
+21.1 User Experience Tests
+
+TC-237: Verify output is easy to read → Expected: User-friendly
+TC-238: Verify output is easy to understand → Expected: Clear meaning
+TC-239: Verify entry numbers are obvious → Expected: Clear labeling
+TC-240: Verify all information is accessible → Expected: Complete display
+
+21.2 Common Usage Patterns
+
+TC-241: List all ACLs to see configuration → Expected: Complete overview
+TC-242: List specific ACL to check entries → Expected: Detailed view
+TC-243: Check entry order before editing → Expected: Clear order display
+TC-244: Verify entry numbers before removing → Expected: Correct numbering
+
+21.3 Information Completeness
+
+TC-245: Verify all ACL properties displayed → Expected: Complete information
+TC-246: Verify all entry properties displayed → Expected: Complete information
+TC-247: Verify display sufficient for administration → Expected: All needed info shown
+
+22. Special Display Scenarios
+22.1 Edge Case Display
+
+TC-248: Display ACL with destroyed ID gaps (1, 2, 4, 5) → Expected: Only existing shown
+TC-249: Display ACL with very high ID (10000) → Expected: Displayed correctly
+TC-250: Display empty system after importing empty config → Expected: Appropriate message
+
+22.2 Complex Configuration Display
+
+TC-251: Display system with 100 ACLs, each with 50 entries → Expected: Complete display
+TC-252: Display ACL with all entry types mixed → Expected: All types shown clearly
+TC-253: Display ACL with complex time restrictions → Expected: All times shown
+
+
+Test Summary
+Total Test Cases: 253
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-020, TC-021 to TC-082, TC-154 to TC-170, TC-194 to TC-208 (110 test cases)
+
+Basic list functionality (all ACLs and specific ACL)
+Entry display (zero, single, multiple entries)
+All display components (type, user/group/program, mode, time)
+Integration with other ACL commands
+Documentation examples and format verification
+
+
+P1 (High): TC-083 to TC-153, TC-171 to TC-184, TC-209 to TC-227 (90 test cases)
+
+Time restriction display
+Complete entry display
+ACL and entry ordering
+System state display (pending config)
+Prerequisites (modes, license, permissions)
+Error handling
+Help and shell integration
+
+
+P2 (Medium): TC-185 to TC-193, TC-228 to TC-247 (30 test cases)
+
+Performance tests
+Output parsing
+Usability tests
+
+
+P3 (Low): TC-248 to TC-253 (6 test cases)
+
+Edge case displays
+Complex configuration display
+
+
+
+Test Coverage:
+✅ Core Functionality:
+
+List all ACLs (no options)
+List specific ACL (-i option)
+Display ACL IDs
+Display entry counts (zero or more)
+
+✅ Entry Display Components:
+
+Entry numbers (sequential, usable with acl_remove/acl_edit)
+Entry type (Allow or Deny)
+User/Group/Program (UID/GID/index with readable name)
+Mode (r, w, x combinations)
+Time restrictions (days and times)
+Program options (-b, -l)
+
+✅ Special Messages:
+
+"No entries (Deny)" for empty ACLs
+"Pending configuration: see push_config command" when changes not pushed
+"No ACL configuration file found" error
+
+✅ Display Format:
+
+Clear ACL sections
+Clear entry sections
+Entry numbering for use with other commands
+Readable names (user, group, program path)
+Time format (HH:MM:SS, day abbreviations)
+Consistent formatting
+
+✅ Entry Evaluation Logic (Documentation):
+
+UID/GID/index + mode + time = action (Allow/Deny)
+UID match but mode/time fail = Deny
+UID no match = skip to next entry
+No entries or all checked = Deny (default)
+First-match evaluation order
+
+✅ Integration:
+
+Shows ACLs from acl_create
+Shows entries from acl_add
+Shows updated order from acl_edit
+Doesn't show destroyed ACLs
+Entry numbers match acl_remove/acl_edit usage
+
+✅ Output Requirements:
+
+Goes to stdout
+Redirectable to file
+Pipeable to other commands
+Parseable format
+Consistent structure
+
+Key Features Tested:
+
+Information Display: Complete ACL and entry details
+Entry Numbering: Sequential numbers usable with acl_remove/acl_edit
+Entry Evaluation Logic: Documentation describes first-match, skip logic
+Default Deny: "No entries (Deny)" and "all checked = Deny"
+Pending Changes: Shows when configuration needs push_config
+Readable Format: Shows both IDs/indices and readable names
+Complete Details: Type, user/group/program, mode, time all displayed
+
+Important Display Components (from Documentation):
+For each ACL:
+
+ACL ID
+
+For each entry (if any):
+
+Entry number (position)
+Type (Allow or Deny)
+User/Group/Program (UID/GID/index + readable name)
+Mode (r, w, x)
+Time restrictions (days and times)
+
+Special displays:
+
+"No entries (Deny)" when ACL is empty
+"Pending configuration: see push_config command" when applicable
+
+Documentation Notes on Entry Evaluation:
+The documentation extensively describes how entries are evaluated:
+
+Match all three: UID/GID/index + mode + time → action (Allow/Deny)
+Match UID but not mode/time: → Deny
+No UID match: → Skip to next entry
+No entries or all checked: → Deny (default)
+
+This evaluation logic should be understandable from the display (entry order matters, first-match wins).
+Testing Strategy Recommendation:
+Test in this order:
+
+Basic list functionality (TC-001 to TC-020)
+Entry display components (TC-021 to TC-082)
+Complete entry display (TC-099 to TC-107)
+Integration with other commands (TC-154 to TC-170)
+Documentation verification (TC-194 to TC-208)
+Usability and output format (remaining tests)
+
+Critical verification points:
+
+Entry numbers are usable with acl_remove/acl_edit
+"No entries (Deny)" message appears correctly
+All display components present (type, user/group/program, mode, time)
+Pending configuration message appears when needed
+Output is clear, readable, and parseable

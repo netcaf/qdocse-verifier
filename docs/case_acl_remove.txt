@@ -1,0 +1,623 @@
+Complete Test Case List for acl_remove Command
+1. Required Option Tests
+1.1 ACL ID (-i) Option Tests
+
+TC-001: Execute without -i option → Expected: Error "Missing required '-i' option"
+TC-002: Execute with valid ACL ID → Expected: Success (with removal option)
+TC-003: Execute with ACL ID = 1 → Expected: Success
+TC-004: Execute with ACL ID = 10 → Expected: Success
+TC-005: Execute with ACL ID = 0 → Expected: Error (invalid ID)
+TC-006: Execute with negative ACL ID → Expected: Error
+TC-007: Execute with non-existent ACL ID → Expected: Error
+TC-008: Execute with destroyed ACL ID → Expected: Error
+TC-009: Execute with non-numeric ACL ID → Expected: Error
+TC-010: Execute with -i without value → Expected: Error
+TC-011: Execute with empty ACL ID -i "" → Expected: Error
+TC-012: Execute with -i specified twice → Expected: Error or use last value
+
+1.2 Removal Option Requirements Tests
+
+TC-013: Execute with -i only (no removal option) → Expected: Error "Missing user, group, entry or program option"
+TC-014: Execute with -e option → Expected: Success
+TC-015: Execute with -A option → Expected: Success (remove all)
+TC-016: Execute with -u option → Expected: Success
+TC-017: Execute with -g option → Expected: Success
+TC-018: Execute with -p option → Expected: Success (from help)
+TC-019: Execute with combination of selection options → Expected: Success (specific entry)
+
+2. Remove All Entries (-A) Option Tests
+2.1 Basic Remove All Tests
+
+TC-020: Remove all entries from ACL with 1 entry → Expected: Success, ACL empty
+TC-021: Remove all entries from ACL with 5 entries → Expected: Success, ACL empty
+TC-022: Remove all entries from ACL with 100 entries → Expected: Success, ACL empty
+TC-023: Remove all entries from already empty ACL → Expected: Success or "no entries to remove"
+TC-024: Verify ACL has "No entries (Deny)" after -A → Expected: Empty ACL
+
+2.2 Remove All with Other Options Tests
+
+TC-025: Execute with -A -e 1 → Expected: Error "Other options not allow when using '-A'"
+TC-026: Execute with -A -a → Expected: Error "Other options not allow when using '-A'"
+TC-027: Execute with -A -d → Expected: Error "Other options not allow when using '-A'"
+TC-028: Execute with -A -u ted → Expected: Error "Other options not allow when using '-A'"
+TC-029: Execute with -A -g mail → Expected: Error "Other options not allow when using '-A'"
+TC-030: Execute with -A -p 1 → Expected: Error "Other options not allow when using '-A'"
+TC-031: Verify -A is mutually exclusive with selection options → Expected: Enforced
+
+2.3 Remove All Entry Type Tests
+
+TC-032: Remove all from ACL with user entries → Expected: All removed
+TC-033: Remove all from ACL with group entries → Expected: All removed
+TC-034: Remove all from ACL with program entries → Expected: All removed
+TC-035: Remove all from ACL with mixed allow/deny entries → Expected: All removed
+
+3. Remove by Entry Number (-e) Option Tests
+3.1 Basic Entry Number Removal Tests
+
+TC-036: Remove entry 1 from ACL with 5 entries → Expected: Success, entry 1 removed
+TC-037: Remove entry 3 from ACL with 5 entries → Expected: Success, entry 3 removed
+TC-038: Remove entry 5 from ACL with 5 entries → Expected: Success, entry 5 removed
+TC-039: Remove last entry from ACL → Expected: Success, last entry removed
+TC-040: Remove only entry from ACL → Expected: Success, ACL empty
+
+3.2 Entry Number Validation Tests
+
+TC-041: Remove entry 0 → Expected: Error (entries start at 1)
+TC-042: Remove negative entry number → Expected: Error
+TC-043: Remove entry number beyond list size → Expected: Error
+TC-044: Remove entry 10 from ACL with 5 entries → Expected: Error (doesn't exist)
+TC-045: Remove entry from empty ACL → Expected: Error (no entries)
+TC-046: Execute with -e without value → Expected: Error
+TC-047: Execute with non-numeric entry number → Expected: Error
+
+3.3 Entry Number After Changes Tests
+
+TC-048: Remove entry 2, verify entry 3 becomes entry 2 → Expected: Renumbered
+TC-049: Remove entry 1, verify all entries shift down → Expected: Entries renumbered
+TC-050: Remove multiple entries sequentially, verify renumbering → Expected: Correct renumbering
+
+3.4 Entry Number with Other Options Tests
+
+TC-051: Execute with -e 1 -a (entry + allow) → Expected: Success (both specify same entry)
+TC-052: Execute with -e 1 -d (entry + deny) → Expected: Success (both specify same entry)
+TC-053: Execute with -e 1 -u ted (entry + user) → Expected: Success (combined selection)
+TC-054: Execute with -e 1 -g mail (entry + group) → Expected: Success (combined selection)
+TC-055: Verify -e is preferred option for clarity → Expected: Works reliably
+
+4. Remove by User (-u) Option Tests
+4.1 Basic User Removal Tests
+
+TC-056: Remove entry by user name → Expected: Success, user entry removed
+TC-057: Remove entry by user ID → Expected: Success, user entry removed
+TC-058: Remove user entry from ACL with multiple user entries → Expected: Specific user removed
+TC-059: Remove user that has multiple entries (allow + deny) → Expected: Which one? (test behavior)
+TC-060: Remove non-existent user → Expected: Error "Invalid user ID" or "not found"
+
+4.2 User Name vs User ID Tests
+
+TC-061: Remove by user name "ted" → Expected: Success
+TC-062: Remove by user ID 1000 → Expected: Success
+TC-063: Remove root user (UID 0) → Expected: Success
+TC-064: Remove user by name, verify UID match → Expected: Correct user removed
+TC-065: Remove user by ID, verify name match → Expected: Correct user removed
+
+4.3 User Option Validation Tests
+
+TC-066: Execute with invalid user name → Expected: Error "Invalid user ID"
+TC-067: Execute with invalid user ID → Expected: Error "Invalid user ID"
+TC-068: Execute with -u without value → Expected: Error
+TC-069: Execute with empty user -u "" → Expected: Error
+TC-070: Execute with deleted user (no longer in system) → Expected: Success or error
+
+4.4 User with Other Options Tests
+
+TC-071: Execute with -u ted -a (user + allow) → Expected: Remove allow entry for ted
+TC-072: Execute with -u ted -d (user + deny) → Expected: Remove deny entry for ted
+TC-073: Execute with -u ted when ted has allow and deny → Expected: Which one removed? (test)
+TC-074: Execute with -u and -g together → Expected: Error (mutually exclusive)
+TC-075: Execute with -u and -p together → Expected: Error (mutually exclusive)
+
+5. Remove by Group (-g) Option Tests
+5.1 Basic Group Removal Tests
+
+TC-076: Remove entry by group name → Expected: Success, group entry removed
+TC-077: Remove entry by group ID → Expected: Success, group entry removed
+TC-078: Remove group entry from ACL with multiple group entries → Expected: Specific group removed
+TC-079: Remove group that has multiple entries → Expected: Which one? (test behavior)
+TC-080: Remove non-existent group → Expected: Error "Invalid group ID" or "not found"
+
+5.2 Group Name vs Group ID Tests
+
+TC-081: Remove by group name "mail" → Expected: Success
+TC-082: Remove by group ID 100 → Expected: Success
+TC-083: Remove root group (GID 0) → Expected: Success
+TC-084: Remove group by name, verify GID match → Expected: Correct group removed
+TC-085: Remove group by ID, verify name match → Expected: Correct group removed
+
+5.3 Group Option Validation Tests
+
+TC-086: Execute with invalid group name → Expected: Error "Invalid group ID"
+TC-087: Execute with invalid group ID → Expected: Error "Invalid group ID"
+TC-088: Execute with -g without value → Expected: Error
+TC-089: Execute with empty group -g "" → Expected: Error
+TC-090: Execute with deleted group (no longer in system) → Expected: Success or error
+
+5.4 Group with Other Options Tests
+
+TC-091: Execute with -g mail -a (group + allow) → Expected: Remove allow entry for mail
+TC-092: Execute with -g mail -d (group + deny) → Expected: Remove deny entry for mail
+TC-093: Execute with -g mail when mail has allow and deny → Expected: Which one? (test)
+TC-094: Execute with -g and -u together → Expected: Error (mutually exclusive)
+TC-095: Execute with -g and -p together → Expected: Error (mutually exclusive)
+
+6. Remove by Program (-p) Option Tests
+6.1 Basic Program Removal Tests
+
+TC-096: Remove entry by program index → Expected: Success, program entry removed
+TC-097: Remove program entry from ACL with multiple program entries → Expected: Specific program removed
+TC-098: Remove program that has multiple entries → Expected: Which one? (test behavior)
+TC-099: Remove non-existent program index → Expected: Error "Invalid program index"
+
+6.2 Program Index Validation Tests
+
+TC-100: Remove by valid program index → Expected: Success
+TC-101: Remove program index 1 → Expected: Success
+TC-102: Remove program index 0 → Expected: Error (invalid)
+TC-103: Remove negative program index → Expected: Error
+TC-104: Execute with non-numeric program index → Expected: Error
+TC-105: Execute with -p without value → Expected: Error
+
+6.3 Program with Other Options Tests
+
+TC-106: Execute with -p 1 -a (program + allow) → Expected: Remove allow entry for program 1
+TC-107: Execute with -p 1 -d (program + deny) → Expected: Remove deny entry for program 1
+TC-108: Execute with -p 1 when program has allow and deny → Expected: Which one? (test)
+TC-109: Execute with -p and -u together → Expected: Error (mutually exclusive)
+TC-110: Execute with -p and -g together → Expected: Error (mutually exclusive)
+
+7. Allow/Deny Type Selection Tests
+7.1 Allow Entry Selection (-a) Tests
+
+TC-111: Remove with -a -u ted → Expected: Remove allow entry for ted
+TC-112: Remove with -a -g mail → Expected: Remove allow entry for mail
+TC-113: Remove with -a -p 1 → Expected: Remove allow entry for program 1
+TC-114: Remove with -a when only deny entries exist → Expected: Error or "not found"
+TC-115: Remove with -a when both allow and deny exist → Expected: Remove only allow
+
+7.2 Deny Entry Selection (-d) Tests
+
+TC-116: Remove with -d -u ted → Expected: Remove deny entry for ted
+TC-117: Remove with -d -g mail → Expected: Remove deny entry for mail
+TC-118: Remove with -d -p 1 → Expected: Remove deny entry for program 1
+TC-119: Remove with -d when only allow entries exist → Expected: Error or "not found"
+TC-120: Remove with -d when both allow and deny exist → Expected: Remove only deny
+
+7.3 Allow/Deny Mutual Exclusivity Tests
+
+TC-121: Execute with both -a and -d → Expected: Error (mutually exclusive)
+TC-122: Execute with -a specified twice → Expected: Error or ignored
+TC-123: Execute with -d specified twice → Expected: Error or ignored
+
+7.4 Allow/Deny Without User/Group/Program Tests
+
+TC-124: Execute with -a only (no user/group/program) → Expected: Error or ambiguous
+TC-125: Execute with -d only (no user/group/program) → Expected: Error or ambiguous
+TC-126: Verify -a/-d needs selection criteria → Expected: Must specify what to remove
+
+8. Entry Selection Combinations Tests
+8.1 Multiple Selection Criteria Tests
+
+TC-127: Remove with -e 1 -a -u ted (all specify same entry) → Expected: Success (redundant but valid)
+TC-128: Remove with -e 1 -u ted (entry + user match) → Expected: Success
+TC-129: Remove with -e 1 -u bob (entry + user mismatch) → Expected: Error or no match
+TC-130: Remove with -a -u ted -e 2 (all must match) → Expected: Success or error based on match
+
+8.2 Ambiguous Selection Tests
+
+TC-131: Remove with -u ted when ted has 2 entries → Expected: Remove first? Both? Error?
+TC-132: Remove with -g mail when mail has 3 entries → Expected: Which one?
+TC-133: Remove with -a only (multiple allow entries) → Expected: Which one? Error?
+TC-134: Verify ambiguous selections are handled → Expected: Error or first match
+
+8.3 Selection Priority Tests
+
+TC-135: When multiple criteria given, verify which takes precedence → Expected: Document priority
+TC-136: Verify -e is preferred for unambiguous removal → Expected: Most reliable
+TC-137: Test selection with overlapping criteria → Expected: Logical combination
+
+9. Entry Removal Verification Tests
+9.1 Single Entry Removal Verification
+
+TC-138: Remove entry, list ACL, verify removed → Expected: Entry gone
+TC-139: Remove entry 2 of 5, verify 4 entries remain → Expected: Count correct
+TC-140: Remove entry, verify specific entry is gone → Expected: Correct removal
+
+9.2 Entry Renumbering Verification
+
+TC-141: Remove entry 2, verify entry 3 becomes 2 → Expected: Renumbered correctly
+TC-142: Remove entry 1, verify all entries shift down → Expected: Sequential numbering
+TC-143: Remove last entry, verify no renumbering needed → Expected: Just removed
+
+9.3 ACL State Verification
+
+TC-144: Remove all entries, verify ACL shows "No entries (Deny)" → Expected: Empty ACL
+TC-145: Remove last entry, verify ACL is empty → Expected: Zero entries
+TC-146: Remove entry, verify other entries unchanged → Expected: Only removed entry affected
+
+10. System State and Prerequisites Tests
+10.1 ACL Configuration Tests
+
+TC-147: Execute when no ACL configuration exists → Expected: Error "No ACL configuration file found"
+TC-148: Execute when ACL configuration file exists → Expected: Success
+TC-149: Execute when ACL configuration is corrupted → Expected: Error
+TC-150: Remove entry, verify configuration file updated → Expected: Updated correctly
+
+10.2 Active Mode Tests
+
+TC-151: Execute in Elevated mode → Expected: Success
+TC-152: Execute in Learning mode → Expected: Success
+TC-153: Execute in both Elevated and Learning modes → Expected: Success
+TC-154: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+
+10.3 License Tests
+
+TC-155: Execute with License type A → Expected: Success
+TC-156: Execute without License type A → Expected: Error
+TC-157: Execute with expired License type A → Expected: Error
+
+10.4 Permission Tests
+
+TC-158: Execute as root user → Expected: Success
+TC-159: Execute as non-root user with sufficient permissions → Expected: Success or error
+TC-160: Execute as non-root user without permissions → Expected: Error
+
+11. Integration with Other ACL Commands Tests
+11.1 Integration with acl_add
+
+TC-161: Add entry, remove it → Expected: Both succeed
+TC-162: Add 5 entries, remove 3 → Expected: 2 entries remain
+TC-163: Add entry, remove different entry, add again → Expected: All succeed
+
+11.2 Integration with acl_list
+
+TC-164: Remove entry, list ACL, verify removal → Expected: Entry not shown
+TC-165: List ACL before and after removal → Expected: Count decreases
+TC-166: Verify entry numbers in list match removal → Expected: Consistent numbering
+
+11.3 Integration with acl_edit
+
+TC-167: Edit entry order, remove entry, verify correct removal → Expected: Correct entry removed
+TC-168: Remove entry, edit order of remaining → Expected: Both succeed
+TC-169: Edit then remove, verify entry number correct → Expected: Numbers match
+
+11.4 Integration with acl_destroy
+
+TC-170: Remove all entries, then destroy ACL → Expected: Both succeed
+TC-171: Remove entries, verify not same as destroy → Expected: ACL still exists
+
+11.5 Integration with acl_file
+
+TC-172: Remove entry from ACL assigned to files → Expected: File protection updated
+TC-173: Apply ACL to files, remove entries, test access → Expected: Access control reflects changes
+
+11.6 Integration with acl_program
+
+TC-174: Remove entry from ACL assigned to program → Expected: Program validation updated
+TC-175: Remove all entries from program ACL → Expected: Test program behavior (empty ACL)
+
+12. Error Handling Tests
+12.1 Error Message Tests
+
+TC-176: Verify "Missing required '-i' option" error → Expected: Exact error message
+TC-177: Verify "No ACL configuration file found" error → Expected: Exact error message
+TC-178: Verify "Invalid program index" error → Expected: Exact error message
+TC-179: Verify "Invalid user ID" error → Expected: Exact error message
+TC-180: Verify "Invalid group ID" error → Expected: Exact error message
+TC-181: Verify "Missing user, group, entry or program option" error → Expected: Exact message
+TC-182: Verify "Other options not allow when using '-A'" error → Expected: Exact message
+TC-183: Verify error messages are clear and actionable → Expected: Helpful guidance
+
+12.2 Entry Not Found Tests
+
+TC-184: Remove entry that doesn't exist → Expected: Error or "not found"
+TC-185: Remove user that's not in ACL → Expected: Error or "not found"
+TC-186: Remove entry from wrong ACL → Expected: Error
+TC-187: Remove with wrong type (allow vs deny) → Expected: Error or "not found"
+
+12.3 Partial Failure Tests
+
+TC-188: Attempt invalid removal, verify no changes → Expected: ACL unchanged
+TC-189: Error during removal, verify consistent state → Expected: Atomic operation
+
+13. Performance Tests
+13.1 Execution Time Tests
+
+TC-190: Measure time to remove single entry → Expected: < threshold
+TC-191: Measure time to remove all entries (100 entries) → Expected: < threshold
+TC-192: Remove entries from large ACL (500 entries) → Expected: Acceptable time
+
+13.2 Sequential Removal Tests
+
+TC-193: Remove 10 entries sequentially, measure total time → Expected: Linear scaling
+TC-194: Remove all entries one by one vs -A → Expected: -A faster
+
+13.3 Renumbering Performance Tests
+
+TC-195: Remove entry 1, measure renumbering time → Expected: Fast
+TC-196: Remove from ACL with 1000 entries → Expected: Acceptable performance
+
+14. Concurrent Execution Tests
+14.1 Concurrent Removal Tests
+
+TC-197: Remove different entries from 2 ACLs simultaneously → Expected: Both succeed
+TC-198: Remove entries from same ACL simultaneously → Expected: Proper locking
+TC-199: Remove while adding to different ACL → Expected: Both succeed
+
+14.2 Race Condition Tests
+
+TC-200: Test race: remove vs add entry to same ACL → Expected: Proper synchronization
+TC-201: Test race: remove vs edit ACL → Expected: Proper locking
+TC-202: Test race: remove vs destroy ACL → Expected: Proper handling
+
+15. Documentation and Examples Tests
+15.1 Documentation Example Tests
+
+TC-203: Execute example 1 from doc: QDocSEConsole -c acl_remove -i 1 -e 4 → Expected: Success
+TC-204: Execute example 2 from doc: QDocSEConsole -c acl_remove -i 2 -A → Expected: Success
+TC-205: Execute example 3 from doc: QDocSEConsole -c acl_remove -i 2 -a -u ted → Expected: Success
+TC-206: Execute example 1 from help: QDocSEConsole -c acl_remove -i 1 -a -g mail → Expected: Success
+TC-207: Execute example 2 from help: QDocSEConsole -c acl_remove -i 2 -e 1 → Expected: Success
+TC-208: Execute example 3 from help: QDocSEConsole -c acl_remove -i 1 -A → Expected: Success
+
+15.2 Documentation Consistency Tests
+
+TC-209: Verify "-e is preferred option for clearly selecting entry" → Expected: Most reliable
+TC-210: Verify "-A removes all entries" → Expected: ACL becomes empty
+TC-211: Verify "-A mutually exclusive with other options" → Expected: Enforced
+TC-212: Verify entry numbers from acl_list can be used → Expected: Consistent
+
+15.3 Help Output Validation
+
+TC-213: Verify help shows -p option (missing from doc) → Expected: Program removal supported
+TC-214: Verify help note about -A exclusivity → Expected: Clearly documented
+TC-215: Verify help shows mutual exclusivity of -u/-g/-p → Expected: One at a time
+
+16. Help and Syntax Tests
+16.1 Help Option Tests
+
+TC-216: Execute QDocSEConsole -c acl_remove -h → Expected: Display help
+TC-217: Verify help is comprehensive → Expected: All options explained
+TC-218: Verify examples in help are accurate → Expected: Work as shown
+
+16.2 Invalid Options Tests
+
+TC-219: Execute with unknown option -x → Expected: Error
+TC-220: Execute with invalid option combination → Expected: Error
+TC-221: Execute with extra parameters → Expected: Error or ignored
+
+16.3 Command Line Parsing Tests
+
+TC-222: Execute with options in different order → Expected: Success
+TC-223: Execute with extra spaces → Expected: Success
+TC-224: Execute with tabs → Expected: Success
+
+17. Shell Integration Tests
+17.1 Scripting Tests
+
+TC-225: Use in bash script → Expected: Success
+TC-226: Use in loop to remove multiple entries → Expected: All succeed
+TC-227: Capture exit code → Expected: 0 on success, non-zero on error
+TC-228: Use in conditional statement → Expected: Proper boolean result
+
+17.2 Automation Tests
+
+TC-229: Automated ACL cleanup script → Expected: Works reliably
+TC-230: Script to remove specific entry types → Expected: Selective removal
+TC-231: Batch removal script → Expected: Efficient processing
+
+17.3 Exit Code Tests
+
+TC-232: Verify exit code 0 on success → Expected: Exit code = 0
+TC-233: Verify non-zero exit code on error → Expected: Exit code ≠ 0
+TC-234: Verify consistent exit codes for same error type → Expected: Same code
+
+18. Security Tests
+18.1 Access Control Tests
+
+TC-235: Verify only authorized users can remove entries → Expected: Access control enforced
+TC-236: Test privilege escalation attempts → Expected: Blocked
+TC-237: Verify audit logging of entry removal → Expected: Logged
+
+18.2 Input Validation Tests
+
+TC-238: Test command injection in parameters → Expected: Blocked/escaped
+TC-239: Test SQL injection patterns → Expected: Protected
+TC-240: Test buffer overflow with long inputs → Expected: Handled safely
+
+19. Data Integrity Tests
+19.1 Configuration File Integrity
+
+TC-241: Remove entry, verify configuration file valid → Expected: Valid format
+TC-242: Remove multiple entries, verify no corruption → Expected: Integrity maintained
+TC-243: Remove entry, verify other ACLs unaffected → Expected: Isolated change
+
+19.2 State Consistency Tests
+
+TC-244: Remove entry, verify system state consistent → Expected: Consistent
+TC-245: Remove all entries, verify ACL still exists → Expected: Empty but exists
+TC-246: Verify no orphaned entries after removal → Expected: Clean removal
+
+20. Usability Tests
+20.1 User Experience Tests
+
+TC-247: Verify command is intuitive → Expected: Clear usage
+TC-248: Verify -e option is easiest for users → Expected: Unambiguous
+TC-249: Verify error messages are helpful → Expected: Actionable guidance
+TC-250: Verify help text is comprehensive → Expected: Complete information
+
+20.2 Common Usage Patterns
+
+TC-251: Remove entry by number (most common) → Expected: Straightforward
+TC-252: Remove all entries (cleanup) → Expected: Single command
+TC-253: Remove specific user entry → Expected: Clear selection
+TC-254: Remove with type specification (allow/deny) → Expected: Precise control
+
+20.3 Common Mistakes
+
+TC-255: Forget required -i option → Expected: Clear error
+TC-256: Use -A with other options → Expected: Clear error about mutual exclusivity
+TC-257: Remove from wrong ACL → Expected: Error, no change
+TC-258: Ambiguous selection without -e → Expected: Error or clear behavior
+
+21. Edge Cases and Special Scenarios
+21.1 Boundary Cases
+
+TC-259: Remove from ACL with 1 entry → Expected: ACL becomes empty
+TC-260: Remove all entries with -A from empty ACL → Expected: Success or "already empty"
+TC-261: Remove entry number at exact boundary → Expected: Success
+
+21.2 Complex Selection Cases
+
+TC-262: User has multiple entries (allow at position 2, deny at position 5), remove by user → Expected: Which one?
+TC-263: Remove with -a -u ted when ted only has deny → Expected: Not found
+TC-264: Remove with all selection criteria matching → Expected: Success
+
+21.3 After Removal State
+
+TC-265: Remove all entries, verify ACL can still have entries added → Expected: Can add again
+TC-266: Remove entries, verify ACL assignment to files still valid → Expected: Empty ACL applied
+TC-267: Remove entries, verify ACL can be exported/imported → Expected: Works with empty
+
+
+Test Summary
+Total Test Cases: 267
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-055, TC-138 to TC-146, TC-161 to TC-175, TC-203 to TC-215 (110 test cases)
+
+Required -i option
+All removal methods (-A, -e, -u, -g, -p)
+Entry number removal (preferred method)
+Remove all (-A) and mutual exclusivity
+Removal verification
+Integration with other commands
+Documentation examples
+
+
+P1 (High): TC-056 to TC-137, TC-147 to TC-160, TC-176 to TC-189, TC-216 to TC-240 (120 test cases)
+
+User/group/program removal
+Allow/deny type selection
+Entry selection combinations
+System prerequisites
+Error handling
+Help and syntax
+Security tests
+
+
+P2 (Medium): TC-190 to TC-202, TC-241 to TC-258 (25 test cases)
+
+Performance tests
+Concurrent execution
+Data integrity
+Usability tests
+
+
+P3 (Low): TC-259 to TC-267 (9 test cases)
+
+Edge cases
+Complex scenarios
+
+
+
+Test Coverage:
+✅ Core Functionality:
+
+Required -i ACL ID option
+Remove by entry number -e (preferred method)
+Remove all entries -A
+Remove by user -u (name or ID)
+Remove by group -g (name or ID)
+Remove by program -p index
+Allow/deny type selection -a/-d
+
+✅ Key Features:
+
+Entry renumbering after removal
+Remove all (-A) mutually exclusive with other selection options
+Multiple selection criteria can be combined (except with -A)
+Entry numbers from acl_list can be used
+Empty ACL after removing all entries
+
+✅ Selection Methods:
+
+By entry number (-e) - Preferred, unambiguous
+By user (-u) - By name or ID
+By group (-g) - By name or ID
+By program (-p) - By index
+By type (-a or -d) - Allow or deny
+Combinations - Multiple criteria for specific selection
+All entries (-A) - Remove everything
+
+✅ Integration:
+
+Works with acl_list (entry numbers)
+Works with acl_edit (renumbering)
+Works with acl_add (add/remove cycle)
+Works with acl_file (file protection updates)
+Works with acl_program (program validation updates)
+Works with acl_destroy (empty then destroy)
+
+✅ Error Handling:
+
+All 7 documented error messages
+Invalid user/group/program validation
+Entry not found handling
+Missing selection criteria error
+-A mutual exclusivity enforcement
+
+✅ Mutual Exclusivity:
+
+-A cannot be used with any other selection option
+-u, -g, -p are mutually exclusive (only one at a time)
+-a and -d are mutually exclusive
+
+Key Features Tested:
+
+Preferred Method: -e (entry number) is preferred for unambiguous removal
+Remove All: -A removes all entries, making ACL empty
+Exclusivity: -A mutually exclusive with selection options
+Renumbering: Entry numbers adjust after removal
+Type Selection: -a (allow) or -d (deny) for specific type
+Combined Selection: Can combine user/group/program with type for precision
+Multiple Entries: If user/group/program has multiple entries, behavior needs testing
+
+Important Rules:
+⚠️ Entry Number Preferred: Documentation states -e is "preferred option for clearly selecting an entry"
+⚠️ Remove All Exclusivity: -A cannot be combined with -a, -d, -e, -u, -g, or -p
+⚠️ One User/Group/Program: Only one of -u, -g, or -p can be specified at a time
+⚠️ Entry Renumbering: After removal, entry numbers shift to maintain sequential order
+⚠️ Empty ACL: After removing all entries, ACL shows "No entries (Deny)" but still exists
+Documentation vs Help Differences:
+Help includes -p option: The help output shows program removal option (-p <program index>) but this is not mentioned in the documentation. This should be tested.
+Note in Help: "If -A is specified then neither the -a, -d, -e, -u, or -g options can be specified" - clearly documents mutual exclusivity.
+Testing Strategy Recommendation:
+Test in this order:
+
+Required options and basic removal (TC-001 to TC-019)
+Remove all (-A) and mutual exclusivity (TC-020 to TC-031)
+Entry number removal - preferred method (TC-036 to TC-055)
+User/group/program removal (TC-056 to TC-110)
+Allow/deny type selection (TC-111 to TC-126)
+Removal verification (TC-138 to TC-146)
+Integration tests (TC-161 to TC-175)
+Documentation examples (TC-203 to TC-215)
+Error handling and edge cases (remaining tests)
+
+Critical test focus:
+
+Entry number removal (preferred and most reliable method)
+Remove all mutual exclusivity enforcement
+Entry renumbering after removal
+Ambiguous selection handling (multiple entries for same user/group/program)
+Integration with acl_list (entry numbers must match)
