@@ -144,6 +144,12 @@ class TestACLFilePatterns:
 class TestACLFileErrors:
     """Error handling tests."""
 
+    def test_no_parameters_at_all(self):
+        """Running acl_file with no parameters should show missing required error."""
+        result = QDocSE.acl_file().execute()
+        result.fail("Should fail with no parameters")
+        result.contains("must be specified")
+
     def test_missing_directory_option(self, acl_id):
         """acl_file requires -d option.
 
@@ -205,12 +211,59 @@ class TestACLFileErrors:
         result.fail("Should fail for invalid program ACL ID")
         result.contains("Invalid ACL ID")
 
-    def test_negative_acl_id(self, test_dir_with_files):
-        """Negative ACL ID should fail."""
+    def test_negative_user_acl_id(self, test_dir_with_files):
+        """Negative user ACL ID should fail."""
         result = QDocSE.acl_file(
             test_dir_with_files, user_acl=-1
         ).execute()
-        result.fail("Should fail for negative ACL ID")
+        result.fail("Should fail for negative user ACL ID")
+
+    def test_zero_user_acl_id(self, test_dir_with_files):
+        """User ACL ID 0 (reserved) should fail."""
+        result = QDocSE.acl_file(
+            test_dir_with_files, user_acl=0
+        ).execute()
+        result.fail("Should fail for user ACL ID 0")
+
+    @pytest.mark.parametrize("acl_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_user_acl_id(self, test_dir_with_files, acl_val, desc):
+        """Non-digit user ACL ID should fail."""
+        cmd = QDocSE.acl_file()
+        cmd.dir(test_dir_with_files)
+        cmd._opt("-A", acl_val)
+        result = cmd.execute()
+        result.fail(desc)
+
+    def test_zero_program_acl_id(self, test_dir_with_files):
+        """Program ACL ID 0 (reserved) should fail."""
+        result = QDocSE.acl_file(
+            test_dir_with_files, prog_acl=0
+        ).execute()
+        result.fail("Should fail for program ACL ID 0")
+
+    def test_negative_program_acl_id(self, test_dir_with_files):
+        """Negative program ACL ID should fail."""
+        result = QDocSE.acl_file(
+            test_dir_with_files, prog_acl=-1
+        ).execute()
+        result.fail("Should fail for negative program ACL ID")
+
+    @pytest.mark.parametrize("acl_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_program_acl_id(self, test_dir_with_files, acl_val, desc):
+        """Non-digit program ACL ID should fail."""
+        cmd = QDocSE.acl_file()
+        cmd.dir(test_dir_with_files)
+        cmd._opt("-P", acl_val)
+        result = cmd.execute()
+        result.fail(desc)
 
     def test_user_acl_used_as_program_acl(self, acl_id, test_dir_with_files):
         """A user/group-entry ACL cannot be used with -P.
@@ -377,3 +430,102 @@ class TestACLFilePushConfig:
 
         list_after = QDocSE.acl_list(acl_id).execute().ok()
         assert "Pending configuration" not in list_after.result.stdout
+
+
+@pytest.mark.unit
+class TestACLFileSpecialFilenames:
+    """Files with special characters or spaces in their names."""
+
+    def test_directory_with_spaces(self, acl_id, tmp_path):
+        """Directory name containing spaces should work."""
+        d = tmp_path / "dir with spaces"
+        d.mkdir()
+        (d / "file.txt").write_text("content")
+        QDocSE.acl_file(str(d), user_acl=acl_id).execute().ok()
+
+    def test_files_with_special_chars(self, acl_id, tmp_path):
+        """Files with special characters in names should be processed."""
+        d = tmp_path / "special_chars"
+        d.mkdir()
+        (d / "file-with-dashes.txt").write_text("content")
+        (d / "file_with_underscores.txt").write_text("content")
+        (d / "file.multiple.dots.txt").write_text("content")
+        QDocSE.acl_file(str(d), user_acl=acl_id).execute().ok()
+
+    def test_files_with_spaces_in_name(self, acl_id, tmp_path):
+        """Files with spaces in their names should be processed."""
+        d = tmp_path / "space_files"
+        d.mkdir()
+        (d / "my file.txt").write_text("content")
+        (d / "another file.doc").write_text("content")
+        QDocSE.acl_file(str(d), user_acl=acl_id).execute().ok()
+
+
+@pytest.mark.unit
+class TestACLFileReadOnly:
+    """Read-only file handling."""
+
+    def test_readonly_files(self, acl_id, tmp_path):
+        """Read-only files should be processed or return appropriate error."""
+        d = tmp_path / "readonly_test"
+        d.mkdir()
+        f = d / "readonly.txt"
+        f.write_text("content")
+        os.chmod(str(f), 0o444)
+
+        # Should either succeed (ACL is metadata) or fail gracefully
+        QDocSE.acl_file(str(d), user_acl=acl_id).execute().ok()
+
+
+@pytest.mark.unit
+class TestACLFileSymlinks:
+    """Symbolic link handling."""
+
+    def test_symlink_in_directory(self, acl_id, tmp_path):
+        """Symlinks within the directory should be handled."""
+        d = tmp_path / "symlink_test"
+        d.mkdir()
+        target = d / "real_file.txt"
+        target.write_text("content")
+        link = d / "link_file.txt"
+        link.symlink_to(target)
+
+        QDocSE.acl_file(str(d), user_acl=acl_id).execute().ok()
+
+    def test_symlink_directory(self, acl_id, tmp_path):
+        """Symlink pointing to a directory used as -d argument."""
+        real_dir = tmp_path / "real_dir"
+        real_dir.mkdir()
+        (real_dir / "file.txt").write_text("content")
+        link_dir = tmp_path / "link_dir"
+        link_dir.symlink_to(real_dir)
+
+        # May succeed or fail depending on symlink policy
+        QDocSE.acl_file(str(link_dir), user_acl=acl_id).execute()
+
+
+@pytest.mark.unit
+class TestACLFileSuccessOutput:
+    """Success message verification."""
+
+    def test_no_errors_on_success(self, acl_id, test_dir_with_files):
+        """A successful acl_file should not contain errors in stderr."""
+        result = QDocSE.acl_file(
+            test_dir_with_files, user_acl=acl_id
+        ).execute().ok()
+        assert "error" not in result.result.stderr.lower(), \
+            f"Successful acl_file should have no errors: {result.result.stderr}"
+
+
+@pytest.mark.unit
+class TestACLFileStress:
+    """Stress test with many files."""
+
+    def test_large_number_of_files(self, acl_id, tmp_path):
+        """acl_file should handle directories with many files."""
+        d = tmp_path / "stress_test"
+        d.mkdir()
+        for i in range(100):
+            (d / f"file_{i:03d}.txt").write_text(f"content {i}")
+
+        QDocSE.acl_file(str(d), user_acl=acl_id).execute().ok()
