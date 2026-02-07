@@ -10,3 +10,80 @@ validate -u with invalid user name and id? for example, doesn't exist. zero or n
 validate -g can work with group name and group id.
 validate -g with invalid group name and id? for example, doesn't exist. zero or negative number ....
 validate the behavour for duplicate options
+
+acl_destory checklist:
+validate the required feature for -i, for example, how it works without -i. only -f?
+validate -i with invalide number for acl id. for example, doesn't exist. zero or negative number ...
+validate the combination for -i and -f
+
+acl_edit checklist:
+Verify that running QDocSEConsole -c acl_edit without any parameters shows an error indicating required parameters are missing.
+Verify that specifying an invalid ACL ID with -i returns an error stating that the ACL does not exist. and zero or negative number or non-digit
+Verify that specifying an invalid entry position with -e returns an error stating that the entry does not exist. and zero or negative number or non-digit
+Verify that specifying an invalid target position with -p returns an error stating that the position is invalid. and zero or negative number or non-digit
+Verify that -e can accept a valid numeric entry position and moves that entry correctly within the ACL.
+Verify that -p can accept a valid numeric target position and moves the entry to that position correctly.
+Verify that -p can accept the descriptive word first, begin, beginning, or top and moves the entry to position 1.
+Verify that -p can accept the descriptive word last, end, or bottom and moves the entry to the last position.
+Verify that -p can accept the descriptive word up and moves the entry one position higher in the list.
+Verify that -p can accept the descriptive word down and moves the entry one position lower in the list.
+Verify that moving an entry to the same position does not change the ACL order.
+Verify that moving the first entry up or last entry down returns an error or has no effect.
+Verify that the command works correctly when the ACL contains only one entry.
+Verify that multiple sequential edits maintain the correct order in the ACL.
+Verify that the command prints a success message after a valid edit.
+Verify that the ACL remains unchanged if the command fails due to invalid parameters.
+Verify that the command works for ACLs with a large number of entries (stress test).
+Verify that the command does not allow editing ACLs the user does not have permission to modify.
+Verify that using a combination of numeric and descriptive positions (e.g., -e 3 -p top) works as expected.
+
+acl_file checklist:
+Verify that running QDocSEConsole -c acl_file without any parameters shows an error indicating required parameters are missing. -d is required.
+Verify that not specifying at least one of -A (user ACL) or -P (program ACL) returns an error.
+Verify that specifying a non-existent user ACL ID with -A returns an error.
+Verify that specifying 0 as user ACL ID with -A returns an error.
+Verify that specifying a negative number as user ACL ID with -A returns an error.
+Verify that specifying a non-digit string as user ACL ID with -A returns an error.
+Verify that specifying a non-existent program ACL ID with -P returns an error.
+Verify that specifying 0 as program ACL ID with -P returns an error.
+Verify that specifying a negative number as program ACL ID with -P returns an error.
+Verify that specifying a non-digit string as program ACL ID with -P returns an error.
+Verify that specifying a directory with -d that does not exist returns an error.
+Verify that specifying a valid directory with -d and valid ACL IDs applies ACLs to all files in the directory.
+Verify that using -dp applies ACLs only to files matching the specified pattern.
+Verify that using -excl excludes files matching the specified pattern from ACL application.
+Verify that using both -dp and -excl applies ACLs to the correct set of files (matching -dp but not -excl).
+Verify that the command works correctly when only -A is specified (user ACL).
+Verify that the command works correctly when only -P is specified (program ACL).
+Verify that the command works correctly when both -A and -P are specified.
+Verify that nested directories under -d are handled correctly if the tool supports recursion.
+Verify that files with special characters or spaces in their names are processed correctly.
+Verify that read-only files are processed correctly or return an appropriate error.
+Verify that symbolic links in the directory are handled correctly.
+Verify that the command prints a success message after ACLs are applied successfully.
+Verify that the command does not modify files if it fails due to invalid parameters.
+Verify that the command works correctly for directories with a large number of files (stress test).
+
+acl_program checklist
+Verify that running QDocSEConsole -c acl_program without any parameters returns an error indicating required parameters are missing.
+Verify that omitting -A returns an error indicating that ACL ID is required.
+Verify that omitting -p returns an error indicating that program index is required.
+Verify that specifying a non-existent ACL ID with -A returns an error indicating the ACL does not exist.
+Verify that specifying 0 as ACL ID with -A returns an error indicating the ACL ID is invalid.
+Verify that specifying a negative number as ACL ID with -A returns an error.
+Verify that specifying a non-digit string as ACL ID with -A returns an error.
+Verify that specifying a valid ACL ID that is not a user/group ACL returns an error.
+Verify that specifying a valid user/group ACL ID with -A is accepted.
+Verify that specifying a non-existent program index with -p returns an error indicating the program does not exist.
+Verify that specifying 0 as program index with -p returns an error.
+Verify that specifying a negative number as program index with -p returns an error.
+Verify that specifying a non-digit string as program index with -p returns an error.
+Verify that assigning a valid ACL ID to a valid program index succeeds.
+Verify that reassigning a different ACL ID to the same program index updates the ACL correctly.
+Verify that assigning the same ACL ID to the same program index multiple times does not cause errors.
+Verify that the ACL association determines whether the program is marked as valid or not valid.
+Verify that the command prints a success message after a valid ACL assignment.
+Verify that no program ACL association is changed if the command fails due to invalid parameters.
+Verify that the command fails if the user does not have permission to modify program ACLs.
+Verify that the command behaves correctly when multiple program ACL changes are executed sequentially.
+Verify that the command works correctly when a large number of program indices exist (stress test).

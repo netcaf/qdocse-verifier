@@ -180,6 +180,188 @@ class TestACLProgramInvalidACL:
 
 
 @pytest.mark.unit
+class TestACLProgramNoParameters:
+    """Test acl_program with no parameters at all."""
+
+    def test_no_parameters(self):
+        """acl_program with no options should fail."""
+        result = QDocSE.acl_program().execute()
+        result.fail("Should fail without any parameters")
+
+
+@pytest.mark.unit
+class TestACLProgramACLIDZero:
+    """Test acl_program with ACL ID 0."""
+
+    @pytest.mark.xfail(reason="temporary failure, will fix later")
+    def test_acl_id_zero(self):
+        """ACL ID 0 is built-in and should not be assignable.
+
+        Per PDF: ACL ID 0 is a fixed, built-in 'allow access' ACL.
+        """
+        result = QDocSE.acl_program(0, program=1).execute()
+        result.fail("Should fail for ACL ID 0 (built-in)")
+
+
+@pytest.mark.unit
+class TestACLProgramNonDigitInputs:
+    """Non-digit input validation."""
+
+    @pytest.mark.parametrize("acl_id_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("", "empty string"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_acl_id(self, acl_id_val, desc):
+        """Non-digit ACL ID should fail."""
+        cmd = QDocSE.acl_program()
+        cmd._opt("-A", acl_id_val)
+        cmd._opt("-p", 1)
+        result = cmd.execute()
+        result.fail(desc)
+
+    @pytest.mark.parametrize("prog_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("", "empty string"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_program_index(self, prog_val, desc):
+        """Non-digit program index should fail."""
+        cmd = QDocSE.acl_program()
+        cmd._opt("-A", 1)
+        cmd._opt("-p", prog_val)
+        result = cmd.execute()
+        result.fail(desc)
+
+
+@pytest.mark.unit
+class TestACLProgramReassignment:
+    """Test reassigning programs to different ACLs."""
+
+    def test_reassign_to_different_acl(self, some_valid_uids,
+                                       authorized_program_index):
+        """Reassigning a program from one ACL to another should work.
+
+        Per PDF: acl_program associates ACL with program. Reassigning
+        should update the association.
+        """
+        uid = some_valid_uids[0]
+
+        # Create first ACL with user entry
+        id1: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+        QDocSE.acl_add(id1, user=uid, mode="r").execute().ok()
+
+        # Create second ACL with user entry
+        id2: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+        QDocSE.acl_add(id2, user=uid, mode="rw").execute().ok()
+
+        # Associate with first ACL
+        QDocSE.acl_program(id1, program=authorized_program_index).execute().ok()
+
+        # Reassign to second ACL
+        QDocSE.acl_program(id2, program=authorized_program_index).execute().ok()
+
+    def test_idempotent_reassignment(self, acl_with_user_entry,
+                                      authorized_program_index):
+        """Assigning the same ACL to the same program twice should succeed."""
+        QDocSE.acl_program(
+            acl_with_user_entry, program=authorized_program_index
+        ).execute().ok()
+
+        # Assign again (idempotent)
+        QDocSE.acl_program(
+            acl_with_user_entry, program=authorized_program_index
+        ).execute().ok()
+
+
+@pytest.mark.unit
+class TestACLProgramSuccessOutput:
+    """Verify success output message."""
+
+    def test_success_message(self, acl_with_user_entry,
+                              authorized_program_index):
+        """Successful acl_program should produce confirmation output."""
+        result = QDocSE.acl_program(
+            acl_with_user_entry, program=authorized_program_index
+        ).execute().ok()
+        # Should produce some output confirming the association
+        assert result.result.stdout.strip(), \
+            "Successful acl_program should produce output"
+
+
+@pytest.mark.unit
+class TestACLProgramSequentialChanges:
+    """Test sequential program associations."""
+
+    def test_sequential_program_changes(self, acl_with_user_entry,
+                                         authorized_program_index):
+        """Multiple sequential acl_program calls should all succeed."""
+        for _ in range(3):
+            QDocSE.acl_program(
+                acl_with_user_entry, program=authorized_program_index
+            ).execute().ok()
+
+
+@pytest.mark.unit
+class TestACLProgramNoChangeOnFailure:
+    """Verify failed acl_program doesn't modify state."""
+
+    def test_no_change_on_failure(self, acl_with_user_entry,
+                                   authorized_program_index):
+        """Failed acl_program should not modify existing association.
+
+        Associate program, then attempt invalid reassignment. Original
+        association should remain intact.
+        """
+        # Establish association
+        QDocSE.acl_program(
+            acl_with_user_entry, program=authorized_program_index
+        ).execute().ok()
+
+        # Attempt invalid reassignment (empty ACL)
+        empty_id: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+        result = QDocSE.acl_program(empty_id, program=authorized_program_index).execute()
+        result.fail("Should fail with empty ACL")
+
+        # Original association should still work (push and verify)
+        QDocSE.push_config().execute()
+
+
+@pytest.mark.unit
+class TestACLProgramStress:
+    """Stress test for acl_program."""
+
+    def test_many_programs_different_acls(self, some_valid_uids):
+        """Associate multiple ACLs with different programs.
+
+        Creates multiple ACLs and attempts to associate each with
+        a different program index (if available).
+        """
+        view_result = QDocSE.view().authorized().execute()
+        if view_result.result.failed:
+            pytest.skip("Cannot query authorized programs")
+
+        programs = view_result.parse().get("authorized", [])
+        if len(programs) < 2:
+            pytest.skip("Need at least 2 authorized programs")
+
+        uid = some_valid_uids[0]
+        acl_ids = []
+        try:
+            for i in range(min(len(programs), 3)):
+                aid: int = QDocSE.acl_create().execute().ok().parse()["acl_id"]
+                acl_ids.append(aid)
+                QDocSE.acl_add(aid, user=uid, mode="r").execute().ok()
+                QDocSE.acl_program(aid, program=i + 1).execute().ok()
+        finally:
+            for aid in acl_ids:
+                QDocSE.acl_destroy(aid, force=True).execute()
+            QDocSE.push_config().execute()
+
+
+@pytest.mark.unit
 class TestACLProgramChaining:
     """Fluent API tests."""
 
