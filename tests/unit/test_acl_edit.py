@@ -237,6 +237,12 @@ class TestACLEditNoChange:
 class TestACLEditErrors:
     """Error handling tests."""
 
+    def test_no_parameters_at_all(self):
+        """Running acl_edit with no parameters should show missing required error."""
+        result = QDocSE.acl_edit().execute()
+        result.fail("Should fail with no parameters")
+        result.contains("Missing required")
+
     def test_missing_entry_option(self, acl_id):
         """acl_edit requires -e option.
 
@@ -335,6 +341,66 @@ class TestACLEditErrors:
         result.fail("Should fail for nonexistent ACL")
         result.contains("is not a valid ACL ID")
 
+    def test_zero_acl_id(self):
+        """ACL ID 0 (reserved) should fail."""
+        result = QDocSE.acl_edit(0, entry=1, position=1).execute()
+        result.fail("Should fail for ACL ID 0")
+
+    def test_negative_acl_id(self):
+        """Negative ACL ID should fail."""
+        result = QDocSE.acl_edit(-1, entry=1, position=1).execute()
+        result.fail("Should fail for negative ACL ID")
+
+    @pytest.mark.parametrize("acl_id_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_acl_id(self, acl_id_val, desc):
+        """Non-digit ACL ID should fail."""
+        cmd = QDocSE.acl_edit()
+        cmd._opt("-i", acl_id_val)
+        cmd._opt("-e", 1)
+        cmd._opt("-p", 1)
+        result = cmd.execute()
+        result.fail(desc)
+
+    @pytest.mark.parametrize("entry_val,desc", [
+        ("abc", "alphabetic"),
+        ("1.5", "decimal"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_entry(self, acl_with_three_entries, entry_val, desc):
+        """Non-digit entry number should fail."""
+        acl_id, _ = acl_with_three_entries
+        cmd = QDocSE.acl_edit(acl_id)
+        cmd._opt("-e", entry_val)
+        cmd._opt("-p", 1)
+        result = cmd.execute()
+        result.fail(desc)
+
+    @pytest.mark.parametrize("pos_val,desc", [
+        ("abc", "random string"),
+        ("1.5", "decimal"),
+        ("!@#", "special chars"),
+    ])
+    def test_non_digit_non_keyword_position(self, acl_with_three_entries, pos_val, desc):
+        """Non-digit, non-keyword position should fail."""
+        acl_id, _ = acl_with_three_entries
+        QDocSE.acl_edit(acl_id, entry=1, position=pos_val).execute().fail(desc)
+
+    def test_order_preserved_after_invalid_edit(self, acl_with_three_entries):
+        """ACL order should remain unchanged after a failed edit."""
+        acl_id, uids = acl_with_three_entries
+
+        # Attempt invalid edit
+        QDocSE.acl_edit(acl_id, entry=999, position=1).execute()
+
+        # Verify order unchanged
+        order = _get_entry_order(acl_id, uids)
+        assert order == [uids[0], uids[1], uids[2]], \
+            f"Order should be preserved after failed edit, got {order}"
+
 
 @pytest.mark.unit
 class TestACLEditChaining:
@@ -354,3 +420,119 @@ class TestACLEditChaining:
         # Verify entry 3 (uids[2]) is now first
         order = _get_entry_order(acl_id, uids)
         assert order[0] == uids[2], f"UID {uids[2]} should be first after chained edit"
+
+
+@pytest.mark.unit
+class TestACLEditBeginningKeyword:
+    """Test 'beginning' as position keyword (synonym for first/begin/top)."""
+
+    def test_move_to_beginning(self, acl_with_three_entries):
+        """'beginning' should move entry to position 1."""
+        acl_id, uids = acl_with_three_entries
+
+        QDocSE.acl_edit(acl_id, entry=3, position="beginning").execute().ok()
+
+        order = _get_entry_order(acl_id, uids)
+        assert order[0] == uids[2], \
+            f"UID {uids[2]} should be first via 'beginning', got {order}"
+
+
+@pytest.mark.unit
+class TestACLEditSingleEntry:
+    """Edit behaviour on ACL with only one entry."""
+
+    def test_single_entry_move_up(self, acl_id):
+        """Moving the only entry up should produce no change."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_edit(acl_id, entry=1, position="up").execute()
+        result.contains("No change")
+
+    def test_single_entry_move_down(self, acl_id):
+        """Moving the only entry down should produce no change."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_edit(acl_id, entry=1, position="down").execute()
+        result.contains("No change")
+
+    def test_single_entry_move_to_first(self, acl_id):
+        """Moving the only entry to first should produce no change."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_edit(acl_id, entry=1, position="first").execute()
+        result.contains("No change")
+
+    def test_single_entry_move_to_position_1(self, acl_id):
+        """Moving the only entry to position 1 should produce no change."""
+        QDocSE.acl_add(acl_id, user=0, mode="r").execute().ok()
+        result = QDocSE.acl_edit(acl_id, entry=1, position=1).execute()
+        result.contains("No change")
+
+
+@pytest.mark.unit
+class TestACLEditSequential:
+    """Multiple sequential edits maintain correct order."""
+
+    def test_multiple_edits(self, acl_with_three_entries):
+        """Sequential edits should produce cumulative result.
+
+        Start: [uids[0], uids[1], uids[2]]
+        Step 1: Move entry 3 to first -> [uids[2], uids[0], uids[1]]
+        Step 2: Move entry 3 up       -> [uids[2], uids[1], uids[0]]
+        """
+        acl_id, uids = acl_with_three_entries
+
+        QDocSE.acl_edit(acl_id, entry=3, position="first").execute().ok()
+        order = _get_entry_order(acl_id, uids)
+        assert order == [uids[2], uids[0], uids[1]], \
+            f"After step 1: expected [{uids[2]}, {uids[0]}, {uids[1]}], got {order}"
+
+        QDocSE.acl_edit(acl_id, entry=3, position="up").execute().ok()
+        order = _get_entry_order(acl_id, uids)
+        assert order == [uids[2], uids[1], uids[0]], \
+            f"After step 2: expected [{uids[2]}, {uids[1]}, {uids[0]}], got {order}"
+
+    def test_round_trip_edit(self, acl_with_three_entries):
+        """Moving entry away then back restores original order."""
+        acl_id, uids = acl_with_three_entries
+
+        # Move entry 1 to last
+        QDocSE.acl_edit(acl_id, entry=1, position="last").execute().ok()
+        # Move entry 3 (was entry 1) back to first
+        QDocSE.acl_edit(acl_id, entry=3, position="first").execute().ok()
+
+        order = _get_entry_order(acl_id, uids)
+        assert order == [uids[0], uids[1], uids[2]], \
+            f"Round trip should restore original order, got {order}"
+
+
+@pytest.mark.unit
+class TestACLEditStress:
+    """Stress test with many entries."""
+
+    def test_edit_with_many_entries(self, acl_id, valid_uids):
+        """acl_edit should work correctly with many entries."""
+        test_uids = valid_uids[:10]
+
+        for uid in test_uids:
+            QDocSE.acl_add(acl_id, user=uid, mode="r").execute().ok()
+
+        # Move last entry to first
+        QDocSE.acl_edit(acl_id, entry=10, position="first").execute().ok()
+
+        order = _get_entry_order(acl_id, test_uids)
+        assert order[0] == test_uids[9], \
+            f"Entry 10 should be first, got {order[0]}"
+        assert len(order) == 10, f"All 10 entries should remain, got {len(order)}"
+
+
+@pytest.mark.unit
+class TestACLEditSuccessMessage:
+    """Verify success message output after valid edit."""
+
+    def test_success_output(self, acl_with_three_entries):
+        """A successful edit should not contain error messages."""
+        acl_id, _ = acl_with_three_entries
+
+        result = QDocSE.acl_edit(acl_id, entry=3, position="first").execute().ok()
+        assert "error" not in result.result.stderr.lower(), \
+            f"Successful edit should have no errors in stderr: {result.result.stderr}"
+
+
