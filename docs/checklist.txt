@@ -87,3 +87,44 @@ Verify that no program ACL association is changed if the command fails due to in
 Verify that the command fails if the user does not have permission to modify program ACLs.
 Verify that the command behaves correctly when multiple program ACL changes are executed sequentially.
 Verify that the command works correctly when a large number of program indices exist (stress test).
+
+acl_remove checklist
+Verify that running QDocSEConsole -c acl_remove without any parameters returns an error indicating required parameters are missing.
+Verify that omitting -i returns an error indicating that ACL ID is required.
+Verify that specifying a non-existent ACL ID with -i returns an error indicating the ACL does not exist.
+Verify that specifying 0 as ACL ID with -i returns an error indicating the ACL ID is invalid.
+Verify that specifying a negative number as ACL ID with -i returns an error.
+Verify that specifying a non-digit string as ACL ID with -i returns an error.
+Verify that specifying -A removes all ACL entries for the specified ACL ID.
+Verify that specifying -A together with -a returns an error.
+Verify that specifying -A together with -d returns an error.
+Verify that specifying -A together with -e returns an error.
+Verify that specifying -A together with -u returns an error.
+Verify that specifying -A together with -g returns an error.
+Verify that specifying -A together with -p returns an error.
+Verify that specifying a valid entry number with -e removes the correct ACL entry.
+Verify that specifying 0 as entry number with -e returns an error.
+Verify that specifying a negative number as entry number with -e returns an error.
+Verify that specifying a non-digit string as entry number with -e returns an error.
+Verify that specifying a non-existent entry number with -e returns an error.
+Verify that specifying -a removes only allow-type ACL entries matching the criteria.
+Verify that specifying -d removes only deny-type ACL entries matching the criteria.
+Verify that specifying both -a and -d together returns an error.
+Verify that specifying -u with a valid user name removes the ACL entry for that user.
+Verify that specifying -u with a valid user ID removes the ACL entry for that user.
+Verify that specifying a non-existent user name or user ID with -u returns an error.
+Verify that specifying -g with a valid group name removes the ACL entry for that group.
+Verify that specifying -g with a valid group ID removes the ACL entry for that group.
+Verify that specifying a non-existent group name or group ID with -g returns an error.
+Verify that specifying -p with a valid program index removes the ACL entry for that program.
+Verify that specifying 0 as program index with -p returns an error.
+Verify that specifying a negative program index with -p returns an error.
+Verify that specifying a non-digit string as program index with -p returns an error.
+Verify that specifying a non-existent program index with -p returns an error.
+Verify that specifying more than one of -u, -g, or -p returns an error.
+Verify that removing an ACL entry deletes only the specified entry and does not affect others.
+Verify that attempting to remove the same ACL entry multiple times returns an error or no-op.
+Verify that ACL entry ordering updates correctly after an entry is removed.
+Verify that no ACL entries are modified if the command fails due to invalid parameters.
+Verify that the command fails if the user does not have permission to modify the ACL.
+Verify that multiple valid acl_remove commands executed sequentially behave consistently.

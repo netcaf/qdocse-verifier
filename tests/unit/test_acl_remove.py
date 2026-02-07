@@ -132,11 +132,15 @@ class TestACLRemoveByEntry:
         for entry in entries:
             assert entry["user"] != uid_b
 
+    @pytest.mark.xfail(reason="Actual behavior: succeeds with stderr no-op message, not a failure")
     def test_remove_nonexistent_entry(self, acl_id):
-        """Remove nonexistent entry succeeds (no-op)."""
+        """Non-existent entry number should return error.
+
+        Per checklist: specifying a non-existent entry number with -e returns an error.
+        Actual: command succeeds (exit 0) with stderr 'No matching ACLs found to remove.'
+        """
         result = QDocSE.acl_remove(acl_id, entry=999).execute()
-        result.ok()  # Command succeeds when no matching entry found
-        assert "No matching ACLs found to remove." in result.result.stderr
+        result.fail("Should fail for non-existent entry number")
 
 
 @pytest.mark.unit
@@ -171,22 +175,18 @@ class TestACLRemoveAll:
 
         Per spec: 'If -A is specified then neither the -a, -d, -e, -u, or -g options can be specified.'
         Command succeeds but stderr indicates conflict.
-
-        Note: Actual behavior shows -A -e and -A -p do NOT produce error (entries are removed).
         """
         uid_a, uid_b = some_valid_uids[:2]
         gid_a = some_valid_gids[0]
 
         test_cases = [
-            ("-a", None, True),      # -A -a should error
-            ("-d", None, True),      # -A -d should error
-            ("-u", str(uid_a), True), # -A -u should error
-            ("-g", str(gid_a), True), # -A -g should error
-            ("-e", "0", False),      # -A -e does NOT error (entries removed)
-            ("-p", "1", False),      # -A -p does NOT error (entries removed)
+            ("-a", None),      # -A -a should error
+            ("-d", None),      # -A -d should error
+            ("-u", str(uid_a)), # -A -u should error
+            ("-g", str(gid_a)), # -A -g should error
         ]
 
-        for option, value, expect_error in test_cases:
+        for option, value in test_cases:
             # Create fresh ACL for each test case
             create_result = QDocSE.acl_create().execute().ok()
             acl_id = create_result.parse()["acl_id"]
@@ -214,33 +214,48 @@ class TestACLRemoveAll:
             result = cmd.execute()
             result.ok()  # Command always succeeds
 
-            if expect_error:
-                assert "Other options are not allowed when using '-A'" in result.result.stderr, \
-                    f"Expected error for -A {option}"
-            else:
-                # No error expected for -e and -p
-                assert "Other options are not allowed when using '-A'" not in result.result.stderr
+            assert "Other options are not allowed when using '-A'" in result.result.stderr, \
+                f"Expected error for -A {option}"
 
             # Apply pending configuration
             QDocSE.push_config().execute().ok()
 
-            # Verify outcome
+            # Verify entries remain unchanged
             parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
             entries = parsed["acls"][0]["entries"]
+            assert len(entries) == 3, f"Entries removed for -A {option} when error expected"
+            user_entries = [e for e in entries if e.get("user") == uid_a]
+            deny_entries = [e for e in entries if e.get("user") == uid_b]
+            group_entries = [e for e in entries if e.get("group") == gid_a]
+            assert len(user_entries) == 1 and user_entries[0]["type"] == "Allow"
+            assert len(deny_entries) == 1 and deny_entries[0]["type"] == "Deny"
+            assert len(group_entries) == 1 and group_entries[0]["type"] == "Allow"
 
-            if expect_error:
-                # Entries should remain unchanged
-                assert len(entries) == 3, f"Entries removed for -A {option} when error expected"
-                # Verify all three entries present
-                user_entries = [e for e in entries if e.get("user") == uid_a]
-                deny_entries = [e for e in entries if e.get("user") == uid_b]
-                group_entries = [e for e in entries if e.get("group") == gid_a]
-                assert len(user_entries) == 1 and user_entries[0]["type"] == "Allow"
-                assert len(deny_entries) == 1 and deny_entries[0]["type"] == "Deny"
-                assert len(group_entries) == 1 and group_entries[0]["type"] == "Allow"
-            else:
-                # Entries should be removed (by -A)
-                assert entries == [], f"Entries not removed for -A {option}"
+
+    @pytest.mark.xfail(reason="Actual behavior: -A -e does not error, entries removed by -A")
+    def test_remove_all_with_entry_fails(self, acl_id, some_valid_uids):
+        """-A with -e should return error per docs.
+
+        Per spec: 'Other options not allow when using -A.'
+        """
+        uid = some_valid_uids[0]
+        QDocSE.acl_add(acl_id, user=uid, mode="r").execute().ok()
+
+        result = QDocSE.acl_remove(acl_id, all=True).entry(0).execute()
+        result.ok()
+        assert "Other options are not allowed when using '-A'" in result.result.stderr
+
+    @pytest.mark.xfail(reason="Actual behavior: -A -p does not error, entries removed by -A")
+    def test_remove_all_with_program_fails(self, program_acl):
+        """-A with -p should return error per docs.
+
+        Per spec: 'Other options not allow when using -A.'
+        """
+        acl_id = program_acl
+
+        result = QDocSE.acl_remove(acl_id, all=True).program(1).execute()
+        result.ok()
+        assert "Other options are not allowed when using '-A'" in result.result.stderr
 
 
 @pytest.mark.unit
@@ -363,6 +378,40 @@ class TestACLRemoveBySubject:
         parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
         assert parsed["acls"][0]["entries"] == []
 
+    def test_remove_by_user_id(self, acl_id, some_valid_uids):
+        """Remove entry by numeric user ID (-a -u <uid>).
+
+        Per checklist: specifying -u with a valid user ID removes the ACL entry.
+        Per docs: '-u option specifies the user name or user id'.
+        """
+        uid = some_valid_uids[0]
+        QDocSE.acl_add(acl_id, allow=True, user=uid, mode="r").execute().ok()
+
+        # Use numeric UID (not name)
+        QDocSE.acl_remove(acl_id).allow().user(str(uid)).execute().ok()
+
+        QDocSE.push_config().execute().ok()
+
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
+
+    def test_remove_by_group_id(self, acl_id, some_valid_gids):
+        """Remove entry by numeric group ID (-a -g <gid>).
+
+        Per checklist: specifying -g with a valid group ID removes the ACL entry.
+        Per docs: '-g option specifies the group name or group id'.
+        """
+        gid = some_valid_gids[0]
+        QDocSE.acl_add(acl_id, group=gid, mode="r").execute().ok()
+
+        # Use numeric GID (not name)
+        QDocSE.acl_remove(acl_id).allow().group(str(gid)).execute().ok()
+
+        QDocSE.push_config().execute().ok()
+
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
+
 
 @pytest.mark.unit
 class TestACLRemoveByProgram:
@@ -479,11 +528,15 @@ class TestACLRemoveErrors:
         result.ok()  # Negative ACL ID accepted, removal is no-op
         assert "Invalid ACL ID: -1." in result.result.stderr
 
+    @pytest.mark.xfail(reason="Actual behavior: succeeds with stderr no-op message, not a failure")
     def test_negative_entry(self, acl_id):
-        """Negative entry number succeeds (no match)."""
+        """Negative entry number should return error.
+
+        Per checklist: specifying a negative entry number with -e returns an error.
+        Actual: command succeeds (exit 0) with stderr 'No matching ACLs found to remove.'
+        """
         result = QDocSE.acl_remove(acl_id, entry=-1).execute()
-        result.ok()  # Negative entry number accepted, no match found
-        assert "No matching ACLs found to remove." in result.result.stderr
+        result.fail("Should fail for negative entry number")
 
     @pytest.mark.xfail(reason="temporary failure, will fix later")
     def test_invalid_user_id(self, acl_id):
@@ -514,6 +567,93 @@ class TestACLRemoveErrors:
         """Invalid program index error."""
         result = QDocSE.acl_remove(acl_id).program(999999).execute()
         result.fail("Should fail for invalid program index")
+
+    def test_no_parameters(self):
+        """acl_remove with no parameters returns error.
+
+        Per checklist: running acl_remove without parameters returns an error
+        indicating required parameters are missing.
+        """
+        result = QDocSE.acl_remove().execute()
+        result.fail("Should fail without any parameters")
+        result.contains("Missing required")
+
+    def test_acl_id_zero(self):
+        """ACL ID 0 should return error.
+
+        Per checklist: specifying 0 as ACL ID with -i returns an error.
+        """
+        result = QDocSE.acl_remove(0, entry=0).execute()
+        result.ok()
+        assert "Invalid ACL ID: 0." in result.result.stderr
+
+    def test_non_digit_acl_id(self):
+        """Non-digit ACL ID should return error.
+
+        Per checklist: specifying a non-digit string as ACL ID with -i returns an error.
+        """
+        cmd = QDocSE.acl_remove()
+        cmd.args.extend(["-i", "abc"])
+        result = cmd.execute()
+        result.fail("Should fail for non-digit ACL ID")
+
+    @pytest.mark.xfail(reason="Actual behavior: entry 0 accepted (0-based indexing)")
+    def test_entry_zero_error(self, acl_id, some_valid_uids):
+        """Entry 0 should return error per docs.
+
+        Per checklist: specifying 0 as entry number with -e returns an error.
+        Docs say entry numbers come from acl_list (1-based).
+        Actual: implementation uses 0-based indexing, entry 0 is valid.
+        """
+        uid = some_valid_uids[0]
+        QDocSE.acl_add(acl_id, user=uid, mode="r").execute().ok()
+
+        result = QDocSE.acl_remove(acl_id, entry=0).execute()
+        result.fail("Should fail for entry number 0")
+
+    def test_non_digit_entry(self, acl_id):
+        """Non-digit entry number should return error.
+
+        Per checklist: specifying a non-digit string as entry number with -e returns an error.
+        """
+        cmd = QDocSE.acl_remove(acl_id)
+        cmd.args.extend(["-e", "abc"])
+        result = cmd.execute()
+        result.fail("Should fail for non-digit entry number")
+
+    def test_program_index_zero(self, acl_id):
+        """Program index 0 should return error.
+
+        Per checklist: specifying 0 as program index with -p returns an error.
+        """
+        result = QDocSE.acl_remove(acl_id).allow().program(0).execute()
+        result.fail("Should fail for program index 0")
+
+    def test_negative_program_index(self, acl_id):
+        """Negative program index should return error.
+
+        Per checklist: specifying a negative program index with -p returns an error.
+        """
+        result = QDocSE.acl_remove(acl_id).allow().program(-1).execute()
+        result.fail("Should fail for negative program index")
+
+    def test_non_digit_program_index(self, acl_id):
+        """Non-digit program index should return error.
+
+        Per checklist: specifying a non-digit string as program index with -p returns an error.
+        """
+        cmd = QDocSE.acl_remove(acl_id)
+        cmd.args.extend(["-a", "-p", "abc"])
+        result = cmd.execute()
+        result.fail("Should fail for non-digit program index")
+
+    @pytest.mark.xfail(reason="Cannot simulate insufficient permissions in test environment")
+    def test_insufficient_permissions(self):
+        """Command should fail without sufficient permissions.
+
+        Per checklist: command fails when executed without sufficient permissions.
+        """
+        pytest.skip("Cannot simulate insufficient permissions")
 
 
 @pytest.mark.unit
@@ -554,6 +694,67 @@ class TestACLRemoveChaining:
             .ok())
 
         # Apply pending configuration
+        QDocSE.push_config().execute().ok()
+
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
+
+
+@pytest.mark.unit
+class TestACLRemoveSequential:
+    """Sequential removal and idempotency tests."""
+
+    def test_remove_already_removed_entry(self, acl_id, some_valid_uids):
+        """Removing an already-removed entry should return error.
+
+        Per checklist: attempting to remove an already-removed entry returns an error.
+        """
+        uid = some_valid_uids[0]
+        QDocSE.acl_add(acl_id, user=uid, mode="r").execute().ok()
+
+        # First removal succeeds
+        QDocSE.acl_remove(acl_id, entry=0).execute().ok()
+        QDocSE.push_config().execute().ok()
+
+        # Verify entry is gone
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        assert parsed["acls"][0]["entries"] == []
+
+        # Second removal of same entry should indicate error/no-op
+        result = QDocSE.acl_remove(acl_id, entry=0).execute()
+        result.ok()
+        assert "No matching ACLs found to remove." in result.result.stderr
+
+    def test_sequential_removes(self, acl_id, some_valid_uids):
+        """Multiple sequential removes behave consistently.
+
+        Per checklist: multiple valid acl_remove commands executed sequentially
+        behave consistently.
+        """
+        uid_a, uid_b, uid_c = some_valid_uids[:3]
+        QDocSE.acl_add(acl_id, user=uid_a, mode="r").execute().ok()
+        QDocSE.acl_add(acl_id, user=uid_b, mode="w").execute().ok()
+        QDocSE.acl_add(acl_id, user=uid_c, mode="x").execute().ok()
+
+        # Remove entries one by one (always entry 0 since list renumbers)
+        QDocSE.acl_remove(acl_id, entry=0).execute().ok()
+        QDocSE.push_config().execute().ok()
+
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 2
+        assert entries[0]["user"] == uid_b
+        assert entries[1]["user"] == uid_c
+
+        QDocSE.acl_remove(acl_id, entry=0).execute().ok()
+        QDocSE.push_config().execute().ok()
+
+        parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
+        entries = parsed["acls"][0]["entries"]
+        assert len(entries) == 1
+        assert entries[0]["user"] == uid_c
+
+        QDocSE.acl_remove(acl_id, entry=0).execute().ok()
         QDocSE.push_config().execute().ok()
 
         parsed = QDocSE.acl_list(acl_id).execute().ok().parse()
