@@ -1,0 +1,456 @@
+Complete Test Case List for acl_create Command
+1. Basic Functionality Tests
+1.1 Successful Creation Tests
+
+TC-001: Execute QDocSEConsole -c acl_create with no existing ACLs → Expected: Success, displays ACL ID 1
+TC-002: Execute QDocSEConsole -c acl_create with 1 existing ACL → Expected: Success, displays ACL ID 2
+TC-003: Execute QDocSEConsole -c acl_create with 5 existing ACLs → Expected: Success, displays next available ID
+TC-004: Execute QDocSEConsole -c acl_create with 10 existing ACLs → Expected: Success, displays next available ID
+TC-005: Execute QDocSEConsole -c acl_create with 100 existing ACLs → Expected: Success, displays next available ID
+TC-006: Execute command multiple times sequentially → Expected: Each succeeds with incrementing IDs
+
+1.2 ACL ID Allocation Tests
+
+TC-007: Verify first ACL created gets ID 1 → Expected: ID = 1
+TC-008: Verify second ACL created gets ID 2 → Expected: ID = 2
+TC-009: Create ACL, delete it, create new ACL → Expected: New ACL gets next ID (not reused)
+TC-010: Create 5 ACLs, delete ACL ID 3, create new ACL → Expected: New ACL gets ID 6 (not 3)
+TC-011: Create ACL, delete all ACLs, create new ACL → Expected: IDs continue incrementing (not reset to 1)
+TC-012: Verify ACL ID is a positive integer → Expected: ID > 0
+TC-013: Verify ACL ID is displayed on successful creation → Expected: ID shown in output
+
+1.3 Empty ACL Verification Tests
+
+TC-014: Create ACL and verify it has 0 entries → Expected: Empty ACL
+TC-015: Create ACL and immediately list it → Expected: Shows ACL with no entries
+TC-016: Create ACL and verify it can accept entries → Expected: Can add entries with acl_add
+
+2. Command Options and Syntax Tests
+2.1 No Options Tests (As Documented)
+
+TC-017: Execute QDocSEConsole -c acl_create with no options → Expected: Success
+TC-018: Execute with extra spaces QDocSEConsole  -c  acl_create → Expected: Success
+TC-019: Execute with tabs between options → Expected: Success
+
+2.2 Invalid Options Tests
+
+TC-020: Execute QDocSEConsole -c acl_create -i 1 (unsupported option) → Expected: Error or ignored
+TC-021: Execute QDocSEConsole -c acl_create -a (unsupported option) → Expected: Error or ignored
+TC-022: Execute QDocSEConsole -c acl_create -m rw (unsupported option) → Expected: Error or ignored
+TC-023: Execute QDocSEConsole -c acl_create -u ted (unsupported option) → Expected: Error or ignored
+TC-024: Execute QDocSEConsole -c acl_create -x (unknown option) → Expected: Error or ignored
+TC-025: Execute QDocSEConsole -c acl_create --option (long option) → Expected: Error or ignored
+TC-026: Execute with random parameters after command → Expected: Error or ignored
+
+2.3 Help Option Tests
+
+TC-027: Execute QDocSEConsole -c acl_create -h → Expected: Display help text
+TC-028: Execute QDocSEConsole -c acl_create --help → Expected: Display help or error
+TC-029: Execute QDocSEConsole -c acl_create -? → Expected: Display help or error
+TC-030: Verify help output matches documented behavior → Expected: Consistent
+
+3. System State and Prerequisites Tests
+3.1 ACL Configuration File Tests
+
+TC-031: Execute when no ACL configuration file exists → Expected: Create file and ACL, or error
+TC-032: Execute when ACL configuration file exists → Expected: Success, add to existing
+TC-033: Execute when ACL configuration file is empty → Expected: Success, create first ACL
+TC-034: Execute when ACL configuration file is corrupted → Expected: Error with clear message
+TC-035: Execute when ACL configuration file is read-only → Expected: Error (cannot write)
+TC-036: Execute when ACL configuration file has invalid permissions → Expected: Error
+TC-037: Execute when directory for ACL configuration file doesn't exist → Expected: Error or create directory
+
+3.2 Active Mode Tests
+
+TC-038: Execute in Elevated mode → Expected: Success
+TC-039: Execute in Learning mode → Expected: Success
+TC-040: Execute in both Elevated and Learning modes → Expected: Success
+TC-041: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+TC-042: Execute in Normal mode → Expected: Error
+TC-043: Execute in different mode and verify error message → Expected: Clear mode error
+
+3.3 License Tests
+
+TC-044: Execute with License type A → Expected: Success
+TC-045: Execute without License type A → Expected: Error (license check)
+TC-046: Execute with expired License type A → Expected: Error
+TC-047: Execute with invalid license → Expected: Error
+TC-048: Execute with License type B/C/D (not A) → Expected: Error
+TC-049: Execute with no license → Expected: Error
+
+3.4 Permission Tests
+
+TC-050: Execute as root user → Expected: Success
+TC-051: Execute as non-root user with sufficient permissions → Expected: Success or error
+TC-052: Execute as non-root user without permissions → Expected: Error (permission denied)
+TC-053: Execute with sudo → Expected: Success
+TC-054: Execute with different user/group ownership → Expected: Success or error based on permissions
+
+4. Output Validation Tests
+4.1 Output Format Tests
+
+TC-055: Verify output contains the new ACL ID → Expected: ID displayed
+TC-056: Verify output format is clear and parsable → Expected: Consistent format
+TC-057: Verify output is on stdout (not stderr) → Expected: Stdout
+TC-058: Verify output contains only the ID (or ID with message) → Expected: Clean output
+TC-059: Verify output can be captured by shell redirection → Expected: Captured successfully
+TC-060: Verify output is consistent across multiple executions → Expected: Same format
+
+4.2 Output Content Tests
+
+TC-061: Verify displayed ID matches actual created ACL ID → Expected: Match
+TC-062: Verify output includes success indicator → Expected: Clear success
+TC-063: Verify output is human-readable → Expected: Clear message
+TC-064: Parse output to extract ACL ID programmatically → Expected: Parsable
+
+4.3 Verbose and Quiet Mode Tests (if applicable)
+
+TC-065: Execute with verbose flag (if exists) → Expected: More detailed output or error
+TC-066: Execute with quiet flag (if exists) → Expected: Minimal output or error
+TC-067: Execute with debug flag (if exists) → Expected: Debug information or error
+
+5. Boundary and Limit Tests
+5.1 ACL Count Limits
+
+TC-068: Create ACL when 0 ACLs exist → Expected: Success
+TC-069: Create ACL when 10 ACLs exist → Expected: Success
+TC-070: Create ACL when 100 ACLs exist → Expected: Success
+TC-071: Create ACL when 1000 ACLs exist → Expected: Success or approaching limit warning
+TC-072: Create ACL when 10000 ACLs exist → Expected: Success or limit error
+TC-073: Create ACL at maximum allowed ACLs → Expected: Success or error
+TC-074: Create ACL beyond maximum allowed ACLs → Expected: Error (limit reached)
+TC-075: Verify system handles maximum ACL ID value → Expected: Success or limit error
+
+5.2 ACL ID Range Tests
+
+TC-076: Verify first ACL ID is 1 (positive integer) → Expected: ID = 1
+TC-077: Verify ACL IDs increment sequentially → Expected: 1, 2, 3, 4...
+TC-078: Create ACLs until ID reaches large value (e.g., 10000) → Expected: Success
+TC-079: Test behavior at maximum integer value for ID → Expected: Error or wraparound handling
+TC-080: Verify ACL ID never becomes 0 → Expected: ID always > 0
+TC-081: Verify ACL ID never becomes negative → Expected: ID always positive
+
+5.3 Resource Limit Tests
+
+TC-082: Execute with low disk space → Expected: Error with clear message
+TC-083: Execute with minimal free disk space for one ACL → Expected: Success
+TC-084: Execute with no free disk space → Expected: Error (no space)
+TC-085: Execute with low memory → Expected: Success or graceful error
+TC-086: Execute with very large ACL configuration file → Expected: Success or performance degradation
+
+6. Concurrent and Sequential Execution Tests
+6.1 Sequential Execution Tests
+
+TC-087: Create 2 ACLs sequentially → Expected: Both succeed, IDs 1 and 2
+TC-088: Create 5 ACLs sequentially → Expected: All succeed, IDs 1-5
+TC-089: Create 10 ACLs rapidly in sequence → Expected: All succeed, sequential IDs
+TC-090: Create 100 ACLs in a loop → Expected: All succeed, sequential IDs
+TC-091: Create ACL, perform other operations, create another ACL → Expected: IDs continue sequence
+
+6.2 Concurrent Execution Tests
+
+TC-092: Execute 2 commands simultaneously → Expected: Both succeed, different IDs
+TC-093: Execute 5 commands simultaneously → Expected: All succeed, unique IDs
+TC-094: Execute 10 commands simultaneously → Expected: All succeed, unique IDs, proper locking
+TC-095: Verify no duplicate ACL IDs assigned under concurrency → Expected: All IDs unique
+TC-096: Execute command while another command reads ACL list → Expected: Proper synchronization
+TC-097: Execute command while another command adds entries to different ACL → Expected: No conflict
+
+6.3 Race Condition Tests
+
+TC-098: Test race condition in ACL ID allocation → Expected: Proper locking prevents duplicates
+TC-099: Test race condition in file writes → Expected: Data integrity maintained
+TC-100: Test race condition with file creation → Expected: Only one process creates file
+
+7. Error Handling and Recovery Tests
+7.1 Error Message Tests
+
+TC-101: Trigger error and verify clear error message → Expected: Helpful error message
+TC-102: Verify error messages are consistent with documentation → Expected: Match documentation
+TC-103: Verify error messages don't leak sensitive information → Expected: Safe messages
+TC-104: Verify error messages suggest corrective action → Expected: Actionable guidance
+
+7.2 Recovery Tests
+
+TC-105: Execute after previous failed attempt → Expected: Success
+TC-106: Execute after system crash during ACL creation → Expected: Recover properly
+TC-107: Execute after incomplete ACL creation → Expected: Clean up and succeed
+TC-108: Execute after configuration file corruption → Expected: Error or repair
+TC-109: Verify ACL configuration file integrity after errors → Expected: Not corrupted
+
+7.3 Partial Failure Tests
+
+TC-110: Simulate disk full during ACL creation → Expected: Rollback and error
+TC-111: Simulate process termination during creation → Expected: Clean state
+TC-112: Simulate network interruption (if remote storage) → Expected: Proper error handling
+
+8. Integration with Other ACL Commands Tests
+8.1 Integration with acl_add
+
+TC-113: Create ACL, then add entry with acl_add → Expected: Both succeed
+TC-114: Create ACL, verify it can accept user entries → Expected: Success
+TC-115: Create ACL, verify it can accept group entries → Expected: Success
+TC-116: Create ACL, verify it can accept program entries → Expected: Success
+TC-117: Create multiple ACLs, add entries to each → Expected: All succeed
+
+8.2 Integration with acl_list
+
+TC-118: Create ACL, then list ACLs → Expected: New ACL appears in list
+TC-119: Create 5 ACLs, list all → Expected: All 5 appear with correct IDs
+TC-120: Create ACL, verify it appears as empty in list → Expected: Shows 0 entries
+
+8.3 Integration with acl_remove
+
+TC-121: Create ACL, add entries, remove entries → Expected: All succeed
+TC-122: Create ACL, verify it can have entries removed → Expected: Success
+
+8.4 Integration with acl_edit
+
+TC-123: Create ACL, add entries, edit entries → Expected: All succeed
+TC-124: Create ACL, verify it can be edited → Expected: Success
+
+8.5 Integration with acl_destroy (or delete)
+
+TC-125: Create ACL, destroy it → Expected: Both succeed
+TC-126: Create ACL ID 1, destroy it, create new ACL → Expected: New ACL gets ID 2 (not reused)
+TC-127: Create 5 ACLs, destroy ID 3, create new ACL → Expected: New ACL gets ID 6
+TC-128: Verify destroyed ACL IDs are never reused → Expected: IDs never reused
+
+8.6 Integration with protect Command
+
+TC-129: Create ACL, apply to protected file → Expected: Both succeed
+TC-130: Create ACL, verify it can be assigned to files → Expected: Success
+
+9. Performance Tests
+9.1 Execution Time Tests
+
+TC-131: Measure execution time for single ACL creation → Expected: < defined threshold (e.g., 100ms)
+TC-132: Measure execution time with 0 existing ACLs → Expected: Baseline time
+TC-133: Measure execution time with 100 existing ACLs → Expected: Acceptable performance
+TC-134: Measure execution time with 1000 existing ACLs → Expected: Acceptable performance
+TC-135: Compare execution time: first ACL vs 100th ACL → Expected: Similar performance
+
+9.2 Scalability Tests
+
+TC-136: Create 100 ACLs and measure total time → Expected: Linear scaling
+TC-137: Create 1000 ACLs and measure total time → Expected: Acceptable scaling
+TC-138: Verify performance doesn't degrade with ACL count → Expected: Stable performance
+
+9.3 Stress Tests
+
+TC-139: Create ACLs continuously for 1 minute → Expected: All succeed
+TC-140: Create ACLs continuously for 10 minutes → Expected: All succeed, no memory leak
+TC-141: Create 10000 ACLs in rapid succession → Expected: Success or clear limit message
+
+10. Documentation and Examples Tests
+10.1 Documentation Example Tests
+
+TC-142: Execute example from documentation exactly as written → Expected: Success
+TC-143: Execute example from help output: QDocSEConsole -c acl_create → Expected: Success
+TC-144: Verify example produces expected result → Expected: Creates ACL with new ID
+
+10.2 Documentation Consistency Tests
+
+TC-145: Verify all documented behavior matches actual behavior → Expected: Consistent
+TC-146: Verify help output matches documentation → Expected: Consistent
+TC-147: Verify "no options" statement is accurate → Expected: No options accepted
+TC-148: Verify "empty of entries" claim → Expected: Created ACL has 0 entries
+TC-149: Verify "ACL ID not reused" claim → Expected: IDs never reused after deletion
+TC-150: Verify "displays new ACL ID value" claim → Expected: ID displayed on success
+
+10.3 Notes Section Validation
+
+TC-151: Verify "allocated ACL ID is the next available one" → Expected: Sequential allocation
+TC-152: Verify "ACL IDs must be created before use" → Expected: Cannot use non-existent IDs
+TC-153: Test using ACL ID before creation with acl_add → Expected: Error
+TC-154: Test using non-existent ACL ID with other commands → Expected: Error
+
+11. Command Line and Shell Integration Tests
+11.1 Shell Integration Tests
+
+TC-155: Execute from bash shell → Expected: Success
+TC-156: Execute from sh shell → Expected: Success
+TC-157: Execute from zsh shell → Expected: Success
+TC-158: Execute from csh/tcsh shell → Expected: Success
+TC-159: Execute in shell script → Expected: Success
+TC-160: Capture output in shell variable → Expected: Success
+TC-161: Use command in pipeline → Expected: Success
+TC-162: Redirect output to file → Expected: Success
+
+11.2 Exit Code Tests
+
+TC-163: Verify exit code 0 on success → Expected: Exit code = 0
+TC-164: Verify non-zero exit code on failure → Expected: Exit code ≠ 0
+TC-165: Verify consistent exit codes for same error → Expected: Same code
+TC-166: Test exit code in shell conditional → Expected: Proper boolean result
+
+11.3 Scripting Tests
+
+TC-167: Use command in bash script with error checking → Expected: Works correctly
+TC-168: Parse output to extract ACL ID in script → Expected: Parsable
+TC-169: Use command in loop to create multiple ACLs → Expected: All succeed
+TC-170: Handle errors gracefully in script → Expected: Proper error handling
+
+12. Edge Cases and Special Scenarios
+12.1 Unusual System States
+
+TC-171: Execute immediately after system boot → Expected: Success
+TC-172: Execute during high system load → Expected: Success (may be slower)
+TC-173: Execute with full process table → Expected: Success or clear error
+TC-174: Execute with low available file descriptors → Expected: Success or clear error
+TC-175: Execute on system with unusual locale settings → Expected: Success
+
+12.2 File System Edge Cases
+
+TC-176: Execute on full file system → Expected: Error (no space)
+TC-177: Execute on read-only file system → Expected: Error (read-only)
+TC-178: Execute on file system with no write permissions → Expected: Error
+TC-179: Execute on NFS/network file system → Expected: Success (with locking)
+TC-180: Execute on file system with different mount options → Expected: Success
+
+12.3 Special Characters and Encoding
+
+TC-181: Execute with non-ASCII locale → Expected: Success
+TC-182: Execute with UTF-8 locale → Expected: Success
+TC-183: Verify ACL configuration file encoding → Expected: Consistent encoding
+TC-184: Test with different system character encodings → Expected: Success
+
+13. Regression Tests
+13.1 Version Compatibility
+
+TC-185: Verify ACLs created in current version work with all features → Expected: Full compatibility
+TC-186: Test upgrade scenario from previous version → Expected: Smooth upgrade
+TC-187: Verify ACL ID sequence continues after upgrade → Expected: No ID reuse or reset
+
+13.2 Previously Fixed Issues
+
+TC-188: Test any previously reported bugs are fixed → Expected: No regression
+TC-189: Test edge cases from previous versions → Expected: Works correctly
+TC-190: Verify critical bugs don't reappear → Expected: Stable
+
+14. Security Tests
+14.1 Access Control Tests
+
+TC-191: Verify only authorized users can create ACLs → Expected: Access control enforced
+TC-192: Test privilege escalation attempts → Expected: Blocked
+TC-193: Verify ACL configuration file has proper permissions → Expected: Secure permissions
+TC-194: Test creating ACL as different users → Expected: Proper authorization
+
+14.2 Input Validation Tests
+
+TC-195: Test command injection attempts in parameters → Expected: Blocked/escaped
+TC-196: Test buffer overflow with long command line → Expected: Handled safely
+TC-197: Test malicious input patterns → Expected: Rejected or sanitized
+TC-198: Verify no SQL injection vulnerabilities (if database backed) → Expected: Protected
+
+14.3 Audit and Logging Tests
+
+TC-199: Verify ACL creation is logged (if applicable) → Expected: Logged
+TC-200: Verify audit trail includes timestamp and user → Expected: Complete audit info
+TC-201: Test audit log integrity → Expected: Cannot be tampered
+
+15. Compatibility Tests
+15.1 Platform Tests
+
+TC-202: Execute on 64-bit Linux → Expected: Success
+TC-203: Execute on 32-bit Linux (if supported) → Expected: Success
+TC-204: Execute on different Linux distributions (RHEL, Ubuntu, SUSE) → Expected: Success
+TC-205: Execute on different kernel versions → Expected: Success
+
+15.2 Filesystem Tests
+
+TC-206: Execute on ext4 filesystem → Expected: Success
+TC-207: Execute on xfs filesystem → Expected: Success
+TC-208: Execute on btrfs filesystem → Expected: Success
+TC-209: Execute on nfs filesystem → Expected: Success with proper locking
+
+16. Usability Tests
+16.1 User Experience Tests
+
+TC-210: Verify command is easy to execute for new users → Expected: Simple usage
+TC-211: Verify output is clear and understandable → Expected: Clear communication
+TC-212: Verify help text is helpful → Expected: Useful guidance
+TC-213: Verify error messages guide user to solution → Expected: Actionable errors
+
+16.2 Common Usage Patterns
+
+TC-214: Create ACL → Add entries → Apply to files workflow → Expected: Smooth workflow
+TC-215: Create multiple ACLs for different policies → Expected: Easy to manage
+TC-216: Create ACL as part of automated provisioning → Expected: Automation-friendly
+
+17. Idempotency and State Tests
+17.1 State Consistency Tests
+
+TC-217: Verify system state is consistent after ACL creation → Expected: Consistent
+TC-218: Verify ACL configuration file is valid after creation → Expected: Valid format
+TC-219: Verify no temporary files left after successful creation → Expected: Clean
+TC-220: Verify no temporary files left after failed creation → Expected: Clean
+
+17.2 Repeatability Tests
+
+TC-221: Execute command 10 times, verify all succeed → Expected: 10 ACLs created
+TC-222: Verify each execution produces unique ACL ID → Expected: All unique
+TC-223: Verify repeated executions don't corrupt configuration → Expected: No corruption
+
+
+Test Summary
+Total Test Cases: 223
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-016, TC-031 to TC-049, TC-055 to TC-061, TC-113 to TC-128, TC-142 to TC-154 (85 test cases)
+
+Core functionality
+System prerequisites
+Basic output validation
+Integration with other ACL commands
+Documentation compliance
+
+
+P1 (High): TC-017 to TC-030, TC-050 to TC-054, TC-062 to TC-067, TC-087 to TC-100, TC-163 to TC-170, TC-191 to TC-201 (70 test cases)
+
+Command syntax and options
+Permissions
+Concurrent execution
+Scripting integration
+Security tests
+
+
+P2 (Medium): TC-068 to TC-086, TC-101 to TC-112, TC-129 to TC-141, TC-155 to TC-162, TC-171 to TC-190, TC-210 to TC-216 (68 test cases)
+
+Boundary and limit tests
+Error handling
+Performance tests
+Shell integration
+Edge cases
+Usability
+
+
+P3 (Low): TC-202 to TC-223 (22 test cases)
+
+Platform compatibility
+State consistency
+Repeatability
+
+
+
+Test Coverage:
+
+✅ Basic ACL creation functionality
+✅ ACL ID allocation and sequencing
+✅ No-reuse of destroyed ACL IDs
+✅ Empty ACL verification
+✅ Command syntax (no options)
+✅ Invalid option handling
+✅ System state and prerequisites (modes, license, permissions)
+✅ Output format and content validation
+✅ Boundary and limit tests
+✅ Concurrent and sequential execution
+✅ Error handling and recovery
+✅ Integration with other ACL commands
+✅ Performance and scalability
+✅ Documentation and examples validation
+✅ Shell integration and scripting
+✅ Edge cases and special scenarios
+✅ Security and access control
+✅ Platform and filesystem compatibility
+✅ Usability and user experience

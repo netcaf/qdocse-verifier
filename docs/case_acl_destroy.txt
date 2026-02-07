@@ -1,0 +1,529 @@
+Complete Test Case List for acl_destroy Command
+1. Required Options Tests
+1.1 ACL ID (-i) Tests
+
+TC-001: Execute without -i option → Expected: Error "Missing required '-i' option"
+TC-002: Execute with valid existing ACL ID → Expected: Success (if empty)
+TC-003: Execute with valid ACL ID (numeric) → Expected: Success (if empty)
+TC-004: Execute with invalid ACL ID (non-existent) → Expected: Error "X is not a valid ACL ID"
+TC-005: Execute with ACL ID = 0 → Expected: Error "X is not a valid ACL ID"
+TC-006: Execute with negative ACL ID → Expected: Error "X is not a valid ACL ID"
+TC-007: Execute with non-numeric ACL ID → Expected: Error
+TC-008: Execute with ACL ID that was previously destroyed → Expected: Error "X is not a valid ACL ID"
+TC-009: Execute with very large ACL ID (non-existent) → Expected: Error "X is not a valid ACL ID"
+TC-010: Execute with -i without value → Expected: Error
+TC-011: Execute with empty ACL ID -i "" → Expected: Error
+TC-012: Execute with -i specified twice → Expected: Error or use last value
+
+1.2 Force Option (-f) Tests
+
+TC-013: Execute without -f on empty ACL → Expected: Success
+TC-014: Execute without -f on ACL with entries → Expected: Error "ACL ID X's ACL list is not empty"
+TC-015: Execute with -f on empty ACL → Expected: Success
+TC-016: Execute with -f on ACL with 1 entry → Expected: Success (removes entry and destroys)
+TC-017: Execute with -f on ACL with 5 entries → Expected: Success (removes all and destroys)
+TC-018: Execute with -f on ACL with 100 entries → Expected: Success (removes all and destroys)
+TC-019: Execute with -f specified twice → Expected: Success or error
+TC-020: Execute with -f and value -f yes → Expected: Error or ignore value
+
+1.3 Option Order Tests
+
+TC-021: Execute with -i 1 -f → Expected: Success
+TC-022: Execute with -f -i 1 → Expected: Success
+TC-023: Execute with options in random order → Expected: Success
+
+2. Basic Functionality Tests
+2.1 Destroying Empty ACLs
+
+TC-024: Create ACL, destroy it immediately (no entries) → Expected: Success
+TC-025: Create ACL, verify it's empty, destroy it → Expected: Success
+TC-026: Destroy ACL with 0 entries without -f → Expected: Success
+TC-027: Destroy ACL ID 1 (first ACL) → Expected: Success
+TC-028: Destroy ACL ID 10 (middle ACL) → Expected: Success
+TC-029: Destroy last created ACL → Expected: Success
+
+2.2 Destroying ACLs with Entries (Without -f)
+
+TC-030: Create ACL, add 1 entry, destroy without -f → Expected: Error "ACL ID X's ACL list is not empty"
+TC-031: Create ACL, add 5 entries, destroy without -f → Expected: Error "ACL ID X's ACL list is not empty"
+TC-032: Create ACL, add user entry, destroy without -f → Expected: Error
+TC-033: Create ACL, add group entry, destroy without -f → Expected: Error
+TC-034: Create ACL, add program entry, destroy without -f → Expected: Error
+TC-035: Create ACL, add allow entry, destroy without -f → Expected: Error
+TC-036: Create ACL, add deny entry, destroy without -f → Expected: Error
+TC-037: Create ACL with 100 entries, destroy without -f → Expected: Error
+
+2.3 Destroying ACLs with Entries (With -f)
+
+TC-038: Create ACL, add 1 entry, destroy with -f → Expected: Success
+TC-039: Create ACL, add 5 entries, destroy with -f → Expected: Success
+TC-040: Create ACL, add 100 entries, destroy with -f → Expected: Success
+TC-041: Create ACL, add user entry, destroy with -f → Expected: Success
+TC-042: Create ACL, add group entry, destroy with -f → Expected: Success
+TC-043: Create ACL, add program entry, destroy with -f → Expected: Success
+TC-044: Create ACL, add allow entry, destroy with -f → Expected: Success
+TC-045: Create ACL, add deny entry, destroy with -f → Expected: Success
+TC-046: Create ACL with mixed entry types, destroy with -f → Expected: Success
+TC-047: Create ACL with time-based entries, destroy with -f → Expected: Success
+
+2.4 ACL ID Non-Reuse Tests
+
+TC-048: Create ACL ID 1, destroy it, create new ACL → Expected: New ACL gets ID 2 (not 1)
+TC-049: Create ACL IDs 1-5, destroy ID 3, create new ACL → Expected: New ACL gets ID 6 (not 3)
+TC-050: Create ACL, destroy it, verify ID cannot be used with acl_add → Expected: Error
+TC-051: Create ACL, destroy it, verify ID cannot be used with acl_list → Expected: Error or not shown
+TC-052: Create 10 ACLs, destroy all, create new ACL → Expected: New ACL gets ID 11
+TC-053: Destroy ACL ID 5, attempt to destroy ID 5 again → Expected: Error "X is not a valid ACL ID"
+TC-054: Create, destroy, verify ID shows as invalid in system → Expected: Invalid
+
+2.5 Sequential Destroy Tests
+
+TC-055: Destroy 2 ACLs sequentially → Expected: Both succeed
+TC-056: Destroy 5 ACLs sequentially → Expected: All succeed
+TC-057: Destroy all ACLs in system → Expected: All succeed
+TC-058: Create 10 ACLs, destroy them in order (1-10) → Expected: All succeed
+TC-059: Create 10 ACLs, destroy them in reverse order (10-1) → Expected: All succeed
+TC-060: Create 10 ACLs, destroy them in random order → Expected: All succeed
+
+3. System State and Prerequisites Tests
+3.1 ACL Configuration File Tests
+
+TC-061: Execute when no ACL configuration file exists → Expected: Error "No ACL configuration file found"
+TC-062: Execute when ACL configuration file exists with ACLs → Expected: Success
+TC-063: Execute when ACL configuration file is empty → Expected: Error
+TC-064: Execute when ACL configuration file is corrupted → Expected: Error
+TC-065: Execute when ACL configuration file is read-only → Expected: Error (cannot write)
+TC-066: Verify ACL configuration file is updated after destroy → Expected: Updated correctly
+TC-067: Destroy last ACL in configuration file → Expected: Success, file updated
+
+3.2 Active Mode Tests
+
+TC-068: Execute in Elevated mode → Expected: Success
+TC-069: Execute in Learning mode → Expected: Success
+TC-070: Execute in both Elevated and Learning modes → Expected: Success
+TC-071: Execute in neither Elevated nor Learning mode → Expected: Error (wrong mode)
+TC-072: Execute in Normal mode → Expected: Error
+TC-073: Verify error message for wrong mode → Expected: Clear mode error
+
+3.3 License Tests
+
+TC-074: Execute with License type A → Expected: Success
+TC-075: Execute without License type A → Expected: Error
+TC-076: Execute with expired License type A → Expected: Error
+TC-077: Execute with invalid license → Expected: Error
+TC-078: Execute with License type B/C/D (not A) → Expected: Error
+
+3.4 Permission Tests
+
+TC-079: Execute as root user → Expected: Success
+TC-080: Execute as non-root user with sufficient permissions → Expected: Success or error
+TC-081: Execute as non-root user without permissions → Expected: Error
+TC-082: Execute with sudo → Expected: Success
+
+4. Integration with Other ACL Commands Tests
+4.1 Integration with acl_create
+
+TC-083: Create ACL, destroy it, create another → Expected: All succeed
+TC-084: Create 5 ACLs, destroy 3, create 2 more → Expected: All succeed, correct IDs
+TC-085: Verify destroyed ACL IDs not reused by acl_create → Expected: New IDs used
+
+4.2 Integration with acl_add
+
+TC-086: Create ACL, add entry, destroy with -f → Expected: Success
+TC-087: Create ACL, add entry, try destroy without -f → Expected: Error
+TC-088: Create ACL, destroy it, attempt to add entry to destroyed ID → Expected: Error
+TC-089: Create 2 ACLs, add entries to both, destroy one → Expected: Other ACL unaffected
+
+4.3 Integration with acl_remove
+
+TC-090: Create ACL, add entries, remove all, destroy → Expected: Success (empty ACL)
+TC-091: Create ACL, add 5 entries, remove 3, destroy without -f → Expected: Error (2 entries remain)
+TC-092: Create ACL, add 5 entries, remove all, destroy with -f → Expected: Success
+TC-093: Verify acl_remove then destroy workflow → Expected: Clean workflow
+
+4.4 Integration with acl_list
+
+TC-094: Create ACL, list it, destroy it, list again → Expected: ACL not in second list
+TC-095: Destroy ACL, verify it's removed from acl_list output → Expected: Not shown
+TC-096: Create 10 ACLs, destroy 5, verify acl_list shows only 5 → Expected: Correct count
+
+4.5 Integration with acl_edit
+
+TC-097: Create ACL, add entries, edit entries, destroy with -f → Expected: Success
+TC-098: Create ACL, destroy it, attempt to edit destroyed ID → Expected: Error
+
+4.6 Integration with protect Command
+
+TC-099: Create ACL, apply to file, destroy ACL → Expected: Test file protection behavior
+TC-100: Create ACL, apply to file, destroy with -f → Expected: Test file protection behavior
+TC-101: Create ACL with entries, apply to file, destroy ACL → Expected: Verify protection state
+TC-102: Verify files protected by ACL behavior after ACL destroy → Expected: Protection removed or error
+
+4.7 Integration with acl_export
+
+TC-103: Create ACL, export, destroy, import → Expected: Test restoration
+TC-104: Export ACLs, destroy some, verify export still valid → Expected: Consistent state
+
+5. Error Message Validation Tests
+5.1 Required Error Messages
+
+TC-105: Verify "Missing required '-i' option" error → Expected: Exact error message
+TC-106: Verify "No ACL configuration file found" error → Expected: Exact error message
+TC-107: Verify "X is not a valid ACL ID" error format → Expected: Shows actual ID
+TC-108: Verify "ACL ID X's ACL list is not empty" error format → Expected: Shows actual ID
+TC-109: Verify error messages are clear and actionable → Expected: Helpful guidance
+
+5.2 Error Message Content
+
+TC-110: Verify error message suggests using -f when ACL not empty → Expected: Suggests solution
+TC-111: Verify error messages don't leak sensitive information → Expected: Safe messages
+TC-112: Verify error messages are consistent with documentation → Expected: Match docs
+
+6. Command Syntax and Help Tests
+6.1 Help Option Tests
+
+TC-113: Execute QDocSEConsole -c acl_destroy -h → Expected: Display help text
+TC-114: Execute QDocSEConsole -c acl_destroy --help → Expected: Display help or error
+TC-115: Execute QDocSEConsole -c acl_destroy -? → Expected: Display help or error
+TC-116: Verify help output matches documented options → Expected: Consistent
+
+6.2 Invalid Options Tests
+
+TC-117: Execute with unknown option -x → Expected: Error
+TC-118: Execute with invalid option combination → Expected: Error
+TC-119: Execute with extra parameters after valid options → Expected: Error or ignored
+TC-120: Execute with long option --force instead of -f → Expected: Error or success
+
+6.3 Command Line Parsing Tests
+
+TC-121: Execute with extra spaces between options → Expected: Success
+TC-122: Execute with tabs between options → Expected: Success
+TC-123: Execute with options in different order → Expected: Success
+TC-124: Execute with quoted parameters → Expected: Success
+TC-125: Execute with special shell characters → Expected: Handled properly
+
+7. Output Validation Tests
+7.1 Success Output Tests
+
+TC-126: Verify success message on destroy → Expected: Clear success indication
+TC-127: Verify output format is consistent → Expected: Standard format
+TC-128: Verify output mentions destroyed ACL ID → Expected: ID shown
+TC-129: Verify output is on stdout → Expected: Stdout, not stderr
+TC-130: Verify minimal/clean output → Expected: No unnecessary verbosity
+
+7.2 Verbose and Quiet Modes (if applicable)
+
+TC-131: Execute with verbose flag (if exists) → Expected: Detailed output or error
+TC-132: Execute with quiet flag (if exists) → Expected: Minimal output or error
+TC-133: Execute with debug flag (if exists) → Expected: Debug info or error
+
+8. Boundary and Edge Cases
+8.1 ACL State Edge Cases
+
+TC-134: Destroy ACL with exactly 1 entry without -f → Expected: Error
+TC-135: Destroy ACL with exactly 1 entry with -f → Expected: Success
+TC-136: Destroy ACL that's in use by protected files → Expected: Test behavior
+TC-137: Destroy ACL during entry addition (race condition) → Expected: Proper locking
+TC-138: Destroy ACL that's being edited → Expected: Proper locking or error
+
+8.2 Resource and Limit Tests
+
+TC-139: Destroy ACL with low disk space → Expected: Success (freeing space)
+TC-140: Destroy ACL with very large entry list using -f → Expected: Success
+TC-141: Destroy all ACLs (cleanup entire system) → Expected: All succeed
+TC-142: Destroy ACL with maximum allowed entries using -f → Expected: Success
+
+8.3 Timing and Sequence Tests
+
+TC-143: Create and destroy ACL immediately → Expected: Success
+TC-144: Create ACL, wait 1 hour, destroy → Expected: Success
+TC-145: Create ACL, add entries over time, destroy with -f → Expected: Success
+TC-146: Rapid create-destroy cycles → Expected: All succeed
+
+9. Concurrent Execution Tests
+9.1 Concurrent Destroy Tests
+
+TC-147: Execute destroy on 2 different ACLs simultaneously → Expected: Both succeed
+TC-148: Execute destroy on same ACL simultaneously → Expected: One succeeds, one errors
+TC-149: Execute destroy while acl_add is running on different ACL → Expected: Both succeed
+TC-150: Execute destroy while acl_list is running → Expected: Both succeed with proper locking
+
+9.2 Race Condition Tests
+
+TC-151: Test race condition: destroy vs add entry to same ACL → Expected: Proper locking
+TC-152: Test race condition: destroy vs list ACL → Expected: Consistent state
+TC-153: Test race condition: destroy vs apply ACL to file → Expected: Proper handling
+TC-154: Test race condition: destroy vs edit ACL → Expected: Proper locking
+
+9.3 Multi-User Tests
+
+TC-155: Two users destroy different ACLs simultaneously → Expected: Both succeed
+TC-156: Two users attempt to destroy same ACL → Expected: One succeeds, one errors
+TC-157: User A destroys while User B adds to different ACL → Expected: Both succeed
+
+10. Performance Tests
+10.1 Execution Time Tests
+
+TC-158: Measure time to destroy empty ACL → Expected: < threshold (e.g., 100ms)
+TC-159: Measure time to destroy ACL with 10 entries using -f → Expected: < threshold
+TC-160: Measure time to destroy ACL with 100 entries using -f → Expected: < threshold
+TC-161: Measure time to destroy ACL with 1000 entries using -f → Expected: Acceptable
+TC-162: Compare destroy time: empty vs with entries → Expected: Slight difference acceptable
+
+10.2 Scalability Tests
+
+TC-163: Destroy 100 ACLs sequentially, measure total time → Expected: Linear scaling
+TC-164: Destroy ACLs with increasing entry counts → Expected: Reasonable scaling
+TC-165: Stress test: destroy 1000 ACLs → Expected: All succeed
+
+10.3 Resource Usage Tests
+
+TC-166: Monitor memory usage during destroy → Expected: No memory leaks
+TC-167: Monitor CPU usage during destroy → Expected: Reasonable CPU usage
+TC-168: Monitor file descriptor usage → Expected: No leaks
+
+11. Documentation and Examples Tests
+11.1 Documentation Example Tests
+
+TC-169: Execute example 1 from help: QDocSEConsole -c acl_destroy -i 1 → Expected: Success
+TC-170: Execute example 2 from help: QDocSEConsole -c acl_destroy -f -i 2 → Expected: Success
+TC-171: Note: doc example shows acl_export instead of acl_destroy → Expected: Documentation error
+TC-172: Verify all examples work as documented → Expected: All succeed
+
+11.2 Documentation Consistency Tests
+
+TC-173: Verify "will destroy when there are no entries" claim → Expected: Correct behavior
+TC-174: Verify "-f option will force removal of entries" claim → Expected: Correct behavior
+TC-175: Verify "once destroyed it is invalid and can never be used again" → Expected: Correct
+TC-176: Verify "will fail if ACL has entries" without -f → Expected: Correct behavior
+TC-177: Compare documentation vs help output → Expected: Consistent (note: doc example is wrong)
+
+11.3 Notes Section Validation
+
+TC-178: Verify "command will fail if ACL has entries" → Expected: Correct without -f
+TC-179: Verify "-f option overrides this" → Expected: -f allows destroy with entries
+TC-180: Verify "once destroyed it is invalid and can never be used again" → Expected: ID not reused
+
+12. Workflow and Use Case Tests
+12.1 Common Workflows
+
+TC-181: Create ACL → Add entries → Remove entries → Destroy → Expected: Complete workflow
+TC-182: Create ACL → Add entries → Destroy with -f → Expected: Single-step cleanup
+TC-183: Create multiple ACLs → Use some → Destroy unused → Expected: Cleanup workflow
+TC-184: Create ACL → Apply to files → Remove from files → Destroy → Expected: Full lifecycle
+
+12.2 Error Recovery Workflows
+
+TC-185: Attempt destroy without -f → Get error → Retry with -f → Expected: Success
+TC-186: Attempt destroy invalid ID → Get error → Use correct ID → Expected: Success
+TC-187: Attempt destroy in wrong mode → Get error → Switch mode → Expected: Success
+
+12.3 Cleanup Scenarios
+
+TC-188: Clean up all test ACLs after testing → Expected: All destroyed
+TC-189: Clean up ACLs with mixed states (some empty, some with entries) → Expected: All destroyed
+TC-190: Clean up ACLs applied to files → Expected: Proper cleanup
+
+13. Data Integrity Tests
+13.1 Configuration File Integrity
+
+TC-191: Destroy ACL, verify configuration file is valid → Expected: Valid format
+TC-192: Destroy multiple ACLs, verify file integrity → Expected: No corruption
+TC-193: Destroy ACL, verify other ACLs unaffected → Expected: Other ACLs intact
+TC-194: Force destroy ACL with entries, verify clean removal → Expected: Entries removed properly
+
+13.2 State Consistency Tests
+
+TC-195: Destroy ACL, verify it's completely removed from system → Expected: Fully removed
+TC-196: Destroy ACL, verify no orphaned entries → Expected: Clean removal
+TC-197: Destroy ACL, verify no dangling references → Expected: No references remain
+TC-198: Destroy ACL applied to files, verify file states → Expected: Consistent state
+
+13.3 Rollback and Recovery Tests
+
+TC-199: Simulate failure during destroy → Expected: Rollback or consistent state
+TC-200: Test partial destroy failure → Expected: Proper error handling
+TC-201: Verify system consistency after destroy errors → Expected: No corruption
+
+14. Shell Integration and Scripting Tests
+14.1 Shell Integration Tests
+
+TC-202: Execute from bash script → Expected: Success
+TC-203: Execute in shell pipeline → Expected: Success
+TC-204: Capture exit code in script → Expected: Correct exit code (0=success)
+TC-205: Use in conditional statement → Expected: Proper boolean result
+TC-206: Redirect output to file → Expected: Output captured
+
+14.2 Scripting Use Cases
+
+TC-207: Script to destroy all ACLs in system → Expected: Script works correctly
+TC-208: Script to destroy ACLs matching criteria → Expected: Selective destroy works
+TC-209: Script with error handling for destroy → Expected: Proper error handling
+TC-210: Automated cleanup script using destroy → Expected: Automation works
+
+14.3 Exit Code Tests
+
+TC-211: Verify exit code 0 on success → Expected: Exit code = 0
+TC-212: Verify non-zero exit code on error → Expected: Exit code ≠ 0
+TC-213: Verify consistent exit codes for same error type → Expected: Same code
+TC-214: Verify different exit codes for different errors → Expected: Different codes (if applicable)
+
+15. Security Tests
+15.1 Access Control Tests
+
+TC-215: Verify only authorized users can destroy ACLs → Expected: Access control enforced
+TC-216: Test privilege escalation attempts → Expected: Blocked
+TC-217: Verify audit logging of ACL destruction (if applicable) → Expected: Logged
+TC-218: Test destroying ACL owned by different user → Expected: Proper authorization
+
+15.2 Input Validation Tests
+
+TC-219: Test command injection in ACL ID parameter → Expected: Blocked/escaped
+TC-220: Test SQL injection patterns (if database backed) → Expected: Protected
+TC-221: Test buffer overflow with malicious input → Expected: Handled safely
+TC-222: Test path traversal attempts → Expected: Blocked
+
+15.3 Audit and Logging Tests
+
+TC-223: Verify destroy operation is logged → Expected: Logged with timestamp
+TC-224: Verify log includes user and ACL ID → Expected: Complete audit trail
+TC-225: Verify forced destroy (with -f) is specially marked in logs → Expected: Flagged
+
+16. Regression Tests
+16.1 Previously Fixed Issues
+
+TC-226: Test any previously reported bugs are fixed → Expected: No regression
+TC-227: Test edge cases from previous versions → Expected: Works correctly
+TC-228: Verify critical bugs don't reappear → Expected: Stable
+
+16.2 Version Compatibility
+
+TC-229: Verify destroyed ACLs stay destroyed after upgrade → Expected: Consistent state
+TC-230: Test backward compatibility with old ACL formats → Expected: Compatible
+
+17. Special Cases and Edge Scenarios
+17.1 Unusual States
+
+TC-231: Destroy ACL immediately after system boot → Expected: Success
+TC-232: Destroy ACL during high system load → Expected: Success (may be slower)
+TC-233: Destroy ACL with unusual entry types → Expected: Success with -f
+TC-234: Destroy ACL with corrupted entries using -f → Expected: Success or clear error
+
+17.2 File System Edge Cases
+
+TC-235: Destroy ACL on full filesystem → Expected: Success (freeing space)
+TC-236: Destroy ACL on read-only filesystem → Expected: Error
+TC-237: Destroy ACL on NFS/network filesystem → Expected: Success with proper locking
+TC-238: Destroy ACL with different filesystem mount options → Expected: Success
+
+18. Usability Tests
+18.1 User Experience Tests
+
+TC-239: Verify command is intuitive for new users → Expected: Clear usage
+TC-240: Verify error messages guide user to solution → Expected: Actionable errors
+TC-241: Verify -f option clearly forces destroy → Expected: Obvious behavior
+TC-242: Verify help text is helpful and complete → Expected: Comprehensive help
+
+18.2 Common Mistakes
+
+TC-243: Forget -i option → Expected: Clear error message
+TC-244: Forget -f when ACL has entries → Expected: Clear error with suggestion
+TC-245: Use wrong ACL ID → Expected: Clear error message
+TC-246: Try to destroy already destroyed ACL → Expected: Clear error
+
+19. Documentation Error Tests
+19.1 Example Error in Documentation
+
+TC-247: Note that doc example shows acl_export instead of acl_destroy → Expected: Documentation bug identified
+TC-248: Verify correct example should be: QDocSEConsole -c acl_destroy -i <acl_id> → Expected: Correct usage
+TC-249: Report documentation inconsistency → Expected: Issue tracked
+
+
+Test Summary
+Total Test Cases: 249
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-060, TC-083 to TC-104, TC-169 to TC-180 (82 test cases)
+
+Required options and basic functionality
+ACL ID non-reuse verification
+Empty vs non-empty ACL handling
+Force option behavior
+Integration with other commands
+Documentation compliance
+
+
+P1 (High): TC-061 to TC-082, TC-105 to TC-125, TC-147 to TC-157, TC-191 to TC-201, TC-215 to TC-225 (90 test cases)
+
+System prerequisites and state
+Error messages validation
+Command syntax
+Concurrent execution
+Data integrity
+Security tests
+
+
+P2 (Medium): TC-126 to TC-146, TC-158 to TC-168, TC-181 to TC-190, TC-202 to TC-214, TC-226 to TC-238 (55 test cases)
+
+Output validation
+Boundary and edge cases
+Performance tests
+Workflow tests
+Shell integration
+Regression tests
+
+
+P3 (Low): TC-239 to TC-249 (11 test cases)
+
+Usability tests
+Common mistakes
+Documentation error tracking
+
+
+
+Test Coverage:
+✅ Core Functionality:
+
+Empty ACL destruction
+ACL with entries destruction (with/without -f)
+ACL ID non-reuse after destruction
+Required -i option validation
+Optional -f force option
+
+✅ System Integration:
+
+Integration with acl_create (ID sequencing)
+Integration with acl_add (entry handling)
+Integration with acl_remove (cleanup workflow)
+Integration with acl_list (removal verification)
+Integration with protect (file protection behavior)
+
+✅ Error Handling:
+
+All documented error messages
+Invalid ACL IDs
+ACLs with entries (without -f)
+Missing configuration file
+Wrong active mode/license
+
+✅ Advanced Scenarios:
+
+Concurrent destruction
+Race conditions
+Performance and scalability
+Data integrity
+Security and access control
+
+✅ Documentation:
+
+All examples validation
+Notes section verification
+Documentation error identified (example shows acl_export instead of acl_destroy)
+
+Key Test Focus Areas:
+
+Force Option (-f): Comprehensive testing of forced destruction with various entry counts and types
+ACL ID Non-Reuse: Critical verification that destroyed IDs are never reused
+Empty vs Non-Empty: Clear distinction between destroying empty ACLs and ACLs with entries
+Integration: Thorough testing of how destroy interacts with other ACL commands
+Documentation Bug: Identified error in documentation example

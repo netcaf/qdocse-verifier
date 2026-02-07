@@ -1,0 +1,675 @@
+Complete Test Case List for list Command
+1. Basic Functionality Tests
+1.1 List Current Directory Tests
+
+TC-001: Execute list with no -d option → Expected: List current directory contents
+TC-002: Execute from different directories → Expected: Lists respective current directory
+TC-003: Execute from root directory / → Expected: Lists root contents
+TC-004: Execute from home directory → Expected: Lists home contents
+TC-005: Execute from /tmp → Expected: Lists /tmp contents
+
+1.2 List Specific Directory Tests
+
+TC-006: Execute -d /opt/qdoc → Expected: List /opt/qdoc contents (example from doc)
+TC-007: Execute -d /data/Documents → Expected: List directory (example from help)
+TC-008: Execute -d /home/user → Expected: List user home directory
+TC-009: Execute -d /var/log → Expected: List log directory
+TC-010: Execute -d / → Expected: List root directory
+
+1.3 List Specific File Tests
+
+TC-011: Execute -d /tmp/XXX/demo.pdf → Expected: Show single file status (example from doc)
+TC-012: Execute -d /data/Documents/example.db → Expected: Show file status (example from help)
+TC-013: Execute -d /etc/passwd → Expected: Show single file status
+TC-014: Execute -d /usr/bin/vim → Expected: Show program file status
+TC-015: Execute -d /home/user/file.txt → Expected: Show file status
+
+2. Directory/File Path Tests
+2.1 Absolute Path Tests
+
+TC-016: Execute with absolute path /opt/qdoc → Expected: Success
+TC-017: Execute with absolute path to file /tmp/test.txt → Expected: Success
+TC-018: Execute with absolute path to system directory → Expected: Success
+
+2.2 Relative Path Tests
+
+TC-019: Execute with relative path ./subdir → Expected: Success
+TC-020: Execute with relative path ../parent → Expected: Success
+TC-021: Execute with relative path subdir/file.txt → Expected: Success
+TC-022: Execute with . (current directory) → Expected: Lists current directory
+TC-023: Execute with .. (parent directory) → Expected: Lists parent directory
+
+2.3 Path Validation Tests
+
+TC-024: Execute with non-existent directory → Expected: Error "doesn't exist"
+TC-025: Execute with non-existent file → Expected: Error "doesn't exist"
+TC-026: Execute with empty path -d "" → Expected: Error
+TC-027: Execute with -d without value → Expected: Error or list current directory
+TC-028: Execute with invalid path characters → Expected: Error
+
+2.4 Special Path Tests
+
+TC-029: Execute with path containing spaces /my data/files → Expected: Success (with quoting)
+TC-030: Execute with path containing special characters → Expected: Success or error
+TC-031: Execute with very long path (4096+ chars) → Expected: Error or success
+TC-032: Execute with symbolic link to directory → Expected: List target directory
+TC-033: Execute with symbolic link to file → Expected: Show file status
+TC-034: Execute with broken symbolic link → Expected: Error or show link status
+
+2.5 Protected vs Non-Protected Directory Tests
+
+TC-035: List QDocSE protected directory → Expected: Show protected files
+TC-036: List non-QDocSE directory → Expected: Show normal files
+TC-037: List directory with mixed protected/normal files → Expected: Show all with status
+TC-038: Verify "does not need to be QDocSE protected directory" → Expected: Works on any directory
+
+3. File Status Label Tests
+3.1 Encrypted File Tests
+
+TC-039: List encrypted file → Expected: Shows "encrypted" with cipher type
+TC-040: List encrypted file with AES cipher → Expected: Shows "encrypted (AES)" or similar
+TC-041: List encrypted file with different cipher → Expected: Shows cipher in brackets
+TC-042: List multiple encrypted files with different ciphers → Expected: Each shows correct cipher
+TC-043: Verify cipher type displayed in brackets → Expected: Format "(cipher_name)"
+
+3.2 Not Encrypted File Tests
+
+TC-044: List unencrypted file → Expected: Shows "not_encrypted"
+TC-045: List regular text file → Expected: Shows "not_encrypted" and other labels
+TC-046: List binary file not encrypted → Expected: Shows "not_encrypted"
+
+3.3 Protected File Tests
+
+TC-047: List protected file → Expected: Shows "protected" label
+TC-048: List file with QDocSE protection → Expected: Shows "protected"
+TC-049: List directory with protected files → Expected: Protected files marked
+TC-050: Verify protected files are identified → Expected: Clear "protected" label
+
+3.4 Normal File Tests
+
+TC-051: List normal file (not guarded/monitored) → Expected: Shows "normal" label
+TC-052: List regular system file → Expected: Shows "normal"
+TC-053: List user file without protection → Expected: Shows "normal"
+
+3.5 Audited File Tests
+
+TC-054: List audited file → Expected: Shows "audited" label
+TC-055: List file with auditing enabled → Expected: Shows "audited"
+TC-056: List multiple audited files → Expected: All show "audited"
+
+3.6 Monitored File Tests
+
+TC-057: List monitored program file → Expected: Shows "monitored" with status
+TC-058: List monitored shared library → Expected: Shows "monitored" with status
+TC-059: Verify monitored shows authorized settings → Expected: Status displayed
+TC-060: List directory with monitored executables → Expected: All monitored files marked
+
+3.7 Integrity File Tests
+
+TC-061: List file with integrity monitoring → Expected: Shows "integrity" with status
+TC-062: List data file monitored for changes → Expected: Shows "integrity"
+TC-063: Verify integrity shows access status → Expected: Status displayed
+
+3.8 Shielded File Tests
+
+TC-064: List shielded file → Expected: Shows "shielded" label
+TC-065: List shielded directory → Expected: Shows "shielded"
+TC-066: Verify shielded means read-only → Expected: Documented correctly
+TC-067: List self-defense shielded files → Expected: Shows "shielded"
+
+3.9 Special File Tests
+
+TC-068: List special QDocSE file → Expected: Shows "special" label
+TC-069: Verify special files are strongly protected → Expected: "no access" documented
+TC-070: List self-defense special files → Expected: Shows "special"
+
+3.10 Block Device Tests
+
+TC-071: List block special device → Expected: Shows "block" label
+TC-072: List /dev/sda or similar → Expected: Shows "block"
+TC-073: Verify block devices are identified → Expected: Correct label
+
+3.11 Character Device Tests
+
+TC-074: List character special device → Expected: Shows "character" label
+TC-075: List /dev/null or /dev/tty → Expected: Shows "character"
+TC-076: List multiple character devices → Expected: All identified
+
+3.12 FIFO Tests
+
+TC-077: List FIFO device → Expected: Shows "fifo" label
+TC-078: Create FIFO, list it → Expected: Shows "fifo"
+TC-079: List Unix named pipe → Expected: Shows "fifo"
+
+3.13 Folder Tests
+
+TC-080: List directory entry → Expected: Shows "folder" label
+TC-081: List subdirectories → Expected: All show "folder"
+TC-082: Verify directories are marked as "folder" → Expected: Correct label
+
+3.14 Link Tests
+
+TC-083: List symbolic link → Expected: Shows "link" label
+TC-084: List hard link → Expected: Shows appropriate label
+TC-085: List symbolic link to file → Expected: Shows "link" with target info
+TC-086: List symbolic link to directory → Expected: Shows "link"
+TC-087: List broken symbolic link → Expected: Shows "link" (broken)
+
+3.15 Socket Tests
+
+TC-088: List Unix socket → Expected: Shows "socket" label
+TC-089: Create socket, list it → Expected: Shows "socket"
+TC-090: List /tmp sockets → Expected: Sockets identified
+
+3.16 Multiple Labels Tests
+
+TC-091: List file with multiple labels (encrypted + protected) → Expected: Both shown
+TC-092: List file with (encrypted + audited + protected) → Expected: All shown
+TC-093: List monitored + encrypted file → Expected: Both labels shown
+TC-094: Verify multiple labels can apply to single file → Expected: All displayed
+
+4. File Mode Attribute Tests
+4.1 Mode Display Tests
+
+TC-095: Verify file mode (permissions) are displayed → Expected: Mode shown (e.g., rwxr-xr-x)
+TC-096: List file with 644 permissions → Expected: Mode shown correctly
+TC-097: List file with 755 permissions → Expected: Mode shown correctly
+TC-098: List file with 600 permissions → Expected: Mode shown correctly
+TC-099: List file with special permissions (setuid) → Expected: Mode shown correctly
+TC-100: List file with special permissions (setgid) → Expected: Mode shown correctly
+TC-101: List file with sticky bit → Expected: Mode shown correctly
+
+4.2 Mode Format Tests
+
+TC-102: Verify mode format is consistent → Expected: Standard format (e.g., -rwxr-xr-x)
+TC-103: Verify owner/group/other permissions clear → Expected: Readable format
+TC-104: Verify special permission indicators → Expected: s, t, S, T shown correctly
+
+5. Output Format Tests
+5.1 Output Structure Tests
+
+TC-105: Verify output is well-formatted → Expected: Clear columns or structure
+TC-106: Verify file names are displayed → Expected: Names shown
+TC-107: Verify labels are displayed → Expected: Status labels shown
+TC-108: Verify mode is displayed → Expected: Permissions shown
+TC-109: Verify cipher type shown for encrypted files → Expected: In brackets
+
+5.2 Directory Listing Format Tests
+
+TC-110: List directory with 10 files → Expected: All files listed with status
+TC-111: List directory with 100 files → Expected: All files listed
+TC-112: List directory with mixed file types → Expected: All types shown correctly
+TC-113: Verify directory listing is complete → Expected: All entries shown
+
+5.3 Single File Format Tests
+
+TC-114: List single file, verify format → Expected: File info displayed
+TC-115: List single file, verify all attributes shown → Expected: Complete info
+TC-116: Compare single file vs directory listing format → Expected: Consistent
+
+5.4 Empty Directory Tests
+
+TC-117: List empty directory → Expected: Empty or "no files" message
+TC-118: List directory with only hidden files → Expected: Shows or doesn't show hidden (test)
+TC-119: Verify empty directory handling → Expected: Clear output
+
+6. Encryption Cipher Display Tests
+6.1 Cipher Type Display Tests
+
+TC-120: List AES encrypted file → Expected: Shows "(AES)" or similar
+TC-121: List file encrypted with different cipher → Expected: Shows correct cipher
+TC-122: Verify cipher name in brackets → Expected: Format "(cipher)"
+TC-123: List multiple files with different ciphers → Expected: Each shows correct cipher
+
+6.2 Cipher Information Tests
+
+TC-124: Verify cipher type is accurate → Expected: Matches actual encryption
+TC-125: List files encrypted with various ciphers → Expected: All identified correctly
+TC-126: Verify cipher display format is consistent → Expected: Always in brackets
+
+7. System State and Prerequisites Tests
+7.1 Active Mode Tests
+
+TC-127: Execute in De-elevated mode → Expected: Success
+TC-128: Execute in Elevated mode → Expected: Success
+TC-129: Execute in Learning mode → Expected: Success
+TC-130: Verify works in all three modes → Expected: All succeed
+
+7.2 License Tests
+
+TC-131: Execute with License type A → Expected: Success
+TC-132: Execute with License type B → Expected: Success
+TC-133: Execute with License type C → Expected: Success
+TC-134: Execute with no license → Expected: Success (License type: All)
+TC-135: Verify works with all license types → Expected: Universal access
+
+7.3 Permission Tests
+
+TC-136: Execute as root user → Expected: Success
+TC-137: Execute as non-root user → Expected: Success (read access needed)
+TC-138: List directory without read permissions → Expected: Error (permission denied)
+TC-139: List file without read permissions → Expected: Shows status but may not access content
+
+8. Integration with Other Commands Tests
+8.1 Integration with protect Command
+
+TC-140: Protect files, list them → Expected: Shows "protected" label
+TC-141: List directory with protected files → Expected: Protected files marked
+TC-142: Verify protected status matches protect command → Expected: Consistent
+
+8.2 Integration with encrypt Command
+
+TC-143: Encrypt files, list them → Expected: Shows "encrypted" with cipher
+TC-144: List directory with encrypted files → Expected: Encrypted files marked
+TC-145: Verify encrypted status matches encrypt command → Expected: Consistent
+
+8.3 Integration with shield Command
+
+TC-146: Shield files, list them → Expected: Shows "shielded" label
+TC-147: List shielded directory → Expected: Shows "shielded"
+TC-148: Verify shielded status matches shield command → Expected: Consistent
+
+8.4 Integration with adjust Command
+
+TC-149: Authorize program, list it → Expected: Shows "monitored" status
+TC-150: List authorized programs directory → Expected: Monitored programs marked
+TC-151: Verify monitored status reflects authorization → Expected: Consistent
+
+8.5 Integration with audit Command
+
+TC-152: Enable audit on files, list them → Expected: Shows "audited" label
+TC-153: List directory with audited files → Expected: Audited files marked
+TC-154: Verify audited status matches audit command → Expected: Consistent
+
+9. Performance Tests
+9.1 Execution Time Tests
+
+TC-155: Measure time to list small directory (10 files) → Expected: < threshold
+TC-156: Measure time to list medium directory (100 files) → Expected: < threshold
+TC-157: Measure time to list large directory (1000 files) → Expected: < threshold
+TC-158: Measure time to list single file → Expected: Fast
+
+9.2 Scalability Tests
+
+TC-159: List directory with 5000 files → Expected: Success, acceptable time
+TC-160: List directory with deep nesting → Expected: Success
+TC-161: List root filesystem → Expected: Success (may be slow)
+
+9.3 Resource Usage Tests
+
+TC-162: Monitor memory usage during listing → Expected: Reasonable
+TC-163: Monitor CPU usage → Expected: Reasonable
+TC-164: Test with very large directory → Expected: No memory issues
+
+10. Error Handling Tests
+10.1 Error Message Tests
+
+TC-165: Verify error for non-existent directory → Expected: Clear error "doesn't exist"
+TC-166: Verify error for non-existent file → Expected: Clear error "doesn't exist"
+TC-167: Verify error messages are helpful → Expected: Actionable guidance
+
+10.2 Permission Error Tests
+
+TC-168: List directory without read permission → Expected: Error "permission denied"
+TC-169: List file without permissions → Expected: Error or limited info
+TC-170: Verify permission errors are clear → Expected: Clear message
+
+10.3 Invalid Path Tests
+
+TC-171: Execute with malformed path → Expected: Error
+TC-172: Execute with path containing invalid characters → Expected: Error
+TC-173: Execute with null path → Expected: Error
+
+11. Documentation and Examples Tests
+11.1 Documentation Example Tests
+
+TC-174: Execute example 1 from doc: QDocSEConsole -c list -d /opt/qdoc → Expected: Success
+TC-175: Execute example 2 from doc: QDocSEConsole -c list -d /tmp/XXX/demo.pdf → Expected: Success
+TC-176: Execute example 1 from help: QDocSEConsole -c list -d /data/Documents → Expected: Success
+TC-177: Execute example 2 from help: QDocSEConsole -c list -d /data/Documents/example.db → Expected: Success
+
+11.2 Documentation Consistency Tests
+
+TC-178: Verify all label meanings match documentation → Expected: Consistent
+TC-179: Verify cipher display in brackets → Expected: As documented
+TC-180: Verify file mode display → Expected: As documented
+TC-181: Verify works on non-QDocSE directories → Expected: As documented
+
+11.3 Label Definition Verification
+
+TC-182: Verify "audited" definition → Expected: File is audited
+TC-183: Verify "encrypted" definition → Expected: File encrypted, cipher shown
+TC-184: Verify "protected" definition → Expected: Access limited by QDocSE
+TC-185: Verify "normal" definition → Expected: Not guarded or monitored
+TC-186: Verify "monitored" definition → Expected: Program/library monitored
+TC-187: Verify "integrity" definition → Expected: Data file monitored
+TC-188: Verify "shielded" definition → Expected: Read-only by QDocSE
+TC-189: Verify "special" definition → Expected: Strongly protected, no access
+
+12. Help and Syntax Tests
+12.1 Help Option Tests
+
+TC-190: Execute QDocSEConsole -c list -h → Expected: Display help
+TC-191: Verify help is comprehensive → Expected: All options explained
+TC-192: Verify examples in help are accurate → Expected: Work as shown
+
+12.2 Invalid Options Tests
+
+TC-193: Execute with unknown option -x → Expected: Error or ignored
+TC-194: Execute with invalid option format → Expected: Error
+TC-195: Execute with extra parameters → Expected: Error or ignored
+
+12.3 Command Line Parsing Tests
+
+TC-196: Execute with extra spaces → Expected: Success
+TC-197: Execute with tabs → Expected: Success
+TC-198: Execute with quoted paths containing spaces → Expected: Success
+
+13. Output Destination Tests
+13.1 Standard Output Tests
+
+TC-199: Verify output goes to stdout → Expected: Stdout
+TC-200: Redirect output to file → Expected: Output captured
+TC-201: Pipe output to another command → Expected: Works correctly
+TC-202: Capture output in variable → Expected: Works correctly
+
+13.2 Output Parsing Tests
+
+TC-203: Parse output for file names → Expected: Extractable
+TC-204: Parse output for labels → Expected: Extractable
+TC-205: Parse output for mode → Expected: Extractable
+TC-206: Verify output is machine-parseable → Expected: Structured format
+
+14. Shell Integration Tests
+14.1 Scripting Tests
+
+TC-207: Use in bash script → Expected: Success
+TC-208: Use in loop to check multiple directories → Expected: All succeed
+TC-209: Capture exit code → Expected: 0 on success, non-zero on error
+TC-210: Use in conditional statement → Expected: Proper boolean result
+
+14.2 Automation Tests
+
+TC-211: Automated file status checking script → Expected: Works reliably
+TC-212: Script to find protected files → Expected: Parse and filter
+TC-213: Script to find encrypted files → Expected: Parse and filter
+
+14.3 Exit Code Tests
+
+TC-214: Verify exit code 0 on success → Expected: Exit code = 0
+TC-215: Verify non-zero exit code on error → Expected: Exit code ≠ 0
+TC-216: Verify consistent exit codes → Expected: Same for same error
+
+15. Special File Type Tests
+15.1 Device File Tests
+
+TC-217: List /dev directory → Expected: Shows block, character devices
+TC-218: List block devices in /dev → Expected: All show "block"
+TC-219: List character devices in /dev → Expected: All show "character"
+TC-220: Verify device files are correctly labeled → Expected: Accurate
+
+15.2 Special Linux Files Tests
+
+TC-221: List /proc entries → Expected: Shows special file types
+TC-222: List /sys entries → Expected: Shows appropriate labels
+TC-223: List pipes, sockets in /tmp → Expected: Correct labels
+
+15.3 Mount Point Tests
+
+TC-224: List mount points → Expected: Shows directory status
+TC-225: List files across filesystem boundaries → Expected: Works correctly
+TC-226: List NFS mounted directory → Expected: Shows file status
+
+16. Concurrent Execution Tests
+16.1 Concurrent List Tests
+
+TC-227: Execute list on 2 different directories simultaneously → Expected: Both succeed
+TC-228: Execute list on same directory simultaneously → Expected: Both succeed
+TC-229: List while files are being modified → Expected: Shows current state
+
+16.2 Race Condition Tests
+
+TC-230: List while files are being encrypted → Expected: Shows state at query time
+TC-231: List while files are being protected → Expected: Shows current state
+TC-232: List while directory structure changes → Expected: Consistent snapshot
+
+17. Filtering and Selection Tests
+17.1 File Type Filtering (Manual)
+
+TC-233: List directory, identify encrypted files → Expected: Can filter from output
+TC-234: List directory, identify protected files → Expected: Can filter from output
+TC-235: List directory, identify normal files → Expected: Can filter from output
+TC-236: Verify output supports filtering → Expected: Labels clear
+
+17.2 Status Identification Tests
+
+TC-237: Identify all protected files in directory → Expected: Clear from output
+TC-238: Identify all encrypted files in directory → Expected: Clear from output
+TC-239: Identify all monitored programs → Expected: Clear from output
+TC-240: Identify all audited files → Expected: Clear from output
+
+18. Edge Cases and Special Scenarios Tests
+18.1 Boundary Cases
+
+TC-241: List file with maximum path length → Expected: Success or error
+TC-242: List directory with maximum depth → Expected: Success
+TC-243: List file with very long name → Expected: Success
+
+18.2 Special Character Tests
+
+TC-244: List files with spaces in names → Expected: Names shown correctly
+TC-245: List files with special characters → Expected: Names shown correctly
+TC-246: List files with unicode characters → Expected: Names shown correctly
+
+18.3 Hidden File Tests
+
+TC-247: List directory with hidden files (.file) → Expected: Test if shown
+TC-248: List hidden file directly → Expected: Shows status
+TC-249: Verify hidden file handling → Expected: Document behavior
+
+19. Usability Tests
+19.1 User Experience Tests
+
+TC-250: Verify output is easy to read → Expected: User-friendly
+TC-251: Verify labels are self-explanatory → Expected: Clear meaning
+TC-252: Verify file status is obvious → Expected: Easy to understand
+TC-253: Verify mode display is clear → Expected: Readable permissions
+
+19.2 Common Usage Patterns
+
+TC-254: Check if files are protected → Expected: Clear from list
+TC-255: Check if files are encrypted → Expected: Clear from list
+TC-256: Check file permissions → Expected: Mode shown
+TC-257: Verify file status before operations → Expected: Useful info
+
+19.3 Information Completeness
+
+TC-258: Verify all needed info is displayed → Expected: Complete status
+TC-259: Verify encryption cipher is shown → Expected: Cipher type clear
+TC-260: Verify all labels are meaningful → Expected: Documented meanings
+
+20. Self Defense File Tests
+20.1 Self Defense Special Files
+
+TC-261: List QDocSE special files → Expected: Shows "special" label
+TC-262: Verify special files are strongly protected → Expected: "no access"
+TC-263: List self-defense protected areas → Expected: Special files marked
+
+20.2 Self Defense Shielded Files
+
+TC-264: List QDocSE shielded files → Expected: Shows "shielded" label
+TC-265: Verify shielded files are read-only → Expected: As documented
+TC-266: List self-defense shielded directories → Expected: Marked correctly
+
+20.3 Self Defense Documentation Reference
+
+TC-267: Verify reference to "Self Defence on page 26" → Expected: Documented
+TC-268: Understand special vs shielded distinction → Expected: Clear difference
+
+
+Test Summary
+Total Test Cases: 268
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-094, TC-174 to TC-189 (110 test cases)
+
+Basic listing functionality (directory and file)
+All label types (encrypted, protected, normal, audited, monitored, etc.)
+Encryption cipher display
+File mode display
+Documentation examples and label definitions
+
+
+P1 (High): TC-095 to TC-154, TC-190 to TC-226 (90 test cases)
+
+File mode attributes
+Output format
+Integration with other commands
+System prerequisites (works in all modes, all licenses)
+Special file types (devices, links, sockets, etc.)
+Help and syntax
+
+
+P2 (Medium): TC-155 to TC-173, TC-227 to TC-253 (50 test cases)
+
+Performance tests
+Error handling
+Concurrent execution
+Shell integration
+Usability tests
+
+
+P3 (Low): TC-254 to TC-268 (15 test cases)
+
+Edge cases
+Self defense file tests
+
+
+
+Test Coverage:
+✅ Core Functionality:
+
+List current directory (no -d option)
+List specific directory (-d directory_path)
+List specific file (-d file_path)
+Works on any directory (not just QDocSE protected)
+
+✅ File Status Labels (13 types):
+
+audited: File is audited
+block: Block special device
+character: Character special device
+encrypted: File encrypted (with cipher type in brackets)
+fifo: Unix FIFO device
+folder: Directory
+integrity: Data file monitored for change/access, shows status
+link: File linked to another
+monitored: Program/library monitored, shows status (authorized settings)
+normal: Not guarded or monitored by QDocSE
+not_encrypted: File is not encrypted
+protected: Access limited by QDocSE
+shielded: Read-only by QDocSE (self-defense)
+socket: File socket
+special: Strongly protected by QDocSE, no access (self-defense)
+
+✅ Display Components:
+
+File/directory name
+Status labels (can have multiple)
+File mode (permissions: rwxr-xr-x)
+Cipher type for encrypted files (in brackets)
+Monitoring status for monitored/integrity files
+
+✅ System Requirements:
+
+Active modes: De-elevated, Elevated, Learning (works in ALL modes)
+License type: All (works with ANY license)
+No special prerequisites
+
+✅ Integration:
+
+Shows protected status (from protect command)
+Shows encrypted status and cipher (from encrypt command)
+Shows monitored status (from adjust/authorize)
+Shows audited status (from audit command)
+Shows shielded/special (self-defense)
+
+Key Features Tested:
+
+Universal Access: Works in all modes, all license types
+Any Directory: Can list QDocSE and non-QDocSE directories
+Comprehensive Labels: 15 different status labels
+Multiple Labels: Files can have multiple labels simultaneously
+Cipher Display: Encrypted files show cipher type in brackets
+File Mode: Shows Unix permissions for each file
+Self Defense: Special and shielded files for QDocSE protection
+
+Important Label Meanings:
+Protection Types:
+
+protected: Access controlled by QDocSE
+shielded: Read-only (self-defense mechanism)
+special: No access (self-defense, strongly protected)
+
+Encryption:
+
+encrypted: File is encrypted, cipher shown in brackets: encrypted (AES)
+not_encrypted: File is not encrypted
+
+Monitoring:
+
+monitored: Programs/libraries monitored for change/access, shows authorization
+integrity: Data files monitored for change/access, shows status
+audited: File access is audited/logged
+
+File Types:
+
+normal: Regular file, not QDocSE guarded
+folder: Directory
+link: Symbolic or hard link
+block, character, fifo, socket: Special file types
+
+Self Defense:
+According to documentation, refer to "Self Defence on page 26" for details about:
+
+special files: Strongly protected, no access
+shielded files: Read-only protection
+
+These are QDocSE's self-protection mechanisms.
+Output Format:
+Expected to show for each file:
+
+File name
+Status labels (encrypted, protected, normal, monitored, audited, etc.)
+Cipher type (if encrypted) - in brackets
+File mode (permissions)
+Status information (for monitored/integrity files)
+
+Testing Strategy Recommendation:
+Test in this order:
+
+Basic listing (current dir, specific dir, specific file) (TC-001 to TC-015)
+All label types - CRITICAL (TC-039 to TC-094)
+File mode display (TC-095 to TC-104)
+Output format (TC-105 to TC-119)
+Encryption cipher display (TC-120 to TC-126)
+Integration with other commands (TC-140 to TC-154)
+Documentation examples and definitions (TC-174 to TC-189)
+Special file types and edge cases (remaining tests)
+
+Critical test focus:
+
+All 15 label types correctly identified
+Multiple labels can apply to same file
+Cipher type shown in brackets for encrypted files
+File mode (permissions) displayed correctly
+Works on any directory (not just QDocSE protected)
+Works in all modes with all license types
+
+Key validation points:
+
+Verify each label type appears correctly
+Verify encrypted files show cipher in brackets: encrypted (AES)
+Verify multiple labels can coexist: encrypted, protected, audited
+Verify file mode format: -rwxr-xr-x or similar
+Verify self-defense files show special/shielded correctly

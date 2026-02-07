@@ -1,0 +1,575 @@
+Complete Test Case List for acl_add Command
+1. Required Options Tests
+1.1 ACL ID (-i) Tests
+
+TC-001: Execute without -i option → Expected: Error "Missing required '-i' option"
+TC-002: Execute with valid ACL ID that exists → Expected: Success
+TC-003: Execute with invalid ACL ID (non-existent) → Expected: Error
+TC-004: Execute with invalid ACL ID format (non-numeric) → Expected: Error
+TC-005: Execute with ACL ID = 0 → Expected: Error (boundary test)
+TC-006: Execute with negative ACL ID → Expected: Error
+TC-007: Execute with extremely large ACL ID (beyond system limit) → Expected: Error
+
+1.2 Allow/Deny (-a/-d) Tests
+
+TC-008: Execute without -a or -d → Expected: Error "One of option '-a' or '-d' must be specified"
+TC-009: Execute with -a only → Expected: Success (with other required options)
+TC-010: Execute with -d only → Expected: Success (with other required options)
+TC-011: Execute with both -a and -d → Expected: Error (mutually exclusive)
+TC-012: Execute with -a specified twice → Expected: Success or Error
+TC-013: Execute with -d specified twice → Expected: Success or Error
+
+1.3 Mode (-m) Tests
+1.3.1 Single Mode Tests
+
+TC-014: Execute without -m option → Expected: Error "Missing required '-m' option"
+TC-015: Execute with -m r → Expected: Success
+TC-016: Execute with -m w → Expected: Success
+TC-017: Execute with -m x → Expected: Success
+
+1.3.2 Combined Mode Tests
+
+TC-018: Execute with -m rw → Expected: Success
+TC-019: Execute with -m rx → Expected: Success
+TC-020: Execute with -m wx → Expected: Success
+TC-021: Execute with -m rwx → Expected: Success
+
+1.3.3 Mode Order Variations
+
+TC-022: Execute with -m wr (reversed) → Expected: Success
+TC-023: Execute with -m xr → Expected: Success
+TC-024: Execute with -m xw → Expected: Success
+TC-025: Execute with -m wrx → Expected: Success
+TC-026: Execute with -m xwr → Expected: Success
+TC-027: Execute with -m rxw → Expected: Success
+
+1.3.4 Octal Mode Tests
+
+TC-028: Execute with -m 400 (r--) → Expected: Success
+TC-029: Execute with -m 200 (-w-) → Expected: Success
+TC-030: Execute with -m 100 (--x) → Expected: Success
+TC-031: Execute with -m 600 (rw-) → Expected: Success
+TC-032: Execute with -m 500 (r-x) → Expected: Success
+TC-033: Execute with -m 300 (-wx) → Expected: Success
+TC-034: Execute with -m 700 (rwx) → Expected: Success
+TC-035: Execute with -m 644 → Expected: Success or Error (verify if group/other bits allowed)
+TC-036: Execute with -m 755 → Expected: Success or Error
+TC-037: Execute with -m 777 → Expected: Success or Error
+
+1.3.5 Invalid Mode Tests
+
+TC-038: Execute with -m rwa (invalid character 'a') → Expected: Error
+TC-039: Execute with -m xyz (all invalid) → Expected: Error
+TC-040: Execute with -m rrr (duplicate) → Expected: Success or Error
+TC-041: Execute with -m rwxr (duplicate with extra) → Expected: Success or Error
+TC-042: Execute with -m 800 (invalid octal) → Expected: Error
+TC-043: Execute with -m 999 (invalid octal) → Expected: Error
+TC-044: Execute with -m -1 (negative) → Expected: Error
+TC-045: Execute with empty mode -m "" → Expected: Error
+TC-046: Execute with -m without value → Expected: Error
+
+1.4 User/Group/Program (-u/-g/-p) Tests
+1.4.1 Missing User/Group/Program Tests
+
+TC-047: Execute without -u, -g, or -p → Expected: Error "One of option '-g', '-p' or '-u' must be specified"
+
+1.4.2 User (-u) Tests
+
+TC-048: Execute with valid user name → Expected: Success
+TC-049: Execute with valid user ID (numeric) → Expected: Success
+TC-050: Execute with invalid user name (non-existent) → Expected: Error "Invalid user ID"
+TC-051: Execute with invalid user ID → Expected: Error "Invalid user ID"
+TC-052: Execute with user ID = 0 (root) → Expected: Success
+TC-053: Execute with negative user ID → Expected: Error
+TC-054: Execute with user name containing spaces (quoted) → Expected: Success or Error
+TC-055: Execute with user name containing special characters → Expected: Success or Error
+TC-056: Execute with very long user name (>255 chars) → Expected: Success or Error
+TC-057: Execute with empty user name -u "" → Expected: Error
+TC-058: Execute with -u without value → Expected: Error
+
+1.4.3 Group (-g) Tests
+
+TC-059: Execute with valid group name → Expected: Success
+TC-060: Execute with valid group ID (numeric) → Expected: Success
+TC-061: Execute with invalid group name (non-existent) → Expected: Error "Invalid group ID"
+TC-062: Execute with invalid group ID → Expected: Error "Invalid group ID"
+TC-063: Execute with group ID = 0 → Expected: Success
+TC-064: Execute with negative group ID → Expected: Error
+TC-065: Execute with group name containing spaces (quoted) → Expected: Success or Error
+TC-066: Execute with group name containing special characters → Expected: Success or Error
+TC-067: Execute with very long group name → Expected: Success or Error
+TC-068: Execute with empty group name -g "" → Expected: Error
+TC-069: Execute with -g without value → Expected: Error
+
+1.4.4 Program (-p) Tests
+
+TC-070: Execute with valid program index → Expected: Success
+TC-071: Execute with invalid program index (non-existent) → Expected: Error "Invalid program index"
+TC-072: Execute with program index = 0 → Expected: Success or Error
+TC-073: Execute with negative program index → Expected: Error
+TC-074: Execute with non-numeric program index → Expected: Error
+TC-075: Execute with program index beyond authorized programs list → Expected: Error "Invalid program index"
+TC-076: Execute with -p without value → Expected: Error
+
+1.4.5 Mutual Exclusivity Tests
+
+TC-077: Execute with both -u and -g → Expected: Error (mutually exclusive)
+TC-078: Execute with both -u and -p → Expected: Error (mutually exclusive)
+TC-079: Execute with both -g and -p → Expected: Error (mutually exclusive)
+TC-080: Execute with all three -u, -g, and -p → Expected: Error
+TC-081: Execute with -u specified twice → Expected: Error or last value used
+TC-082: Execute with -g specified twice → Expected: Error or last value used
+TC-083: Execute with -p specified twice → Expected: Error or last value used
+
+2. Optional Options Tests
+2.1 Time Specification (-t) Tests
+2.1.1 No Time Specification
+
+TC-084: Execute without -t option → Expected: Success (applies all times/days)
+
+2.1.2 Basic Time Range Tests
+
+TC-085: Execute with 09:00:00-15:00:00 (no days) → Expected: Success (all days)
+TC-086: Execute with 08:30:00-16:00:00 → Expected: Success
+TC-087: Execute with 00:00:00-23:59:59 (full day) → Expected: Success
+TC-088: Execute with 12:00:00-12:00:00 (same time) → Expected: Success or Error
+TC-089: Execute with 00:00:00-00:00:00 → Expected: Success or Error
+
+2.1.3 Individual Weekday Tests (Short Names)
+
+TC-090: Execute with mon-09:00:00-17:00:00 → Expected: Success
+TC-091: Execute with tue-09:00:00-17:00:00 → Expected: Success
+TC-092: Execute with wed-09:00:00-17:00:00 → Expected: Success
+TC-093: Execute with thu-09:00:00-17:00:00 → Expected: Success
+TC-094: Execute with fri-09:00:00-17:00:00 → Expected: Success
+TC-095: Execute with sat-09:00:00-17:00:00 → Expected: Success
+TC-096: Execute with sun-09:00:00-17:00:00 → Expected: Success
+
+2.1.4 Individual Weekday Tests (Full Names)
+
+TC-097: Execute with monday-09:00:00-17:00:00 → Expected: Success or Error
+TC-098: Execute with tuesday-09:00:00-17:00:00 → Expected: Success or Error
+TC-099: Execute with wednesday-09:00:00-17:00:00 → Expected: Success or Error
+TC-100: Execute with thursday-09:00:00-17:00:00 → Expected: Success or Error
+TC-101: Execute with friday-09:00:00-17:00:00 → Expected: Success or Error
+TC-102: Execute with saturday-09:00:00-17:00:00 → Expected: Success or Error
+TC-103: Execute with sunday-09:00:00-17:00:00 → Expected: Success or Error
+
+2.1.5 Case Sensitivity Tests
+
+TC-104: Execute with MON-09:00:00-17:00:00 (uppercase) → Expected: Success or Error
+TC-105: Execute with Mon-09:00:00-17:00:00 (title case) → Expected: Success or Error
+TC-106: Execute with MoN-09:00:00-17:00:00 (mixed case) → Expected: Success or Error
+TC-107: Execute with MONDAY-09:00:00-17:00:00 (full uppercase) → Expected: Success or Error
+TC-108: Execute with Monday-09:00:00-17:00:00 (full title case) → Expected: Success or Error
+
+2.1.6 Two Consecutive Days
+
+TC-109: Execute with montue-09:00:00-17:00:00 → Expected: Success
+TC-110: Execute with tuewed-09:00:00-17:00:00 → Expected: Success
+TC-111: Execute with wedthu-09:00:00-17:00:00 → Expected: Success
+TC-112: Execute with thufri-09:00:00-17:00:00 → Expected: Success
+TC-113: Execute with frisat-09:00:00-17:00:00 → Expected: Success
+TC-114: Execute with satsun-09:00:00-17:00:00 → Expected: Success
+TC-115: Execute with sunmon-09:00:00-17:00:00 → Expected: Success (week wrap)
+
+2.1.7 Three Consecutive Days
+
+TC-116: Execute with montuewed-09:00:00-17:00:00 → Expected: Success
+TC-117: Execute with tuewedthu-09:00:00-17:00:00 → Expected: Success
+TC-118: Execute with wedthufri-09:00:00-17:00:00 → Expected: Success
+TC-119: Execute with thufrisat-09:00:00-17:00:00 → Expected: Success
+TC-120: Execute with frisatsun-09:00:00-17:00:00 → Expected: Success
+TC-121: Execute with satsunmon-09:00:00-17:00:00 → Expected: Success
+TC-122: Execute with sunmontue-09:00:00-17:00:00 → Expected: Success
+
+2.1.8 Weekday and Weekend Combinations
+
+TC-123: Execute with montuewedthufri-08:30:00-16:00:00 → Expected: Success (weekdays)
+TC-124: Execute with satsun-09:00:00-17:00:00 → Expected: Success (weekend)
+TC-125: Execute with monsunday-09:00:00-17:00:00 → Expected: Success (entire week - from doc)
+TC-126: Execute with montuewedthufrisatsun-09:00:00-17:00:00 → Expected: Success (all 7 days)
+
+2.1.9 Non-Consecutive Days
+
+TC-127: Execute with monwedfri-08:30:00-16:00:00 → Expected: Success (from help example)
+TC-128: Execute with tuethufri-09:00:00-17:00:00 → Expected: Success
+TC-129: Execute with monwedsat-09:00:00-17:00:00 → Expected: Success
+TC-130: Execute with tuesatsun-09:00:00-17:00:00 → Expected: Success
+TC-131: Execute with monsun-09:00:00-17:00:00 → Expected: Success
+TC-132: Execute with monfri-09:00:00-17:00:00 → Expected: Success
+TC-133: Execute with wednest-09:00:00-17:00:00 → Expected: Error (typo)
+
+2.1.10 Six Days (Excluding One)
+
+TC-134: Execute with tuewedthufrisatsun-09:00:00-17:00:00 (no Mon) → Expected: Success
+TC-135: Execute with monwedthufrisatsun-09:00:00-17:00:00 (no Tue) → Expected: Success
+TC-136: Execute with montuethufrisatsun-09:00:00-17:00:00 (no Wed) → Expected: Success
+TC-137: Execute with montuewedFrisatsun-09:00:00-17:00:00 (no Thu) → Expected: Success
+TC-138: Execute with montuewedthusatsun-09:00:00-17:00:00 (no Fri) → Expected: Success
+TC-139: Execute with montuewedthufrisun-09:00:00-17:00:00 (no Sat) → Expected: Success
+TC-140: Execute with montuewedthufrisat-09:00:00-17:00:00 (no Sun) → Expected: Success
+
+2.1.11 Time Range Edge Cases
+
+TC-141: Execute with 23:59:59-00:00:00 (midnight crossing) → Expected: Success or Error
+TC-142: Execute with 22:00:00-02:00:00 (crossing midnight) → Expected: Success or Error
+TC-143: Execute with 17:00:00-09:00:00 (end before start) → Expected: Error
+TC-144: Execute with 09:00:00-09:00:01 (1 second window) → Expected: Success
+TC-145: Execute with 23:59:58-23:59:59 (1 second at end of day) → Expected: Success
+
+2.1.12 Invalid Time Formats
+
+TC-146: Execute with 25:00:00-26:00:00 (invalid hours) → Expected: Error
+TC-147: Execute with 09:60:00-17:00:00 (invalid minutes) → Expected: Error
+TC-148: Execute with 09:00:60-17:00:00 (invalid seconds) → Expected: Error
+TC-149: Execute with 9:0:0-17:0:0 (missing leading zeros) → Expected: Success or Error
+TC-150: Execute with 09:00-17:00 (missing seconds) → Expected: Error
+TC-151: Execute with 09-17 (only hours) → Expected: Error
+TC-152: Execute with 09:00:00 (missing end time) → Expected: Error
+TC-153: Execute with -09:00:00-17:00:00 (missing days, leading dash) → Expected: Success or Error
+
+2.1.13 Invalid Day Specifications
+
+TC-154: Execute with mun-09:00:00-17:00:00 (typo) → Expected: Error
+TC-155: Execute with xxx-09:00:00-17:00:00 (invalid day) → Expected: Error
+TC-156: Execute with mon tue-09:00:00-17:00:00 (space in days) → Expected: Error
+TC-157: Execute with mon,wed-09:00:00-17:00:00 (comma separator) → Expected: Error
+TC-158: Execute with mon-wed-09:00:00-17:00:00 (dash between days) → Expected: Error
+TC-159: Execute with 1-09:00:00-17:00:00 (numeric day) → Expected: Error
+TC-160: Execute with monday1-09:00:00-17:00:00 (day with number) → Expected: Error
+
+2.1.14 Duplicate and Order Tests
+
+TC-161: Execute with monmon-09:00:00-17:00:00 (duplicate day) → Expected: Success or Error
+TC-162: Execute with montuemon-09:00:00-17:00:00 (duplicate in sequence) → Expected: Success or Error
+TC-163: Execute with frithursun-09:00:00-17:00:00 (out of order) → Expected: Success or Error
+TC-164: Execute with sunmontuewedthufrisat-09:00:00-17:00:00 (starting with Sun) → Expected: Success
+
+2.1.15 Multiple -t Options
+
+TC-165: Execute with -t 09:00:00-12:00:00 -t 13:00:00-17:00:00 → Expected: Success
+TC-166: Execute with -t mon-09:00:00-17:00:00 -t wed-09:00:00-17:00:00 → Expected: Success
+TC-167: Execute with -t monwedfri-08:00:00-12:00:00 -t monwedfri-13:00:00-17:00:00 → Expected: Success
+TC-168: Execute with 3 -t options → Expected: Success
+TC-169: Execute with 5 -t options → Expected: Success
+TC-170: Execute with 10 -t options → Expected: Success or Error (test limit)
+TC-171: Execute with overlapping time ranges -t 09:00:00-15:00:00 -t 12:00:00-18:00:00 → Expected: Success
+TC-172: Execute with identical time ranges -t 09:00:00-17:00:00 -t 09:00:00-17:00:00 → Expected: Success
+
+2.1.16 Abbreviation Variations
+
+TC-173: Execute with m-09:00:00-17:00:00 (single letter) → Expected: Success or Error
+TC-174: Execute with mo-09:00:00-17:00:00 (two letters) → Expected: Success or Error
+TC-175: Execute with monda-09:00:00-17:00:00 (4 letters) → Expected: Error
+TC-176: Execute with tuesd-09:00:00-17:00:00 (5 letters) → Expected: Error
+
+2.1.17 Special Time Ranges
+
+TC-177: Execute with -t mon-00:00:00-23:59:59 (entire Monday) → Expected: Success
+TC-178: Execute with -t 06:00:00-06:00:00 (zero duration) → Expected: Success or Error
+TC-179: Execute with -t montuewedthufrisatsun-00:00:00-23:59:59 (entire week all day) → Expected: Success
+
+2.2 Program-Specific Options (-b/-l) Tests
+2.2.1 Backup Program Option (-b)
+
+TC-180: Execute with -b and -p (valid program) → Expected: Success
+TC-181: Execute with -b and -u (user specified) → Expected: Error
+TC-182: Execute with -b and -g (group specified) → Expected: Error
+TC-183: Execute with -b without -p → Expected: Error
+TC-184: Execute with -b specified twice → Expected: Success or Error
+
+2.2.2 Limited Encrypted Data Option (-l)
+
+TC-185: Execute with -l and -p (valid program) → Expected: Success
+TC-186: Execute with -l and -u (user specified) → Expected: Error
+TC-187: Execute with -l and -g (group specified) → Expected: Error
+TC-188: Execute with -l without -p → Expected: Error
+TC-189: Execute with -l specified twice → Expected: Success or Error
+
+2.2.3 Combined Program Options
+
+TC-190: Execute with both -b and -l → Expected: Error (mutually exclusive likely)
+TC-191: Execute with -b -l and -p → Expected: Error
+TC-192: Execute with -p without -b or -l → Expected: Success (plaintext default)
+
+3. ACL Type Consistency Tests
+3.1 Mixed Entry Type Tests
+
+TC-193: Add user entry to empty ACL → Expected: Success
+TC-194: Add group entry to empty ACL → Expected: Success
+TC-195: Add program entry to empty ACL → Expected: Success
+TC-196: Add user entry to ACL with existing user entries → Expected: Success
+TC-197: Add user entry to ACL with existing group entries → Expected: Success
+TC-198: Add group entry to ACL with existing user entries → Expected: Success
+TC-199: Add group entry to ACL with existing group entries → Expected: Success
+TC-200: Add program entry to ACL with existing user entries → Expected: Error
+TC-201: Add program entry to ACL with existing group entries → Expected: Error
+TC-202: Add user entry to ACL with existing program entries → Expected: Error
+TC-203: Add group entry to ACL with existing program entries → Expected: Error
+TC-204: Add program entry to ACL with existing program entries → Expected: Success
+TC-205: Add program entry with -b to ACL with existing program entries (no -b) → Expected: Success
+TC-206: Add program entry with -l to ACL with existing program entries (no -l) → Expected: Success
+
+4. Integration Tests - Complete Valid Commands
+4.1 User Entry Examples
+
+TC-207: QDocSEConsole -c acl_add -i 1 -a -m rw -u ted → Expected: Success (from doc)
+TC-208: QDocSEConsole -c acl_add -i 1 -a -m r -u sam -t 09:00:00-15:00:00 → Expected: Success (from doc)
+TC-209: QDocSEConsole -c acl_add -i 1 -a -u rich -m rx -t monwedfri-08:30:00-16:00:00 → Expected: Success (from help)
+TC-210: QDocSEConsole -c acl_add -i 1 -a -u rich -m rx -t 08:30:00-18:00:00 → Expected: Success (from help)
+TC-211: QDocSEConsole -c acl_add -i 1 -d -m w -u john → Expected: Success (deny write)
+TC-212: QDocSEConsole -c acl_add -i 2 -a -m rwx -u 1000 → Expected: Success (user by ID)
+TC-213: QDocSEConsole -c acl_add -i 3 -d -m rwx -u root -t satsun-00:00:00-23:59:59 → Expected: Success
+
+4.2 Group Entry Examples
+
+TC-214: QDocSEConsole -c acl_add -i 1 -a -g mail -m rw → Expected: Success (from help)
+TC-215: QDocSEConsole -c acl_add -i 1 -d -m x -g staff → Expected: Success
+TC-216: QDocSEConsole -c acl_add -i 2 -a -g 100 -m r -t montuewedthufri-09:00:00-17:00:00 → Expected: Success
+TC-217: QDocSEConsole -c acl_add -i 3 -a -g developers -m rwx → Expected: Success
+
+4.3 Program Entry Examples
+
+TC-218: QDocSEConsole -c acl_add -i 1 -a -p 5 -m r -l → Expected: Success
+TC-219: QDocSEConsole -c acl_add -i 1 -a -p 3 -m rw -b → Expected: Success
+TC-220: QDocSEConsole -c acl_add -i 2 -d -p 1 -m rwx → Expected: Success
+TC-221: QDocSEConsole -c acl_add -i 3 -a -p 10 -m r → Expected: Success (plaintext default)
+
+4.4 Complex Time Specifications
+
+TC-222: QDocSEConsole -c acl_add -i 1 -a -u alice -m r -t mon-09:00:00-12:00:00 -t mon-13:00:00-17:00:00 → Expected: Success
+TC-223: QDocSEConsole -c acl_add -i 1 -a -g users -m rw -t montuewed-08:00:00-18:00:00 -t thufri-10:00:00-16:00:00 → Expected: Success
+TC-224: QDocSEConsole -c acl_add -i 2 -d -u bob -m w -t satsun-00:00:00-23:59:59 → Expected: Success
+
+4.5 Options in Different Orders
+
+TC-225: QDocSEConsole -c acl_add -u ted -m rw -a -i 1 → Expected: Success
+TC-226: QDocSEConsole -c acl_add -m r -t 09:00:00-17:00:00 -i 1 -a -u sam → Expected: Success
+TC-227: QDocSEConsole -c acl_add -i 1 -u rich -t monwedfri-08:30:00-16:00:00 -m rx -a → Expected: Success
+
+5. System State Tests
+5.1 Prerequisites and Environment
+
+TC-228: Execute when no ACL configuration file exists → Expected: Error "No ACL configuration file found"
+TC-229: Execute when ACL configuration file is corrupted → Expected: Error
+TC-230: Execute when ACL configuration file is read-only → Expected: Error
+TC-231: Execute in non-Elevated mode → Expected: Error (requires Elevated mode)
+TC-232: Execute in non-Learning mode → Expected: Error (requires Learning mode)
+TC-233: Execute in Elevated mode only → Expected: Success
+TC-234: Execute in Learning mode only → Expected: Success
+TC-235: Execute in both Elevated and Learning modes → Expected: Success
+
+5.2 License Tests
+
+TC-236: Execute without proper license type → Expected: Error (requires License type A)
+TC-237: Execute with expired license → Expected: Error
+TC-238: Execute with valid License type A → Expected: Success
+TC-239: Execute with different license type (not A) → Expected: Error
+
+5.3 Permissions Tests
+
+TC-240: Execute as root user → Expected: Success
+TC-241: Execute as non-root user with proper permissions → Expected: Success or Error
+TC-242: Execute as non-root user without proper permissions → Expected: Error
+
+6. Boundary and Edge Cases
+6.1 Limits and Boundaries
+
+TC-243: Add entry to ACL with 0 existing entries → Expected: Success
+TC-244: Add entry to ACL with 1 existing entry → Expected: Success
+TC-245: Add entry to ACL with 10 existing entries → Expected: Success
+TC-246: Add entry to ACL with 100 existing entries → Expected: Success
+TC-247: Add entry to ACL at maximum allowed entries → Expected: Success or Error
+TC-248: Add entry to ACL beyond maximum allowed entries → Expected: Error
+TC-249: Add entry with very long user name (255 chars) → Expected: Success or Error
+TC-250: Add entry with very long group name (255 chars) → Expected: Success or Error
+TC-251: Add entry with maximum program index → Expected: Success or Error
+
+6.2 Duplicate and Similar Entries
+
+TC-252: Add identical entry twice (all parameters same) → Expected: Success or Warning
+TC-253: Add entry with same user/group but different mode → Expected: Success
+TC-254: Add entry with same user/group but different time → Expected: Success
+TC-255: Add entry with same user/group but allow vs deny → Expected: Success
+TC-256: Add entry that conflicts with existing entry → Expected: Success (check precedence)
+
+6.3 Special Characters and Encoding
+
+TC-257: Add entry with user name containing spaces (properly quoted) → Expected: Success or Error
+TC-258: Add entry with user name containing special chars (@, -, _, .) → Expected: Success or Error
+TC-259: Add entry with user name containing Unicode characters → Expected: Success or Error
+TC-260: Add entry with group name containing special characters → Expected: Success or Error
+TC-261: Add entry with non-ASCII characters in parameters → Expected: Success or Error
+
+7. Command Line Parsing and Syntax Tests
+7.1 Option Format Tests
+
+TC-262: Execute with extra spaces between options → Expected: Success
+TC-263: Execute with tabs between options → Expected: Success
+TC-264: Execute with options on multiple lines (using ) → Expected: Success or Error
+TC-265: Execute with quoted parameters containing spaces → Expected: Success
+TC-266: Execute with single quotes around parameters → Expected: Success
+TC-267: Execute with double quotes around parameters → Expected: Success
+TC-268: Execute with missing space after option flag -i1 → Expected: Error or Success
+TC-269: Execute with equals sign -i=1 → Expected: Error or Success
+
+7.2 Invalid Options and Help
+
+TC-270: Execute with unknown option -z → Expected: Error
+TC-271: Execute with help option -h → Expected: Display help text
+TC-272: Execute with --help → Expected: Display help text or Error
+TC-273: Execute with -? → Expected: Display help or Error
+TC-274: Execute with no options at all → Expected: Display help or Error
+
+7.3 Option Value Tests
+
+TC-275: Execute with option value containing special shell characters → Expected: Success or Error
+TC-276: Execute with option value containing semicolon → Expected: Success or Error
+TC-277: Execute with option value containing pipe → Expected: Success or Error
+TC-278: Execute with very long command line (>1024 chars) → Expected: Success or Error
+
+8. Access Mode Behavior Verification Tests
+8.1 Allow Entry Matching
+
+TC-279: Create allow entry -m r, verify read access allowed → Expected: Allow
+TC-280: Create allow entry -m r, verify write access denied → Expected: Deny
+TC-281: Create allow entry -m rw, verify read access allowed → Expected: Allow (subset)
+TC-282: Create allow entry -m rw, verify write access allowed → Expected: Allow (subset)
+TC-283: Create allow entry -m rw, verify execute access denied → Expected: Deny
+TC-284: Create allow entry -m r, verify read-write access denied → Expected: Deny (not subset)
+TC-285: Create allow entry -m rwx, verify any access allowed → Expected: Allow
+
+8.2 Deny Entry Matching
+
+TC-286: Create deny entry -m r, verify read access denied → Expected: Deny
+TC-287: Create deny entry -m r, verify write access allowed (if other rules allow) → Expected: Depends on other rules
+TC-288: Create deny entry -m rw, verify read access denied → Expected: Deny (any match)
+TC-289: Create deny entry -m rw, verify write access denied → Expected: Deny (any match)
+TC-290: Create deny entry -m rw, verify execute access allowed (if other rules allow) → Expected: Depends on other rules
+TC-291: Create deny entry -m rwx, verify any access denied → Expected: Deny
+
+8.3 Time-Based Access
+
+TC-292: Create entry with time restriction, access during allowed time → Expected: Rule applies
+TC-293: Create entry with time restriction, access outside allowed time → Expected: Rule does not apply
+TC-294: Create entry with day restriction, access on allowed day → Expected: Rule applies
+TC-295: Create entry with day restriction, access on disallowed day → Expected: Rule does not apply
+TC-296: Create entry with multiple time ranges, access in first range → Expected: Rule applies
+TC-297: Create entry with multiple time ranges, access in second range → Expected: Rule applies
+TC-298: Create entry with multiple time ranges, access outside all ranges → Expected: Rule does not apply
+
+9. Error Message Validation Tests
+9.1 Required Error Messages
+
+TC-299: Verify error message format for missing -i option
+TC-300: Verify error message format for missing -a or -d option
+TC-301: Verify error message format for missing -m option
+TC-302: Verify error message format for missing user/group/program option
+TC-303: Verify error message format for invalid user ID
+TC-304: Verify error message format for invalid group ID
+TC-305: Verify error message format for invalid program index
+TC-306: Verify error message format for "No ACL configuration file found"
+
+9.2 Error Message Content
+
+TC-307: Verify error messages are clear and actionable
+TC-308: Verify error messages match documentation
+TC-309: Verify error messages include relevant context
+TC-310: Verify no sensitive information in error messages
+
+10. Performance and Stress Tests
+10.1 Performance Tests
+
+TC-311: Execute command 10 times in rapid succession → Expected: All succeed
+TC-312: Execute command 100 times in rapid succession → Expected: All succeed
+TC-313: Add 10 entries to same ACL sequentially → Expected: All succeed
+TC-314: Add 50 entries to same ACL sequentially → Expected: All succeed
+TC-315: Measure execution time for single entry addition → Expected: < defined threshold
+TC-316: Add entry with very long time specification (20+ -t options) → Expected: Success or Error
+
+10.2 Concurrency Tests
+
+TC-317: Execute 2 commands simultaneously on different ACLs → Expected: Both succeed
+TC-318: Execute 2 commands simultaneously on same ACL → Expected: Proper locking/serialization
+TC-319: Execute 5 commands simultaneously → Expected: All succeed with proper synchronization
+TC-320: Execute command while another command is reading ACL → Expected: Success with proper locking
+
+10.3 Resource Tests
+
+TC-321: Execute command with very large ACL file (1000+ entries) → Expected: Success
+TC-322: Execute command with minimal system resources → Expected: Success or graceful error
+TC-323: Execute command with low memory → Expected: Success or graceful error
+TC-324: Execute command with low disk space → Expected: Error with clear message
+
+11. Documentation and Examples Validation
+11.1 Documentation Examples
+
+TC-325: Execute all examples from documentation exactly as written → Expected: All succeed
+TC-326: Execute all examples from help output exactly as written → Expected: All succeed
+TC-327: Verify example 1 from doc: QDocSEConsole -c acl_add -i 1 -a -m rw -u ted
+TC-328: Verify example 2 from doc: QDocSEConsole -c acl_add -i 1 -a -m r -u sam -t 09:00:00-15:00:00
+TC-329: Verify example 1 from help: QDocSEConsole -c acl_add -i 1 -a -g mail -m rw
+TC-330: Verify example 2 from help: QDocSEConsole -c acl_add -i 1 -a -u rich -m rx -t monwedfri-08:30:00-16:00:00
+TC-331: Verify example 3 from help: QDocSEConsole -c acl_add -i 1 -a -u rich -m rx -t 08:30:00-18:00:00
+
+11.2 Documentation Consistency
+
+TC-332: Verify all documented options are implemented
+TC-333: Verify all documented error messages appear correctly
+TC-334: Verify help output matches actual behavior
+TC-335: Identify any undocumented options or behavior
+TC-336: Verify documentation describes current version behavior
+
+11.3 Discrepancy Tests (Doc vs Help Output)
+
+TC-337: Test if -b and -l options work as described in help (not in doc)
+TC-338: Verify behavior when documentation and help differ
+TC-339: Test Notes section items from help output
+TC-340: Verify time specification format matches help output format
+
+12. Regression Tests
+12.1 Previously Fixed Issues
+
+TC-341: Test any previously reported bugs are fixed
+TC-342: Test edge cases from previous versions
+TC-343: Verify fixes don't break existing functionality
+
+13. Security Tests
+13.1 Input Validation
+
+TC-344: Test SQL injection patterns in user/group names → Expected: Properly escaped/rejected
+TC-345: Test command injection patterns in parameters → Expected: Properly escaped/rejected
+TC-346: Test path traversal patterns → Expected: Rejected
+TC-347: Test buffer overflow with extremely long inputs → Expected: Graceful error
+
+13.2 Access Control
+
+TC-348: Verify non-privileged users cannot add entries without permission
+TC-349: Verify ACL entries respect system security policies
+TC-350: Verify audit logging of ACL additions (if applicable)
+
+
+Test Summary
+Total Test Cases: 350
+Priority Distribution:
+
+P0 (Critical): TC-001 to TC-083, TC-228 to TC-235 (95 test cases) - Core functionality, required options, system prerequisites
+P1 (High): TC-084 to TC-192, TC-207 to TC-227, TC-325 to TC-331 (145 test cases) - Optional features, integration tests, documentation examples
+P2 (Medium): TC-193 to TC-206, TC-236 to TC-291, TC-299 to TC-310, TC-337 to TC-343 (100 test cases) - ACL consistency, behavior verification, error validation
+P3 (Low): TC-292 to TC-298, TC-311 to TC-324, TC-332 to TC-336, TC-344 to TC-350 (55 test cases) - Performance, security, edge cases
+
+Test Coverage:
+
+✅ All required options (-i, -a/-d, -m, -u/-g/-p)
+✅ All optional options (-t, -b, -l)
+✅ All weekdays (individual, combinations, full names, abbreviations)
+✅ Time specifications (all formats, edge cases, multiple -t)
+✅ Mode specifications (symbolic and octal)
+✅ ACL type consistency (user/group vs program)
+✅ System states and prerequisites
+✅ Error conditions and messages
+✅ Integration scenarios
+✅ Performance and concurrency
+✅ Security validation
+✅ Documentation compliance
